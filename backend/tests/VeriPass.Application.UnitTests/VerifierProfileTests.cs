@@ -49,21 +49,21 @@ public class VerifierProfileTests
             {
                 Id = Guid.NewGuid(),
                 UserId = verifierId,
-                Token = "token1",
-                ExpiresAtUtc = DateTime.UtcNow.AddDays(7),
-                CreatedAtUtc = DateTime.UtcNow.AddDays(-1),
+                TokenHash = "token1",
+                ExpiresAt = DateTime.UtcNow.AddDays(7),
+                CreatedAt = DateTime.UtcNow.AddDays(-1),
                 IsRevoked = false,
-                DeviceInfo = "Windows 11 / Chrome 128"
+                CreatedByIp = "10.240.12.84"
             },
             new RefreshToken
             {
                 Id = Guid.NewGuid(),
                 UserId = verifierId,
-                Token = "token2",
-                ExpiresAtUtc = DateTime.UtcNow.AddDays(7),
-                CreatedAtUtc = DateTime.UtcNow.AddHours(-2),
+                TokenHash = "token2",
+                ExpiresAt = DateTime.UtcNow.AddDays(7),
+                CreatedAt = DateTime.UtcNow.AddHours(-2),
                 IsRevoked = false,
-                DeviceInfo = "iOS 18 / Safari"
+                CreatedByIp = "10.240.12.91"
             }
         );
 
@@ -73,11 +73,11 @@ public class VerifierProfileTests
             {
                 Id = Guid.NewGuid(),
                 UserId = verifierId,
-                Token = "token3",
-                ExpiresAtUtc = DateTime.UtcNow.AddDays(7),
-                CreatedAtUtc = DateTime.UtcNow.AddDays(-5),
+                TokenHash = "token3",
+                ExpiresAt = DateTime.UtcNow.AddDays(7),
+                CreatedAt = DateTime.UtcNow.AddDays(-5),
                 IsRevoked = true,
-                DeviceInfo = "Old Device"
+                CreatedByIp = "10.240.12.50"
             }
         );
 
@@ -117,11 +117,11 @@ public class VerifierProfileTests
         var handler = new VerifierProfileUseCasesHandler(context, mockUserService.Object);
         var res = await handler.Handle(new GetVerifierProfileQuery("30d"), CancellationToken.None);
 
-        res.Succeeded.Should().BeTrue();
-        var result = res.Data!;
+        res.IsSuccess.Should().BeTrue();
+        var result = res.Value!;
         result.Profile.FullName.Should().Be("Rahul Sharma");
         result.Profile.Email.Should().Be("verifier@veripass.in");
-        result.Profile.Role.Should().Be("VERIFIER");
+        result.Profile.Role.Should().Be("Compliance Officer");
         result.Profile.Status.Should().Be("ACTIVE");
         result.Profile.VerifierId.Should().StartWith("VER-");
 
@@ -146,6 +146,16 @@ public class VerifierProfileTests
         var mockUserService = new Mock<ICurrentUserService>();
         mockUserService.Setup(s => s.UserId).Returns(verifierId);
         mockUserService.Setup(s => s.Roles).Returns(new List<string> { "VERIFIER" });
+
+        var user = new User
+        {
+            Id = verifierId,
+            FirstName = "Rahul",
+            LastName = "Sharma",
+            Email = "verifier@veripass.in",
+            Status = "ACTIVE"
+        };
+        context.Users.Add(user);
 
         var biz = new Business { Id = Guid.NewGuid(), LegalName = "Acme Corp", Gstin = "09ABCDE1234F1Z5" };
         context.Businesses.Add(biz);
@@ -184,8 +194,8 @@ public class VerifierProfileTests
 
         // 7 days range
         var res7d = await handler.Handle(new GetVerifierActivityQuery("7d"), CancellationToken.None);
-        res7d.Succeeded.Should().BeTrue();
-        var act7d = res7d.Data!;
+        res7d.IsSuccess.Should().BeTrue();
+        var act7d = res7d.Value!;
         act7d.CasesReviewed.Should().Be(1);
         act7d.Approved.Should().Be(1);
         act7d.Rejected.Should().Be(0);
@@ -193,8 +203,8 @@ public class VerifierProfileTests
 
         // 30 days range
         var res30d = await handler.Handle(new GetVerifierActivityQuery("30d"), CancellationToken.None);
-        res30d.Succeeded.Should().BeTrue();
-        var act30d = res30d.Data!;
+        res30d.IsSuccess.Should().BeTrue();
+        var act30d = res30d.Value!;
         act30d.CasesReviewed.Should().Be(2);
         act30d.Approved.Should().Be(1);
         act30d.Rejected.Should().Be(1);
@@ -210,35 +220,45 @@ public class VerifierProfileTests
         mockUserService.Setup(s => s.UserId).Returns(verifierId);
         mockUserService.Setup(s => s.Roles).Returns(new List<string> { "VERIFIER" });
 
+        var user = new User
+        {
+            Id = verifierId,
+            FirstName = "Rahul",
+            LastName = "Sharma",
+            Email = "verifier@veripass.in",
+            Status = "ACTIVE"
+        };
+        context.Users.Add(user);
+
         var s1 = new RefreshToken
         {
             Id = Guid.NewGuid(),
             UserId = verifierId,
-            Token = "secret-token-1",
-            ExpiresAtUtc = DateTime.UtcNow.AddDays(7),
-            CreatedAtUtc = DateTime.UtcNow.AddDays(-1),
+            TokenHash = "secret-token-1",
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            CreatedAt = DateTime.UtcNow.AddDays(-1),
             IsRevoked = false,
-            DeviceInfo = "Windows 11 / Chrome 128"
+            CreatedByIp = "10.240.12.84"
         };
         var s2 = new RefreshToken
         {
             Id = Guid.NewGuid(),
             UserId = verifierId,
-            Token = "secret-token-2",
-            ExpiresAtUtc = DateTime.UtcNow.AddDays(7),
-            CreatedAtUtc = DateTime.UtcNow.AddHours(-1),
+            TokenHash = "secret-token-2",
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            CreatedAt = DateTime.UtcNow.AddHours(-1),
             IsRevoked = false,
-            DeviceInfo = "Mac OS / Firefox"
+            CreatedByIp = "10.240.12.91"
         };
         var sExpired = new RefreshToken
         {
             Id = Guid.NewGuid(),
             UserId = verifierId,
-            Token = "secret-token-3",
-            ExpiresAtUtc = DateTime.UtcNow.AddDays(-1), // Expired
-            CreatedAtUtc = DateTime.UtcNow.AddDays(-8),
+            TokenHash = "secret-token-3",
+            ExpiresAt = DateTime.UtcNow.AddDays(-1), // Expired
+            CreatedAt = DateTime.UtcNow.AddDays(-8),
             IsRevoked = false,
-            DeviceInfo = "Linux / Chrome"
+            CreatedByIp = "10.240.12.50"
         };
         context.RefreshTokens.AddRange(s1, s2, sExpired);
         await context.SaveChangesAsync();
@@ -246,8 +266,8 @@ public class VerifierProfileTests
         var handler = new VerifierProfileUseCasesHandler(context, mockUserService.Object);
         var res = await handler.Handle(new GetVerifierSessionsQuery(), CancellationToken.None);
 
-        res.Succeeded.Should().BeTrue();
-        var result = res.Data!;
+        res.IsSuccess.Should().BeTrue();
+        var result = res.Value!;
         result.Should().HaveCount(2);
         result.Should().NotContain(s => s.Id == sExpired.Id);
         result.First().IsCurrent.Should().BeTrue(); // s2 created more recently
@@ -262,25 +282,35 @@ public class VerifierProfileTests
         mockUserService.Setup(s => s.UserId).Returns(verifierId);
         mockUserService.Setup(s => s.Roles).Returns(new List<string> { "VERIFIER" });
 
+        var user = new User
+        {
+            Id = verifierId,
+            FirstName = "Rahul",
+            LastName = "Sharma",
+            Email = "verifier@veripass.in",
+            Status = "ACTIVE"
+        };
+        context.Users.Add(user);
+
         var s1 = new RefreshToken
         {
             Id = Guid.NewGuid(),
             UserId = verifierId,
-            Token = "secret-1",
-            ExpiresAtUtc = DateTime.UtcNow.AddDays(7),
-            CreatedAtUtc = DateTime.UtcNow.AddDays(-1),
+            TokenHash = "secret-1",
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            CreatedAt = DateTime.UtcNow.AddDays(-1),
             IsRevoked = false,
-            DeviceInfo = "Windows 11 / Chrome 128"
+            CreatedByIp = "10.240.12.84"
         };
         var s2 = new RefreshToken
         {
             Id = Guid.NewGuid(),
             UserId = verifierId,
-            Token = "secret-2",
-            ExpiresAtUtc = DateTime.UtcNow.AddDays(7),
-            CreatedAtUtc = DateTime.UtcNow.AddHours(-1),
+            TokenHash = "secret-2",
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            CreatedAt = DateTime.UtcNow.AddHours(-1),
             IsRevoked = false,
-            DeviceInfo = "iOS 18 / Safari"
+            CreatedByIp = "10.240.12.91"
         };
         context.RefreshTokens.AddRange(s1, s2);
         await context.SaveChangesAsync();
@@ -288,8 +318,8 @@ public class VerifierProfileTests
         var handler = new VerifierProfileUseCasesHandler(context, mockUserService.Object);
         var res = await handler.Handle(new RevokeVerifierOtherSessionsCommand(), CancellationToken.None);
 
-        res.Succeeded.Should().BeTrue();
-        res.Data.Should().Be(1);
+        res.IsSuccess.Should().BeTrue();
+        res.Value.Should().Be(1);
 
         var updatedS1 = await context.RefreshTokens.FindAsync(s1.Id);
         var updatedS2 = await context.RefreshTokens.FindAsync(s2.Id);
@@ -327,8 +357,8 @@ public class VerifierProfileTests
         var handler = new VerifierProfileUseCasesHandler(context, mockUserService.Object);
         var res = await handler.Handle(new ToggleVerifierMfaCommand(true), CancellationToken.None);
 
-        res.Succeeded.Should().BeTrue();
-        res.Data.Should().BeTrue();
+        res.IsSuccess.Should().BeTrue();
+        res.Value.Should().BeTrue();
 
         var updatedUser = await context.Users.FindAsync(verifierId);
         updatedUser!.MfaEnabled.Should().BeTrue();
