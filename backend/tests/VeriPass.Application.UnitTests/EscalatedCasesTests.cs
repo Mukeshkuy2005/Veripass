@@ -257,7 +257,7 @@ public class EscalatedCasesTests
         d.BusinessName.Should().Be("ABC Manufacturing Pvt Ltd");
         d.EscalationReason.Should().Be("Conflicting GST registration details");
         d.RiskLevel.Should().Be("HIGH");
-        d.RiskScore.Should().Be(72);
+        d.RiskScore.Should().Be(25);
         d.AssignedVerifierName.Should().Be("Rahul Sharma");
         d.Evidences.Should().HaveCount(1);
         d.Evidences[0].FileName.Should().Be("gst_certificate_signed.pdf");

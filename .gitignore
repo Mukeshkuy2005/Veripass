@@ -38,8 +38,7 @@ project.assets.json
 *.nuget.props
 *.nuget.targets
 
-# ClickOnce and install files
-*.application
+# ClickOnce and install files (not targeting VeriPass.Application)
 *.manifest
 *.deploy
 *.msi

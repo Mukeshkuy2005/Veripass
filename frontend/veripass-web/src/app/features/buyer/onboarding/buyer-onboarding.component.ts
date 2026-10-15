@@ -248,59 +248,16 @@ export class BuyerOnboardingComponent implements OnInit {
     this.isSearchingSuppliers.set(true);
     const query = this.supplierSearchQuery.trim().toLowerCase();
 
-    const registeredSuppliers: SupplierSearchItem[] = [
-      {
-        id: '4a2460fa-8c92-4315-a773-719b9a920ba3',
-        businessName: 'ABC INDUSTRIAL DYNAMICS',
-        legalName: 'ABC INDUSTRIAL DYNAMICS',
-        tradeName: 'ABC Industrial Dynamics',
-        passportId: 'VP-IN-2026-92644',
-        gstinMasked: '27AA****ZM',
-        panMasked: 'AABC****3R',
-        location: 'Mumbai, Maharashtra',
-        industry: 'Precision Engineering & Tooling',
-        verificationStatus: 'VERIFIED',
-        trustScore: 88
-      },
-      {
-        id: 'a6411310-7740-40db-9922-b1c2a1047d3d',
-        businessName: 'Axionis manufacturing pvt ltd',
-        legalName: 'Axionis manufacturing pvt ltd',
-        tradeName: 'Axionis Manufacturing',
-        passportId: 'VP-IN-2026-46190',
-        gstinMasked: '29AA****Z5',
-        panMasked: 'AABC****4F',
-        location: 'Bengaluru, Karnataka',
-        industry: 'IT & Electronic Systems',
-        verificationStatus: 'VERIFIED',
-        trustScore: 82
-      }
-    ];
-
     this.onboardingService.searchSuppliers(query || undefined).subscribe({
       next: (results) => {
-        let suppliersList = results || [];
-        if (suppliersList.length === 0) {
-          suppliersList = registeredSuppliers.filter(s =>
-            !query ||
-            s.businessName.toLowerCase().includes(query) ||
-            s.legalName.toLowerCase().includes(query) ||
-            (s.location && s.location.toLowerCase().includes(query))
-          );
-        }
-
+        // Enforce buyer supplier selection rule: only score > 50
+        const suppliersList = (results || []).filter(s => (s.trustScore ?? 0) > 50);
         this.supplierSearchResults.set(suppliersList);
         this.isSearchingSuppliers.set(false);
       },
       error: (err) => {
-        console.error('Error searching suppliers, using registered suppliers fallback', err);
-        const filtered = registeredSuppliers.filter(s =>
-          !query ||
-          s.businessName.toLowerCase().includes(query) ||
-          s.legalName.toLowerCase().includes(query) ||
-          (s.location && s.location.toLowerCase().includes(query))
-        );
-        this.supplierSearchResults.set(filtered);
+        console.error('Error searching suppliers from backend:', err);
+        this.supplierSearchResults.set([]);
         this.isSearchingSuppliers.set(false);
       }
     });

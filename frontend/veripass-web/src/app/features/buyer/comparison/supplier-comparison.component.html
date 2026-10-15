@@ -172,7 +172,12 @@
           </div>
           <div class="kpi-mini-pill">
             <span class="kmp-label">Risk Rating</span>
-            <span class="kmp-val text-emerald">{{ leader.riskLevel }} Risk</span>
+            <span class="kmp-val" 
+              [class.text-emerald]="leader.riskLevel.toUpperCase() === 'LOW'" 
+              [class.text-amber]="leader.riskLevel.toUpperCase() === 'MEDIUM'" 
+              [class.text-red]="leader.riskLevel.toUpperCase() === 'HIGH'">
+              {{ leader.riskLevel | uppercase }} Risk
+            </span>
           </div>
         </div>
       </div>
@@ -419,8 +424,11 @@
               <span class="cell-sub">Algorithmic insolvency &amp; ITC exposure rating</span>
             </td>
             <td *ngFor="let s of comparedSuppliers()" [class.leader-col]="s.isLeader" [class.diff-cell]="hasFieldVariance('riskLevel')">
-              <span class="badge-risk-pill" [class.risk-low]="s.riskLevel === 'Low'" [class.risk-med]="s.riskLevel === 'Medium'" [class.risk-high]="s.riskLevel === 'High'">
-                ● {{ s.riskLevel }} Risk Standing
+              <span class="badge-risk-pill" 
+                [class.risk-low]="s.riskLevel.toUpperCase() === 'LOW'" 
+                [class.risk-med]="s.riskLevel.toUpperCase() === 'MEDIUM'" 
+                [class.risk-high]="s.riskLevel.toUpperCase() === 'HIGH'">
+                ● {{ s.riskLevel | uppercase }} Risk Standing
               </span>
             </td>
             <td class="add-slot-cell" *ngIf="comparedSuppliers().length < 4"></td>

@@ -30,9 +30,11 @@ public class SuppliersController : ControllerBase
         [FromQuery] string? credential,
         [FromQuery] string? verificationStatus,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
+        [FromQuery] int pageSize = 20,
+        [FromQuery] bool? buyerOnly = null)
     {
-        var result = await _mediator.Send(new SearchSuppliersQuery(query, state, industry, minTrustScore, credential, verificationStatus, page, pageSize));
+        var isBuyerOnly = buyerOnly ?? (_currentUserService.IsAuthenticated && _currentUserService.Roles.Contains("Buyer"));
+        var result = await _mediator.Send(new SearchSuppliersQuery(query, state, industry, minTrustScore, credential, verificationStatus, page, pageSize, isBuyerOnly));
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { message = result.Error });
     }
 
@@ -54,9 +56,11 @@ public class SuppliersController : ControllerBase
         [FromQuery] string? requiredCredential,
         [FromQuery] string? verificationStatus,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
+        [FromQuery] int pageSize = 20,
+        [FromQuery] bool? buyerOnly = null)
     {
-        var result = await _mediator.Send(new SearchSuppliersQuery(query, state, industry, minTrustScore, requiredCredential, verificationStatus, page, pageSize));
+        var isBuyerOnly = buyerOnly ?? (_currentUserService.IsAuthenticated && _currentUserService.Roles.Contains("Buyer"));
+        var result = await _mediator.Send(new SearchSuppliersQuery(query, state, industry, minTrustScore, requiredCredential, verificationStatus, page, pageSize, isBuyerOnly));
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { message = result.Error });
     }
 

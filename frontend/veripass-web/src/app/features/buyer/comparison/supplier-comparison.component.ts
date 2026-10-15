@@ -92,7 +92,7 @@ export class SupplierComparisonComponent implements OnInit {
   });
 
   clusterHasWarning = computed(() => {
-    return this.comparedSuppliers().some(s => s.riskLevel === 'High' || s.status !== 'Verified');
+    return this.comparedSuppliers().some(s => s.riskLevel.toUpperCase() === 'HIGH' || s.status !== 'Verified');
   });
 
   // Available suppliers for the Add Modal
@@ -103,6 +103,9 @@ export class SupplierComparisonComponent implements OnInit {
     const currentIds = this.comparedSuppliers().map(c => c.id.toLowerCase());
 
     return all.filter(s => {
+      // Buyer supplier eligibility rule: strictly score > 50
+      if (s.trustScore <= 50) return false;
+
       const matchesSearch = !term ||
         s.name.toLowerCase().includes(term) ||
         s.legalName.toLowerCase().includes(term) ||
@@ -200,7 +203,9 @@ export class SupplierComparisonComponent implements OnInit {
     const status: 'Verified' | 'Partially Verified' | 'Expired' =
       d.verificationStatus === 'VERIFIED' ? 'Verified' :
       (d.verificationStatus === 'FLAGGED' || d.verificationStatus === 'EXPIRED' ? 'Expired' : (catSupplier?.status || 'Partially Verified'));
-    const riskLevel: 'Low' | 'Medium' | 'High' = score >= 85 ? 'Low' : (score >= 70 ? 'Medium' : 'High');
+    const riskLevel: 'Low' | 'Medium' | 'High' = d.riskLevel
+      ? ((d.riskLevel as string).toUpperCase() === 'HIGH' ? 'High' : ((d.riskLevel as string).toUpperCase() === 'LOW' ? 'Low' : 'Medium'))
+      : (score < 35 ? 'High' : (score <= 70 ? 'Medium' : 'Low'));
 
     return {
       id: d.businessId,
@@ -252,7 +257,7 @@ export class SupplierComparisonComponent implements OnInit {
           credentialScore: s.trustScore,
           complianceScore: s.complianceScore,
           verificationScore: s.trustScore,
-          riskScore: s.trustScore >= 85 ? 90 : 50,
+          riskScore: s.trustScore,
           riskLevel: s.riskLevel,
           yearsActive: s.yearsActive,
           gstin: s.gstin,

@@ -55,7 +55,10 @@
     <div class="score-column">
       <span class="score-label">OVERALL TRUST SCORE</span>
       <div class="score-big text-blue">{{ s.trustScore }} <span class="score-max">/ 100</span></div>
-      <div class="risk-rating-pill" [class.risk-low]="s.riskLevel === 'Low'" [class.risk-med]="s.riskLevel === 'Medium'">
+      <div class="risk-rating-pill" 
+        [class.risk-low]="s.riskLevel.toUpperCase() === 'LOW'" 
+        [class.risk-med]="s.riskLevel.toUpperCase() === 'MEDIUM'"
+        [class.risk-high]="s.riskLevel.toUpperCase() === 'HIGH'">
         ● {{ s.riskLevel | uppercase }} RISK PROFILE
       </div>
     </div>

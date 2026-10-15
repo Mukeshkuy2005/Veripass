@@ -758,6 +758,19 @@
   border: 1px solid #FECACA;
 }
 
+.badge-risk-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.risk-low { background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; }
+.risk-med { background: #FFFBEB; color: #D97706; border: 1px solid #FDE68A; }
+.risk-high { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
+
 .compare-checkbox-label {
   display: inline-flex;
   align-items: center;

@@ -226,6 +226,12 @@
   border: 1px solid #FDE68A;
 }
 
+.risk-high {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+}
+
 .divider-vertical {
   width: 1px;
   height: 80px;

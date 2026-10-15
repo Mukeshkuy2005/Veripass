@@ -331,8 +331,11 @@
 
             <div class="score-line">
               <span class="sc-lbl">RISK LEVEL</span>
-              <span class="badge-risk-pill" [class.risk-low]="s.riskLevel === 'Low'" [class.risk-med]="s.riskLevel === 'Medium'" [class.risk-high]="s.riskLevel === 'High'">
-                {{ s.riskLevel }} Risk
+              <span class="badge-risk-pill" 
+                [class.risk-low]="s.riskLevel.toUpperCase() === 'LOW'" 
+                [class.risk-med]="s.riskLevel.toUpperCase() === 'MEDIUM'" 
+                [class.risk-high]="s.riskLevel.toUpperCase() === 'HIGH'">
+                {{ s.riskLevel | uppercase }} Risk
               </span>
             </div>
           </div>

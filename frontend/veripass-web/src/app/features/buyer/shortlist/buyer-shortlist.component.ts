@@ -117,7 +117,9 @@ export class BuyerShortlistComponent implements OnInit {
           const cat = this.searchService.getSupplierById(item.businessId);
           const score = item.trustScore || cat?.trustScore || 0;
           const comp = item.complianceScore ?? cat?.complianceScore ?? 0;
-          const risk: 'Low' | 'Medium' | 'High' = score >= 85 ? 'Low' : (score >= 70 ? 'Medium' : 'High');
+          const risk: 'Low' | 'Medium' | 'High' = item.riskLevel
+            ? ((item.riskLevel as string).toUpperCase() === 'HIGH' ? 'High' : ((item.riskLevel as string).toUpperCase() === 'LOW' ? 'Low' : 'Medium'))
+            : (score < 35 ? 'High' : (score <= 70 ? 'Medium' : 'Low'));
           const status: 'Verified' | 'Partially Verified' | 'Expired' =
             (item.verificationStatus === 'VERIFIED' || cat?.status === 'Verified') ? 'Verified' : 'Partially Verified';
 
@@ -167,7 +169,9 @@ export class BuyerShortlistComponent implements OnInit {
       const cat = this.searchService.getSupplierById(item.businessId);
       const score = item.trustScore || cat?.trustScore || 0;
       const comp = item.complianceScore ?? cat?.complianceScore ?? 0;
-      const risk: 'Low' | 'Medium' | 'High' = score >= 85 ? 'Low' : (score >= 70 ? 'Medium' : 'High');
+      const risk: 'Low' | 'Medium' | 'High' = item.riskLevel
+        ? ((item.riskLevel as string).toUpperCase() === 'HIGH' ? 'High' : ((item.riskLevel as string).toUpperCase() === 'LOW' ? 'Low' : 'Medium'))
+        : (score < 35 ? 'High' : (score <= 70 ? 'Medium' : 'Low'));
       const status: 'Verified' | 'Partially Verified' | 'Expired' =
         (item.verificationStatus === 'VERIFIED' || cat?.status === 'Verified') ? 'Verified' : 'Partially Verified';
 
@@ -227,7 +231,7 @@ export class BuyerShortlistComponent implements OnInit {
     } else if (filter === 'High Priority') {
       list = list.filter(s => s.trustScore >= 92);
     } else if (filter === 'Low Risk') {
-      list = list.filter(s => s.riskLevel === 'Low');
+      list = list.filter(s => s.riskLevel.toUpperCase() === 'LOW');
     }
 
     // 3. Sorting
@@ -309,7 +313,7 @@ export class BuyerShortlistComponent implements OnInit {
   });
 
   lowRiskCount = computed(() => {
-    return this.allShortlistedSuppliers().filter(s => s.riskLevel === 'Low').length;
+    return this.allShortlistedSuppliers().filter(s => s.riskLevel.toUpperCase() === 'LOW').length;
   });
 
   // Active collection entity

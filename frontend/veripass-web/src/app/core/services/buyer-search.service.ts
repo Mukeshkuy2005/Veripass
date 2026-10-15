@@ -50,55 +50,8 @@ export class BuyerSearchService {
   private http = inject(HttpClient);
   private readonly apiUrl = 'http://localhost:5000/api/v1';
 
-  private readonly defaultSuppliers: BuyerSupplier[] = [
-    {
-      id: '4a2460fa-8c92-4315-a773-719b9a920ba3',
-      name: 'ABC INDUSTRIAL DYNAMICS',
-      legalName: 'ABC INDUSTRIAL DYNAMICS',
-      category: 'Precision Engineering & Tooling',
-      industry: 'Manufacturing',
-      location: 'MIDC Industrial Area, Mumbai, Maharashtra',
-      state: 'Maharashtra',
-      businessType: 'Private Limited Company',
-      trustScore: 88,
-      complianceScore: 92,
-      yearsActive: 6,
-      riskLevel: 'Low',
-      status: 'Verified',
-      gstin: '27AABCU9603R1ZM',
-      pan: 'AABCU9603R',
-      cin: 'U28999MH2020PTC345678',
-      udyam: 'UDYAM-MH-03-0012345',
-      certifications: ['GST', 'PAN', 'BANK_ACCOUNT', 'UDYAM'],
-      lastVerified: 'Verified',
-      isShortlisted: false
-    },
-    {
-      id: 'a6411310-7740-40db-9922-b1c2a1047d3d',
-      name: 'Axionis manufacturing pvt ltd',
-      legalName: 'Axionis manufacturing pvt ltd',
-      category: 'IT & Electronic Systems',
-      industry: 'IT Services',
-      location: 'Electronic City Phase 1, Bengaluru, Karnataka',
-      state: 'Karnataka',
-      businessType: 'Private Limited Company',
-      trustScore: 82,
-      complianceScore: 88,
-      yearsActive: 5,
-      riskLevel: 'Low',
-      status: 'Verified',
-      gstin: '29AABCA1234F1Z5',
-      pan: 'AABCA1234F',
-      cin: 'U72900KA2021PTC145678',
-      udyam: 'UDYAM-KR-03-0098765',
-      certifications: ['GST', 'PAN', 'ISO_9001'],
-      lastVerified: 'Verified',
-      isShortlisted: false
-    }
-  ];
-
   // Master Supplier Catalog for Enterprise Procurement Intelligence (loaded dynamically from database)
-  suppliers = signal<BuyerSupplier[]>(this.defaultSuppliers);
+  suppliers = signal<BuyerSupplier[]>([]);
 
   // Reactive Search & Filter State
   searchQuery = signal<string>('');
@@ -115,7 +68,7 @@ export class BuyerSearchService {
     state: '',
     businessTypes: [],
     verificationStatus: 'all',
-    minTrustScore: 70,
+    minTrustScore: 50,
     certifications: [],
     complianceStanding: 'all',
     minYears: 0
@@ -155,12 +108,12 @@ export class BuyerSearchService {
   }
 
   private fetchAndMergeSuppliers(backendShortlistIds: Set<string>): void {
-    this.http.get<any>(`${this.apiUrl}/suppliers`).subscribe({
+    this.http.get<any>(`${this.apiUrl}/suppliers?buyerOnly=true`).subscribe({
       next: (res) => {
         this.isLoading.set(false);
         const list = Array.isArray(res) ? res : (res?.suppliers || res?.items || res?.value || []);
         if (list.length === 0) {
-          this.suppliers.set(this.defaultSuppliers);
+          this.suppliers.set([]);
           return;
         }
 
@@ -172,7 +125,13 @@ export class BuyerSearchService {
             b.verificationStatus === 'VERIFIED' ? 'Verified' :
             (b.verificationStatus === 'FLAGGED' || b.verificationStatus === 'EXPIRED' ? 'Expired' : 'Partially Verified');
           const score = b.trustScore ?? 0;
-          const riskLevel: 'Low' | 'Medium' | 'High' = score >= 85 ? 'Low' : (score >= 70 ? 'Medium' : 'High');
+          let riskLevel: 'Low' | 'Medium' | 'High' = 'Medium';
+          if (b.riskLevel) {
+            const r = (b.riskLevel as string).toUpperCase();
+            riskLevel = r === 'HIGH' ? 'High' : (r === 'LOW' ? 'Low' : 'Medium');
+          } else {
+            riskLevel = score < 35 ? 'High' : (score <= 70 ? 'Medium' : 'Low');
+          }
 
           const isShortlisted = backendShortlistIds.has(bId) || this.isIdShortlisted(bId);
 
@@ -204,7 +163,7 @@ export class BuyerSearchService {
       error: (err) => {
         this.isLoading.set(false);
         console.warn('Backend suppliers fetch notice:', err);
-        this.suppliers.set(this.defaultSuppliers);
+        this.suppliers.set([]);
       }
     });
   }
@@ -226,11 +185,14 @@ export class BuyerSearchService {
     const tab = this.activeStatusTab();
 
     let list = this.suppliers().filter(supplier => {
+      // Buyer supplier eligibility rule: strictly score > 50
+      if (supplier.trustScore <= 50) return false;
+
       // Tab filter
       if (tab === 'verified' && supplier.status !== 'Verified') return false;
       if (tab === 'partially_verified' && supplier.status !== 'Partially Verified') return false;
       if (tab === 'shortlisted' && !supplier.isShortlisted) return false;
-      if (tab === 'flagged' && supplier.riskLevel !== 'High' && supplier.status !== 'Expired') return false;
+      if (tab === 'flagged' && supplier.riskLevel.toUpperCase() !== 'HIGH' && supplier.status !== 'Expired') return false;
 
       // Free text search matching name, legalName, industry, category, location, gstin, pan
       if (q) {
@@ -464,7 +426,7 @@ export class BuyerSearchService {
       state: '',
       businessTypes: [],
       verificationStatus: 'all',
-      minTrustScore: 70,
+      minTrustScore: 50,
       certifications: [],
       complianceStanding: 'all',
       minYears: 0

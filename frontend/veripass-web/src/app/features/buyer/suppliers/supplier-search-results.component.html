@@ -196,9 +196,9 @@
         Region: {{ filters().state }}
         <button class="chip-remove" (click)="clearState()">&times;</button>
       </span>
-      <span class="filter-chip" *ngIf="filters().minTrustScore > 70">
+      <span class="filter-chip" *ngIf="filters().minTrustScore > 50">
         Trust Score: &ge;{{ filters().minTrustScore }}
-        <button class="chip-remove" (click)="setMinScore(70)">&times;</button>
+        <button class="chip-remove" (click)="setMinScore(50)">&times;</button>
       </span>
       <span class="filter-chip" *ngFor="let c of filters().certifications">
         Cert: {{ c }}
@@ -300,16 +300,16 @@
         <div class="slider-wrap">
           <input
             type="range"
-            min="70"
+            min="50"
             max="100"
             step="1"
             class="score-slider"
             [ngModel]="filters().minTrustScore"
             (ngModelChange)="setMinScore($event)" />
           <div class="slider-ticks">
-            <span>70</span>
+            <span>50</span>
+            <span>65</span>
             <span>80</span>
-            <span>90</span>
             <span>100</span>
           </div>
         </div>
@@ -395,6 +395,13 @@
                 [class.pill-partial]="s.status === 'Partially Verified'"
                 [class.pill-flagged]="s.status === 'Expired'">
                 ● {{ s.status }}
+              </span>
+              <span
+                class="badge-risk-pill"
+                [class.risk-low]="s.riskLevel.toUpperCase() === 'LOW'"
+                [class.risk-med]="s.riskLevel.toUpperCase() === 'MEDIUM'"
+                [class.risk-high]="s.riskLevel.toUpperCase() === 'HIGH'">
+                {{ s.riskLevel | uppercase }} RISK
               </span>
 
               <label class="compare-checkbox-label" (click)="$event.stopPropagation()">
@@ -515,13 +522,22 @@
                   <span class="td-location">{{ s.state }}</span>
                 </td>
                 <td>
-                  <span
-                    class="status-pill"
-                    [class.pill-verified]="s.status === 'Verified'"
-                    [class.pill-partial]="s.status === 'Partially Verified'"
-                    [class.pill-flagged]="s.status === 'Expired'">
-                    ● {{ s.status }}
-                  </span>
+                  <div class="td-status-cell" style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
+                    <span
+                      class="status-pill"
+                      [class.pill-verified]="s.status === 'Verified'"
+                      [class.pill-partial]="s.status === 'Partially Verified'"
+                      [class.pill-flagged]="s.status === 'Expired'">
+                      ● {{ s.status }}
+                    </span>
+                    <span
+                      class="badge-risk-pill"
+                      [class.risk-low]="s.riskLevel.toUpperCase() === 'LOW'"
+                      [class.risk-med]="s.riskLevel.toUpperCase() === 'MEDIUM'"
+                      [class.risk-high]="s.riskLevel.toUpperCase() === 'HIGH'">
+                      {{ s.riskLevel | uppercase }} RISK
+                    </span>
+                  </div>
                 </td>
                 <td>
                   <div class="td-creds">
