@@ -1,0 +1,195 @@
+    <div class="history-view">
+      <!-- HEADER HERO -->
+      <div class="history-header vp-card">
+        <div class="header-left">
+          <div class="tag-row">
+            <span class="view-tag">IMMUTABLE AUDIT TRAIL</span>
+            <span class="cert-tag">SHA-256 VERIFIED</span>
+          </div>
+          <h1 class="page-title">Verification History</h1>
+          <p class="page-sub">
+            Cryptographically signed audit log of all automated registry queries, verifier decisions, and statutory compliance checks.
+          </p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-outline" (click)="refreshHistory()" [disabled]="isRefreshing()">
+            <span class="refresh-icon" [class.spinning]="isRefreshing()">↻</span>
+            <span>Refresh</span>
+          </button>
+          <a routerLink="/supplier/verification" class="btn btn-primary">
+            <span>Trust Dashboard &rarr;</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- KPI METRICS ROW -->
+      <div class="kpi-row">
+        <div class="kpi-mini-card" [class.active]="selectedTab() === 'All'" (click)="selectedTab.set('All')">
+          <div class="kpi-val">{{ totalCount() }}</div>
+          <div class="kpi-lbl">Total Audit Events</div>
+        </div>
+        <div class="kpi-mini-card" [class.active]="selectedTab() === 'Identity'" (click)="selectedTab.set('Identity')">
+          <div class="kpi-val text-green">{{ verifiedCount() }}</div>
+          <div class="kpi-lbl">Verified Checks</div>
+        </div>
+        <div class="kpi-mini-card" [class.active]="selectedTab() === 'Compliance'" (click)="selectedTab.set('Compliance')">
+          <div class="kpi-val text-amber">{{ flaggedCount() }}</div>
+          <div class="kpi-lbl">Flagged / Attention</div>
+        </div>
+        <div class="kpi-mini-card" [class.active]="selectedTab() === 'Documents'" (click)="selectedTab.set('Documents')">
+          <div class="kpi-val text-blue">{{ uploadedCount() }}</div>
+          <div class="kpi-lbl">Intake & Uploads</div>
+        </div>
+      </div>
+
+      <!-- TOOLBAR (FILTER TABS & SEARCH) -->
+      <div class="toolbar-row">
+        <div class="filter-tabs-row">
+          <button
+            *ngFor="let tab of tabs"
+            class="tab-btn"
+            [class.active]="selectedTab() === tab"
+            (click)="selectedTab.set(tab)">
+            <span>{{ tab }}</span>
+            <span class="tab-badge" [class.badge-active]="selectedTab() === tab">
+              {{ getTabCount(tab) }}
+            </span>
+          </button>
+        </div>
+
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input
+            type="text"
+            placeholder="Search by ID, credential, or source..."
+            [value]="searchQuery()"
+            (input)="searchQuery.set($any($event.target).value)"
+            class="search-input" />
+          <button *ngIf="searchQuery()" class="clear-search-btn" (click)="searchQuery.set('')" title="Clear search">&times;</button>
+        </div>
+      </div>
+
+      <!-- TIMELINE CARD -->
+      <div class="vp-card timeline-card">
+        <div *ngIf="filteredEvents().length > 0" class="audit-timeline">
+          <div
+            *ngFor="let ev of filteredEvents()"
+            class="timeline-item"
+            (click)="selectEvent(ev)"
+            tabindex="0"
+            role="button"
+            [attr.aria-label]="ev.title">
+            <div class="item-status-icon" [ngClass]="ev.status.toLowerCase()">
+              {{ ev.status === 'VERIFIED' ? '✓' : (ev.status === 'FLAGGED' ? '⚠' : '📄') }}
+            </div>
+
+            <div class="item-content">
+              <div class="item-top">
+                <span class="item-date">{{ ev.dateStr }} &bull; {{ ev.timeStr }}</span>
+                <span class="event-id-tag font-mono">{{ ev.id }}</span>
+              </div>
+              <strong class="item-title">{{ ev.title }}</strong>
+              <div class="item-meta-line">
+                <span>Source: <strong>{{ ev.source }}</strong></span>
+                <span class="bullet">&bull;</span>
+                <span>Credential: <strong class="font-mono">{{ ev.credential }}</strong></span>
+                <span class="bullet">&bull;</span>
+                <span>Category: {{ ev.category }}</span>
+              </div>
+            </div>
+
+            <div class="item-action">
+              <span class="vp-badge" [ngClass]="{
+                'badge-verified': ev.status === 'VERIFIED',
+                'badge-warning': ev.status === 'FLAGGED',
+                'badge-outline': ev.status === 'UPLOADED'
+              }">
+                {{ ev.newStatus }}
+              </span>
+              <span class="chevron-hint">&rarr;</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- EMPTY STATE -->
+        <div *ngIf="filteredEvents().length === 0" class="empty-state">
+          <div class="empty-icon">📋</div>
+          <h3 class="empty-title">No Audit Events Found</h3>
+          <p class="empty-desc" *ngIf="searchQuery()">
+            No verification events match your search query "{{ searchQuery() }}" in the "{{ selectedTab() }}" category.
+          </p>
+          <p class="empty-desc" *ngIf="!searchQuery()">
+            No verification audit events recorded yet for this supplier organization.
+          </p>
+          <button class="btn btn-outline btn-sm" (click)="searchQuery.set(''); selectedTab.set('All')">
+            Reset Filters
+          </button>
+        </div>
+      </div>
+
+      <!-- EVENT DETAIL MODAL -->
+      <div class="modal-backdrop" *ngIf="selectedEvent()" (click)="selectedEvent.set(null)">
+        <div class="event-modal vp-card" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <div>
+              <span class="modal-tag">IMMUTABLE AUDIT LOG RECORD</span>
+              <h2 class="modal-title">{{ selectedEvent()?.title }}</h2>
+            </div>
+            <button class="close-btn" (click)="selectedEvent.set(null)" aria-label="Close modal">&times;</button>
+          </div>
+
+          <div class="modal-body">
+            <div class="event-field-list">
+              <div class="field-row">
+                <span class="lbl">Event ID</span>
+                <span class="val font-mono">{{ selectedEvent()?.id }}</span>
+              </div>
+
+              <div class="field-row">
+                <span class="lbl">Credential</span>
+                <span class="val font-mono highlight">{{ selectedEvent()?.credential }}</span>
+              </div>
+
+              <div class="field-row">
+                <span class="lbl">Result</span>
+                <span class="val" [class.text-green]="selectedEvent()?.status === 'VERIFIED'" [class.text-amber]="selectedEvent()?.status === 'FLAGGED'">
+                  {{ selectedEvent()?.newStatus }}
+                </span>
+              </div>
+
+              <div class="field-row">
+                <span class="lbl">Category</span>
+                <span class="val">{{ selectedEvent()?.category }}</span>
+              </div>
+
+              <div class="field-row">
+                <span class="lbl">Performed By</span>
+                <span class="val">{{ selectedEvent()?.performedBy }}</span>
+              </div>
+
+              <div class="field-row">
+                <span class="lbl">Timestamp</span>
+                <span class="val">{{ selectedEvent()?.dateStr }} &bull; {{ selectedEvent()?.timeStr }}</span>
+              </div>
+
+              <div class="field-row">
+                <span class="lbl">Verification Source</span>
+                <span class="val">{{ selectedEvent()?.source }}</span>
+              </div>
+
+              <div class="field-row">
+                <span class="lbl">Status Transition</span>
+                <span class="val">{{ selectedEvent()?.prevStatus }} &rarr; <strong>{{ selectedEvent()?.newStatus }}</strong></span>
+              </div>
+            </div>
+
+            <div class="audit-integrity-note">
+              <span class="lock-icon">🔒</span>
+              <span>Cryptographic integrity validated with SHA-256 event fingerprinting. Immutable record anchored on VeriPass ledger.</span>
+            </div>
+
+            <button class="btn btn-primary w-full" (click)="selectedEvent.set(null)">Close Record</button>
+          </div>
+        </div>
+      </div>
+    </div>

@@ -1,0 +1,40 @@
+<div class="activity-card">
+  <div class="card-header">
+    <div class="header-left">
+      <h2 class="section-title">Recent Activity</h2>
+      <span class="sub-label">Sovereign audit history</span>
+    </div>
+    <a routerLink="/supplier/history" class="view-history-link">Full Audit Log →</a>
+  </div>
+
+  <div class="timeline-container" *ngIf="activities && activities.length > 0; else noActivity">
+    <div class="timeline-item" *ngFor="let act of activities; let last = last">
+      <div class="marker-col">
+        <div class="marker-dot" [ngClass]="act.status.toLowerCase()"></div>
+        <div class="marker-line" *ngIf="!last"></div>
+      </div>
+
+      <div class="item-body">
+        <div class="item-top-line">
+          <span class="activity-date" [title]="act.fullDate || act.date">{{ act.date }}</span>
+          <span class="activity-tag" *ngIf="act.tag">{{ act.tag }}</span>
+        </div>
+
+        <div class="activity-title-row">
+          <span class="activity-title">{{ act.title }}</span>
+          <span class="status-pill" [ngClass]="act.status.toLowerCase()">
+            {{ act.status }}
+          </span>
+        </div>
+
+        <p class="activity-subtitle">{{ act.subtitle }}</p>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #noActivity>
+    <div class="empty-activity">
+      <p class="empty-msg">No recent activity found.</p>
+    </div>
+  </ng-template>
+</div>

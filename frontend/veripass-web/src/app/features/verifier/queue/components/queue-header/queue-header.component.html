@@ -1,0 +1,61 @@
+<div class="queue-header-container">
+  <div class="header-titles">
+    <div class="title-row">
+      <h1 class="page-title">Verification Queue</h1>
+      <span class="badge-live-pulse" title="Connected to PostgreSQL Verification Engine">LIVE</span>
+    </div>
+    <p class="page-subtitle">
+      <ng-container *ngIf="scope === 'all'">
+        <strong class="count-highlight">{{ summary?.totalWaiting ?? totalCount }} cases waiting for review</strong>
+        <span class="sub-sep">•</span> Enterprise statutory verification & credential review
+      </ng-container>
+      <ng-container *ngIf="scope === 'my'">
+        <strong class="count-highlight">{{ summary?.myCasesCount ?? 0 }} cases assigned to you</strong>
+        <span class="sub-sep">•</span> Priority personal compliance review workstation
+      </ng-container>
+    </p>
+  </div>
+
+  <div class="header-actions">
+    <div class="scope-tabs-pill" role="tablist">
+      <button
+        type="button"
+        role="tab"
+        id="tab-my-cases"
+        class="tab-btn"
+        [class.active]="scope === 'my'"
+        (click)="selectScope('my')"
+        [attr.aria-selected]="scope === 'my'">
+        <span class="tab-label">My Cases</span>
+        <span class="tab-badge" [class.badge-active]="scope === 'my'">
+          {{ summary?.myCasesCount ?? 0 }}
+        </span>
+      </button>
+
+      <button
+        type="button"
+        role="tab"
+        id="tab-all-cases"
+        class="tab-btn"
+        [class.active]="scope === 'all'"
+        (click)="selectScope('all')"
+        [attr.aria-selected]="scope === 'all'">
+        <span class="tab-label">All Cases</span>
+        <span class="tab-badge" [class.badge-active]="scope === 'all'">
+          {{ summary?.totalWaiting ?? totalCount }}
+        </span>
+      </button>
+    </div>
+
+    <button
+      type="button"
+      id="btn-queue-refresh"
+      class="btn-refresh"
+      (click)="onRefresh()"
+      [disabled]="loading"
+      title="Fetch latest verification cases from database">
+      <span class="refresh-icon" [class.spin]="loading">↻</span>
+      <span class="refresh-text">{{ loading ? 'Syncing...' : 'Refresh' }}</span>
+    </button>
+  </div>
+</div>

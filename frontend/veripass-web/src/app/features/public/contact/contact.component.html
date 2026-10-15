@@ -1,0 +1,163 @@
+    <div class="contact-page">
+      <!-- 1. HERO -->
+      <section class="contact-hero">
+        <div class="container text-center">
+          <div class="badge-pill">GET IN TOUCH</div>
+          <h1 class="hero-title">CONTACT VERIPASS</h1>
+          <p class="hero-subtitle">
+            Have a question about business verification, partnerships or the platform? We're here to help.
+          </p>
+        </div>
+      </section>
+
+      <!-- 2. MAIN CONTACT SECTION -->
+      <section class="main-contact-section">
+        <div class="container contact-grid">
+          <!-- Left Column: Contact Form -->
+          <div class="form-card">
+            <h2 class="form-title">Send us a message</h2>
+            <p class="form-desc">Fill out the details below and a verification specialist will respond within 4 hours.</p>
+
+            @if (submitted()) {
+              <div class="success-banner animate-fadeIn">
+                <div class="success-circle">✓</div>
+                <div class="success-text">
+                  <h4 class="succ-title">Message Transmitted Successfully</h4>
+                  <p class="succ-p">
+                    Thank you, <strong>{{ formData.name }}</strong>. Your inquiry regarding <em>{{ formData.reason }}</em> has been assigned to our operations desk. A specialist will reply to <strong>{{ formData.email }}</strong> shortly.
+                  </p>
+                  <button type="button" (click)="resetForm()" class="btn btn-secondary btn-sm mt-3">
+                    Send Another Message
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <form (ngSubmit)="submitMessage()" class="contact-form">
+                <!-- Name -->
+                <div class="form-group">
+                  <label for="c-name" class="form-label">Name <span class="req">*</span></label>
+                  <input
+                    id="c-name"
+                    type="text"
+                    [(ngModel)]="formData.name"
+                    name="name"
+                    required
+                    placeholder="e.g. Vikram Patel"
+                    class="form-input"
+                  />
+                </div>
+
+                <!-- Email -->
+                <div class="form-group">
+                  <label for="c-email" class="form-label">Email <span class="req">*</span></label>
+                  <input
+                    id="c-email"
+                    type="email"
+                    [(ngModel)]="formData.email"
+                    name="email"
+                    required
+                    placeholder="e.g. vikram@company.in"
+                    class="form-input"
+                  />
+                </div>
+
+                <!-- Reason -->
+                <div class="form-group">
+                  <label for="c-reason" class="form-label">Reason</label>
+                  <select
+                    id="c-reason"
+                    [(ngModel)]="formData.reason"
+                    name="reason"
+                    class="form-select"
+                  >
+                    <option value="General Support">General Support</option>
+                    <option value="Business Passport & KYC">Business Passport & KYC</option>
+                    <option value="Buyer / Enterprise Procurement">Buyer / Enterprise Procurement</option>
+                    <option value="Strategic Partnerships">Strategic Partnerships</option>
+                    <option value="Verification Appeal / Dispute">Verification Appeal / Dispute</option>
+                  </select>
+                </div>
+
+                <!-- Business / Org -->
+                <div class="form-group">
+                  <label for="c-business" class="form-label">Business / Organization</label>
+                  <input
+                    id="c-business"
+                    type="text"
+                    [(ngModel)]="formData.business"
+                    name="business"
+                    placeholder="e.g. ABC INDUSTRIAL DYNAMICS"
+                    class="form-input"
+                  />
+                </div>
+
+                <!-- Message -->
+                <div class="form-group">
+                  <label for="c-msg" class="form-label">Message <span class="req">*</span></label>
+                  <textarea
+                    id="c-msg"
+                    rows="4"
+                    [(ngModel)]="formData.message"
+                    name="message"
+                    required
+                    placeholder="How can we assist your organization?"
+                    class="form-textarea"
+                  ></textarea>
+                </div>
+
+                <!-- Submit Button -->
+                <button
+                  type="submit"
+                  class="btn btn-primary btn-lg w-full"
+                  [disabled]="!formData.name || !formData.email || !formData.message"
+                >
+                  Send Message
+                </button>
+              </form>
+            }
+          </div>
+
+          <!-- Right Column: Contact Categories -->
+          <div class="categories-sidebar">
+            <h3 class="sidebar-heading">DIRECT INQUIRIES</h3>
+
+            <div class="cat-card">
+              <div class="cat-icon-wrap">🏢</div>
+              <div class="cat-body">
+                <h4 class="cat-card-title">BUSINESS SUPPORT</h4>
+                <p class="cat-card-desc">Questions about your passport, document uploads, or KYC verification status.</p>
+                <span class="cat-contact-link">support&#64;veripass.in</span>
+              </div>
+            </div>
+
+            <div class="cat-card">
+              <div class="cat-icon-wrap">🏛️</div>
+              <div class="cat-body">
+                <h4 class="cat-card-title">BUYER SUPPORT</h4>
+                <p class="cat-card-desc">Supplier discovery, enterprise verification pipelines, and ERP integrations.</p>
+                <span class="cat-contact-link">procurement&#64;veripass.in</span>
+              </div>
+            </div>
+
+            <div class="cat-card">
+              <div class="cat-icon-wrap">🤝</div>
+              <div class="cat-body">
+                <h4 class="cat-card-title">PARTNERSHIPS</h4>
+                <p class="cat-card-desc">Enterprise, trade council, and sovereign registry integration enquiries.</p>
+                <span class="cat-contact-link">partners&#64;veripass.in</span>
+              </div>
+            </div>
+
+            <!-- Operating Office Info -->
+            <div class="office-box">
+              <span class="office-label">Sovereign Cluster Headquarters:</span>
+              <p class="office-text">
+                Veripass Technologies Pvt Ltd<br/>
+                Sector 62, Institutional Area<br/>
+                Noida, Uttar Pradesh 201309, India
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>

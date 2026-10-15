@@ -1,0 +1,124 @@
+<div class="passport-card">
+  <div class="card-header">
+    <div class="header-left">
+      <h2 class="section-title">Business Passport</h2>
+      <span class="status-badge" [ngClass]="{'verified': isVerified}">
+        <span class="dot"></span>
+        {{ isVerified ? 'VERIFIED' : 'PENDING' }}
+      </span>
+    </div>
+    <span class="status-sub">Ready to share</span>
+  </div>
+
+  <div class="passport-body">
+    <div class="passport-summary-info">
+      <p class="summary-lead">
+        Your verified business identity is active and accessible via sovereign verification link.
+      </p>
+
+      <div class="passport-id-block">
+        <span class="id-label">Passport ID</span>
+        <div class="id-val font-mono">{{ passportId }}</div>
+      </div>
+
+      <div class="pills-row">
+        <span class="cred-pill" *ngFor="let pill of verifiedPills">
+          <span class="check">✓</span> {{ pill }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Real generated QR preview with Instant Scan button/trigger -->
+    <div
+      class="qr-preview-frame interactive-scan"
+      (click)="openInstantScanModal()"
+      title="Click to open Instant Scan QR Code"
+      role="button"
+      tabindex="0"
+      (keydown.enter)="openInstantScanModal()">
+      <div class="qr-img-wrapper" *ngIf="qrDataUrl(); else loadingQr">
+        <img [src]="qrDataUrl()" alt="Instant Scan Passport QR Code" class="qr-img" />
+      </div>
+      <ng-template #loadingQr>
+        <div class="qr-placeholder">
+          <div class="qr-spinner"></div>
+        </div>
+      </ng-template>
+      <span class="qr-caption">Instant Scan ↗</span>
+    </div>
+  </div>
+
+  <div class="passport-footer">
+    <div class="action-btn-group">
+      <a routerLink="/supplier/passport" class="btn btn-primary">
+        View Passport
+      </a>
+      <button id="btn-dashboard-instant-scan" class="btn btn-secondary instant-scan-btn" (click)="openInstantScanModal()">
+        📱 Instant Scan QR
+      </button>
+      <button id="btn-dashboard-copy-link" class="btn btn-secondary" (click)="copyLink()">
+        {{ copied() ? '✓ Copied!' : 'Copy Link' }}
+      </button>
+      <button id="btn-dashboard-download-pdf" class="btn btn-secondary" (click)="downloadPdf()" [disabled]="isDownloadingPdf() || pdfDownloaded()">
+        {{ isDownloadingPdf() ? 'Generating PDF...' : (pdfDownloaded() ? '✓ Downloaded!' : 'Download PDF') }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL: INSTANT SCAN QR CODE MODAL                        -->
+<!-- ======================================================== -->
+<div *ngIf="showQrModal()" class="vp-modal-backdrop" (click)="closeInstantScanModal()">
+  <div class="vp-modal-card animate-scale-up" (click)="$event.stopPropagation()">
+    <div class="vp-modal-header">
+      <div class="modal-title-wrap">
+        <span class="modal-tag">CONTINUOUS VERIFIED IDENTITY</span>
+        <h3 class="modal-title">Instant Scan Passport QR</h3>
+        <p class="modal-sub">Scan with any mobile camera to verify {{ companyName }} on the VeriPass Sovereign Network.</p>
+      </div>
+      <button class="modal-close-btn" (click)="closeInstantScanModal()" aria-label="Close modal">✕</button>
+    </div>
+
+    <div class="qr-modal-body">
+      <!-- Live high-res generated QR code -->
+      <div class="qr-display-box">
+        <div class="qr-scanner-frame">
+          <div class="scanner-corner top-left"></div>
+          <div class="scanner-corner top-right"></div>
+          <div class="scanner-corner bottom-left"></div>
+          <div class="scanner-corner bottom-right"></div>
+          <img *ngIf="qrDataUrl()" [src]="qrDataUrl()" alt="Instant Scan VeriPass QR Code" class="qr-display-img" />
+          <div class="scan-laser-line"></div>
+        </div>
+      </div>
+
+      <div class="qr-details-panel">
+        <div class="detail-row">
+          <span class="d-label">Target Passport URL:</span>
+          <span class="d-val font-mono">veripass.in/passport/{{ passportId }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="d-label">Verification:</span>
+          <span class="vp-badge badge-verified">✓ 100% Cryptographically Verified</span>
+        </div>
+        <div class="detail-row">
+          <span class="d-label">Trust Score:</span>
+          <span class="score-highlight">{{ trustScore }}/100 Sovereign Clean</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="vp-modal-footer">
+      <button class="btn btn-outline" (click)="copyLink()">
+        {{ copied() ? '✓ Copied Link' : 'Copy Passport URL' }}
+      </button>
+      <button class="btn btn-secondary" (click)="downloadQrImage()">
+        Download PNG QR
+      </button>
+      <button class="btn btn-primary" (click)="closeInstantScanModal()">
+        Done
+      </button>
+    </div>
+  </div>
+</div>

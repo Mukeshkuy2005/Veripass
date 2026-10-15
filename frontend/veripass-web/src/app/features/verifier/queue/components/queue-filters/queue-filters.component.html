@@ -1,0 +1,102 @@
+<div class="filter-panel-card">
+  <!-- Top: Search bar -->
+  <div class="filter-search-section">
+    <label for="filter-search-input" class="filter-label">Search supplier / case ID</label>
+    <div class="search-input-wrap">
+      <span class="search-icon" aria-hidden="true">🔍</span>
+      <input
+        type="text"
+        id="filter-search-input"
+        class="search-input"
+        placeholder="Search by legal business name, case ID (e.g. VP-18291), GSTIN, or PAN..."
+        [(ngModel)]="searchQuery"
+        (keydown)="onSearchKeydown($event)" />
+      <button
+        *ngIf="searchQuery"
+        type="button"
+        class="search-clear-btn"
+        (click)="searchQuery = ''"
+        title="Clear search">✕</button>
+    </div>
+  </div>
+
+  <!-- Bottom: Filter dropdowns row -->
+  <div class="filter-controls-grid">
+    <div class="filter-field">
+      <label for="filter-status-select" class="filter-label">Status</label>
+      <select id="filter-status-select" class="form-select" [(ngModel)]="filterStatus">
+        <option value="ALL">All Statuses</option>
+        <option value="PENDING">Pending Review</option>
+        <option value="IN_REVIEW">In Review</option>
+        <option value="MORE_INFO_REQUIRED">More Info Required</option>
+        <option value="APPROVED">Approved</option>
+        <option value="REJECTED">Rejected</option>
+        <option value="ESCALATED">Escalated</option>
+        <option value="CANCELLED">Cancelled</option>
+      </select>
+    </div>
+
+    <div class="filter-field">
+      <label for="filter-priority-select" class="filter-label">Priority</label>
+      <select id="filter-priority-select" class="form-select" [(ngModel)]="filterPriority">
+        <option value="ALL">All Priorities</option>
+        <option value="HIGH">High / Urgent</option>
+        <option value="MEDIUM">Medium / Normal</option>
+        <option value="LOW">Low</option>
+      </select>
+    </div>
+
+    <div class="filter-field">
+      <label for="filter-type-select" class="filter-label">Type</label>
+      <select id="filter-type-select" class="form-select" [(ngModel)]="filterType">
+        <option value="ALL">All Verification Types</option>
+        <option value="GST">GST Registration</option>
+        <option value="PAN">Corporate PAN</option>
+        <option value="Address">Physical Address / Plant</option>
+        <option value="Bank">Bank Penny-Drop</option>
+        <option value="CIN">CIN Incorporation</option>
+        <option value="MSME">MSME Udyam</option>
+        <option value="ISO">ISO Certification</option>
+      </select>
+    </div>
+
+    <div class="filter-field">
+      <label for="filter-risk-select" class="filter-label">Risk</label>
+      <select id="filter-risk-select" class="form-select" [(ngModel)]="filterRisk">
+        <option value="ALL">All Risk Levels</option>
+        <option value="LOW">Low Risk</option>
+        <option value="MEDIUM">Medium Risk</option>
+        <option value="HIGH">High / Critical Risk</option>
+      </select>
+    </div>
+
+    <div class="filter-field">
+      <label for="filter-date-select" class="filter-label">Date</label>
+      <select id="filter-date-select" class="form-select" [(ngModel)]="filterDate">
+        <option value="ALL">All Time</option>
+        <option value="24h">Last 24 Hours</option>
+        <option value="7d">Last 7 Days</option>
+        <option value="30d">Last 30 Days</option>
+      </select>
+    </div>
+
+    <div class="filter-actions-field">
+      <button
+        type="button"
+        id="btn-filter-reset"
+        class="btn-filter-reset"
+        (click)="onReset()"
+        [disabled]="loading">
+        Reset
+      </button>
+      <button
+        type="button"
+        id="btn-filter-apply"
+        class="btn-filter-apply"
+        (click)="onApply()"
+        [disabled]="loading">
+        {{ loading ? 'Filtering...' : 'Apply' }}
+      </button>
+    </div>
+  </div>
+</div>

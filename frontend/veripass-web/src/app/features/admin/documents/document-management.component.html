@@ -1,0 +1,252 @@
+    <div class="doc-page">
+      <!-- HEADER -->
+      <div class="header-card">
+        <div>
+          <div class="header-tag">DOCUMENT SECURITY &amp; EVIDENCE LIFECYCLE</div>
+          <h1 class="page-title">Document Lifecycle Management</h1>
+          <p class="page-subtitle">
+            Cryptographic document vault, malware isolation quarantine, automated OCR pipeline, and retention governance.
+          </p>
+        </div>
+        <div class="security-stamp">
+          <span class="lock-icon">🔒</span>
+          <span>AES-256 GCM Storage Vault</span>
+        </div>
+      </div>
+
+      <!-- VISUAL DOCUMENT LIFECYCLE CHAIN (A7 SPEC) -->
+      <div class="lifecycle-card">
+        <div class="lc-title">VERIPASS AUTOMATED DOCUMENT EVIDENCE LIFECYCLE</div>
+        <div class="pipeline-chain">
+          <div class="stage-node">
+            <span class="st-step">01</span>
+            <span class="st-name">UPLOADED</span>
+          </div>
+          <div class="stage-arrow">&rarr;</div>
+
+          <div class="stage-node">
+            <span class="st-step">02</span>
+            <span class="st-name">MALWARE SCAN</span>
+          </div>
+          <div class="stage-arrow">&rarr;</div>
+
+          <div class="stage-node">
+            <span class="st-step">03</span>
+            <span class="st-name">OCR ENGINE</span>
+          </div>
+          <div class="stage-arrow">&rarr;</div>
+
+          <div class="stage-node">
+            <span class="st-step">04</span>
+            <span class="st-name">EXTRACTION</span>
+          </div>
+          <div class="stage-arrow">&rarr;</div>
+
+          <div class="stage-node">
+            <span class="st-step">05</span>
+            <span class="st-name">VALIDATION</span>
+          </div>
+          <div class="stage-arrow">&rarr;</div>
+
+          <div class="stage-node">
+            <span class="st-step">06</span>
+            <span class="st-name">VERIFICATION</span>
+          </div>
+          <div class="stage-arrow">&rarr;</div>
+
+          <div class="stage-node active-node">
+            <span class="st-step">07</span>
+            <span class="st-name">ACTIVE EVIDENCE</span>
+          </div>
+          <div class="stage-arrow">&rarr;</div>
+
+          <div class="stage-node">
+            <span class="st-step">08</span>
+            <span class="st-name">EXPIRED / RETENTION</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6 DOCUMENT LIFECYCLE KPIS -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <span class="kpi-title">TOTAL VAULT DOCUMENTS</span>
+          <div class="kpi-val">{{ stats().total | number }}</div>
+          <span class="kpi-sub">Cryptographically hashed</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">OCR PROCESSING</span>
+          <div class="kpi-val text-amber">{{ stats().processing | number }}</div>
+          <span class="kpi-sub">Pipeline extraction queue</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">ACTIVE VERIFIED EVIDENCE</span>
+          <div class="kpi-val text-success">{{ stats().verified | number }}</div>
+          <span class="kpi-sub">Sovereign cross-matched</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">REJECTED / INVALID</span>
+          <div class="kpi-val text-danger">{{ stats().rejected | number }}</div>
+          <span class="kpi-sub">Non-compliant scans</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">QUARANTINED (ISOLATED)</span>
+          <div class="kpi-val text-danger">{{ stats().quarantined }}</div>
+          <span class="kpi-sub">Suspicious alteration detected</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">EXPIRED / ARCHIVED</span>
+          <div class="kpi-val text-purple">{{ stats().expired | number }}</div>
+          <span class="kpi-sub">7-year audit retention policy</span>
+        </div>
+      </div>
+
+      <!-- DOCUMENT SECURITY TABLE -->
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="dense-table">
+            <thead>
+              <tr>
+                <th>DOCUMENT ID</th>
+                <th>FILE NAME &amp; BUSINESS</th>
+                <th>CREDENTIAL</th>
+                <th>STATUS</th>
+                <th>RISK</th>
+                <th>SECURITY SCAN</th>
+                <th class="text-right">LIFECYCLE ACTION</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let d of documents()" (click)="selectDoc(d)" class="clickable-row" [class.selected]="selectedDoc()?.id === d.id">
+                <td class="font-mono font-bold text-dark">{{ d.id }}</td>
+                <td>
+                  <div class="doc-file-info">
+                    <span class="doc-name font-bold">{{ d.fileName }}</span>
+                    <span class="doc-biz text-muted">{{ d.businessName }} ({{ d.passportId }})</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge-type">{{ d.credentialType }}</span>
+                </td>
+                <td>
+                  <span class="badge-status" [ngClass]="d.status.toLowerCase()">
+                    ● {{ d.status }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge-risk" [ngClass]="d.risk.toLowerCase()">
+                    {{ d.risk }}
+                  </span>
+                </td>
+                <td class="font-mono text-muted">{{ d.malwareScanResult }}</td>
+                <td class="text-right" (click)="$event.stopPropagation()">
+                  <div class="act-btns">
+                    <button type="button" class="btn-inspect" (click)="selectDoc(d)">Inspect Vault</button>
+                    <button *ngIf="d.status !== 'QUARANTINE'" type="button" class="btn-quarantine" (click)="openQuarantineModal(d)">
+                      Quarantine
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- DOCUMENT DETAIL DRAWER -->
+      <div class="drawer-overlay" *ngIf="selectedDoc() as d" (click)="closeDrawer()">
+        <div class="drawer-panel" (click)="$event.stopPropagation()">
+          <div class="drawer-head">
+            <div>
+              <span class="drawer-tag">{{ d.id }} &bull; VAULT RECORD</span>
+              <h2 class="drawer-title">{{ d.fileName }}</h2>
+            </div>
+            <button type="button" class="close-btn" (click)="closeDrawer()">✕</button>
+          </div>
+
+          <div class="drawer-body">
+            <div class="status-strip">
+              <span class="badge-status" [ngClass]="d.status.toLowerCase()">● Status: {{ d.status }}</span>
+              <span class="badge-risk" [ngClass]="d.risk.toLowerCase()">Risk: {{ d.risk }}</span>
+            </div>
+
+            <div class="detail-block">
+              <div class="d-row">
+                <span class="d-lbl">Business Entity</span>
+                <span class="d-val font-bold">{{ d.businessName }}</span>
+              </div>
+              <div class="d-row">
+                <span class="d-lbl">Passport ID</span>
+                <span class="d-val font-mono">{{ d.passportId }}</span>
+              </div>
+              <div class="d-row">
+                <span class="d-lbl">Credential Type</span>
+                <span class="d-val">{{ d.credentialType }}</span>
+              </div>
+              <div class="d-row">
+                <span class="d-lbl">Uploaded Timestamp</span>
+                <span class="d-val font-mono">{{ d.uploadedAt }}</span>
+              </div>
+              <div class="d-row">
+                <span class="d-lbl">File MIME Type</span>
+                <span class="d-val font-mono">{{ d.fileType }}</span>
+              </div>
+            </div>
+
+            <!-- SHA-256 Fingerprint -->
+            <div class="hash-box">
+              <span class="hash-lbl">SHA-256 CRYPTOGRAPHIC INTEGRITY CHECKSUM</span>
+              <div class="hash-code font-mono">{{ d.sha256 }}</div>
+            </div>
+
+            <!-- Quarantine Notice -->
+            <div *ngIf="d.quarantineReason" class="quarantine-box">
+              <div class="q-title">🛑 FORENSIC QUARANTINE ORDER</div>
+              <div class="q-desc">{{ d.quarantineReason }}</div>
+            </div>
+          </div>
+
+          <div class="drawer-foot">
+            <button *ngIf="d.status !== 'QUARANTINE'" type="button" class="btn-danger" (click)="openQuarantineModal(d)">
+              Quarantine Document
+            </button>
+            <button type="button" class="btn-sec" (click)="closeDrawer()">Dismiss</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUARANTINE CONFIRMATION MODAL -->
+      <div class="modal-overlay" *ngIf="quarantineTarget() as doc" (click)="closeQuarantineModal()">
+        <div class="modal-panel" (click)="$event.stopPropagation()">
+          <div class="modal-head">
+            <div>
+              <span class="modal-tag text-danger">ISOLATE MALICIOUS / ALTERED FILE</span>
+              <h2 class="modal-title">Quarantine {{ doc.fileName }}?</h2>
+            </div>
+            <button type="button" class="close-btn" (click)="closeQuarantineModal()">✕</button>
+          </div>
+
+          <div class="modal-body">
+            <p class="modal-desc">
+              Quarantining immediately revokes document visibility from verifier workstations, marks verification cases as blocked, and routes file to forensic security review.
+            </p>
+
+            <div class="form-group">
+              <label class="form-label required">Reason for Forensic Isolation *</label>
+              <textarea 
+                [(ngModel)]="quarantineReason" 
+                rows="4" 
+                placeholder="Detail suspected alteration, malware heuristic, or tampering..." 
+                class="form-textarea"></textarea>
+            </div>
+          </div>
+
+          <div class="modal-foot">
+            <button type="button" class="btn-sec" (click)="closeQuarantineModal()">Cancel</button>
+            <button type="button" class="btn-danger" (click)="confirmQuarantine(doc.id)">
+              Confirm Quarantine
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>

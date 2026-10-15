@@ -1,0 +1,238 @@
+    .user-page {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding-bottom: 32px;
+    }
+
+    .header-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 16px;
+      padding: 24px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .header-tag {
+      font-size: 11px;
+      font-weight: 800;
+      color: #2563EB;
+      letter-spacing: 0.8px;
+      margin-bottom: 4px;
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #0F172A;
+      margin: 0 0 4px 0;
+    }
+
+    .page-subtitle {
+      font-size: 13px;
+      color: #64748B;
+      margin: 0;
+    }
+
+    .header-badge {
+      background: #F1F5F9;
+      border: 1px solid #E2E8F0;
+      padding: 8px 14px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    /* KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 16px;
+
+      @media (max-width: 1380px) { grid-template-columns: repeat(3, 1fr); }
+      @media (max-width: 768px) { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .kpi-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 16px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .kpi-title { font-size: 10px; font-weight: 800; color: #64748B; letter-spacing: 0.5px; }
+    .kpi-val { font-size: 24px; font-weight: 800; color: #0F172A; line-height: 1.1; }
+    .kpi-sub { font-size: 11px; color: #64748B; }
+
+    .text-success { color: #16A34A !important; }
+    .text-danger { color: #DC2626 !important; }
+    .text-purple { color: #7C3AED !important; }
+    .font-mono { font-family: monospace; }
+    .font-bold { font-weight: 700; }
+    .text-dark { color: #0F172A; }
+    .text-muted { color: #64748B; }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+
+    /* Tab bar */
+    .tab-bar-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 16px;
+      padding: 8px;
+    }
+
+    .tab-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tab-btn {
+      padding: 8px 18px;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #64748B;
+      cursor: pointer;
+
+      &.active {
+        background: #0F172A;
+        color: #FFFFFF;
+      }
+    }
+
+    /* Table */
+    .table-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .table-responsive { overflow-x: auto; }
+
+    .dense-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+
+      th {
+        background: #F8FAFC;
+        padding: 10px 14px;
+        text-align: left;
+        font-size: 10px;
+        font-weight: 800;
+        color: #475569;
+        text-transform: uppercase;
+        border-bottom: 1px solid #E2E8F0;
+      }
+
+      td {
+        padding: 12px 14px;
+        border-bottom: 1px solid #F1F5F9;
+        vertical-align: middle;
+      }
+    }
+
+    .u-info { display: flex; flex-direction: column; gap: 2px; }
+    .u-name { font-size: 13px; color: #0F172A; }
+    .u-email { font-size: 11px; }
+
+    .role-badge {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: #F1F5F9;
+      color: #334155;
+
+      &.platform_admin { background: #EDE9FE; color: #6D28D9; }
+      &.senior_verifier { background: #DBEAFE; color: #1E40AF; }
+      &.verifier { background: #DCFCE7; color: #15803D; }
+    }
+
+    .badge-status {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      &.active { background: #DCFCE7; color: #15803D; }
+      &.suspended { background: #FEE2E2; color: #B91C1C; }
+    }
+
+    .btn-manage {
+      padding: 4px 10px;
+      background: #F1F5F9;
+      border: 1px solid #CBD5E1;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Roles Grid */
+    .roles-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    .role-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .rc-head { display: flex; justify-content: space-between; align-items: center; }
+    .rc-title { font-size: 14px; font-weight: 800; color: #0F172A; }
+    .rc-level { font-size: 11px; font-weight: 700; color: #2563EB; }
+    .rc-desc { font-size: 12px; color: #475569; line-height: 1.4; margin: 0; }
+
+    /* Matrix Card */
+    .matrix-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .mh-title { font-size: 14px; font-weight: 800; color: #0F172A; margin: 0 0 2px 0; }
+    .mh-sub { font-size: 11px; color: #64748B; }
+
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+
+      th {
+        background: #F8FAFC;
+        padding: 10px 14px;
+        font-size: 10px;
+        font-weight: 800;
+        color: #475569;
+        text-transform: uppercase;
+        border-bottom: 1px solid #E2E8F0;
+      }
+
+      td {
+        padding: 12px 14px;
+        border-bottom: 1px solid #F1F5F9;
+      }
+    }

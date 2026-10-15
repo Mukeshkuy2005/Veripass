@@ -1,0 +1,556 @@
+<div class="vh-page">
+  <!-- 1. Header -->
+  <header class="vh-header">
+    <div class="vh-title-group">
+      <h1 class="vh-title">Verification History</h1>
+      <p class="vh-subtitle">Review past verification decisions and evidence changes.</p>
+    </div>
+
+    <div class="vh-header-actions">
+      <span class="vh-last-updated" *ngIf="lastUpdatedText() !== '—'">
+        Last updated {{ lastUpdatedText() }}
+      </span>
+      <button 
+        type="button" 
+        class="vh-btn vh-btn-secondary" 
+        (click)="loadHistory()" 
+        [disabled]="loading()"
+        id="btn-refresh-history">
+        <svg class="vh-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [class.spinning]="loading()">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+        <span>Refresh</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 2. Filter Bar -->
+  <section class="vh-filter-bar" aria-label="Verification history filters">
+    <div class="vh-filters-grid">
+      <!-- Date Range Filter -->
+      <div class="vh-filter-col">
+        <label for="filter-date-range" class="vh-filter-label">Date</label>
+        <select 
+          id="filter-date-range" 
+          class="vh-select" 
+          [ngModel]="selectedDateRange()" 
+          (ngModelChange)="selectedDateRange.set($event)">
+          <option *ngFor="let opt of filterOptions().dateRanges" [value]="opt.value">{{ opt.label }}</option>
+        </select>
+      </div>
+
+      <!-- Custom Date Pickers (Shown only when 'CUSTOM' is selected) -->
+      <div class="vh-filter-col" *ngIf="selectedDateRange() === 'CUSTOM'">
+        <label for="filter-from-date" class="vh-filter-label">From</label>
+        <input 
+          id="filter-from-date" 
+          type="date" 
+          class="vh-input" 
+          [ngModel]="customFrom()" 
+          (ngModelChange)="customFrom.set($event)">
+      </div>
+
+      <div class="vh-filter-col" *ngIf="selectedDateRange() === 'CUSTOM'">
+        <label for="filter-to-date" class="vh-filter-label">To</label>
+        <input 
+          id="filter-to-date" 
+          type="date" 
+          class="vh-input" 
+          [ngModel]="customTo()" 
+          (ngModelChange)="customTo.set($event)">
+      </div>
+
+      <!-- Decision Filter -->
+      <div class="vh-filter-col">
+        <label for="filter-decision" class="vh-filter-label">Decision</label>
+        <select 
+          id="filter-decision" 
+          class="vh-select" 
+          [ngModel]="selectedDecision()" 
+          (ngModelChange)="selectedDecision.set($event)">
+          <option *ngFor="let dec of filterOptions().decisions" [value]="dec.value">{{ dec.label }}</option>
+        </select>
+      </div>
+
+      <!-- Verification Type Filter -->
+      <div class="vh-filter-col">
+        <label for="filter-type" class="vh-filter-label">Verification Type</label>
+        <select 
+          id="filter-type" 
+          class="vh-select" 
+          [ngModel]="selectedType()" 
+          (ngModelChange)="selectedType.set($event)">
+          <option value="ALL">All Types</option>
+          <option *ngFor="let t of filterOptions().verificationTypes" [value]="t">{{ t }}</option>
+        </select>
+      </div>
+
+      <!-- Verifier Filter -->
+      <div class="vh-filter-col">
+        <label for="filter-verifier" class="vh-filter-label">Verifier</label>
+        <select 
+          id="filter-verifier" 
+          class="vh-select" 
+          [ngModel]="selectedVerifier()" 
+          (ngModelChange)="selectedVerifier.set($event)">
+          <option value="ALL">All Verifiers</option>
+          <option *ngFor="let v of filterOptions().verifiers" [value]="v.id">{{ v.name }}</option>
+        </select>
+      </div>
+
+      <!-- Supplier / Keyword Search -->
+      <div class="vh-filter-col vh-filter-col-search">
+        <label for="filter-search" class="vh-filter-label">Supplier</label>
+        <div class="vh-search-wrap">
+          <svg class="vh-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input 
+            id="filter-search" 
+            type="text" 
+            class="vh-input vh-search-input" 
+            placeholder="Search business name, GSTIN, or case ID"
+            [ngModel]="searchQuery()" 
+            (ngModelChange)="searchQuery.set($event)"
+            (keyup.enter)="applyFilters()">
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Actions -->
+    <div class="vh-filter-actions">
+      <button 
+        type="button" 
+        class="vh-btn vh-btn-primary" 
+        (click)="applyFilters()" 
+        id="btn-apply-filters">
+        Apply Filters
+      </button>
+      <button 
+        type="button" 
+        class="vh-btn vh-btn-ghost" 
+        (click)="resetFilters()" 
+        id="btn-reset-filters">
+        Reset
+      </button>
+    </div>
+  </section>
+
+  <!-- 3. Main History Table Area -->
+  <main class="vh-main-content">
+    <!-- Loading State -->
+    <div class="vh-state-panel vh-state-loading" *ngIf="loading()">
+      <div class="vh-spinner" role="status" aria-label="Loading verification history"></div>
+      <p class="vh-state-msg">Loading verification history...</p>
+    </div>
+
+    <!-- Error State -->
+    <div class="vh-state-panel vh-state-error" *ngIf="!loading() && error()">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="vh-error-icon">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <p class="vh-state-msg">{{ error() }}</p>
+      <button type="button" class="vh-btn vh-btn-secondary" (click)="loadHistory()">Try Again</button>
+    </div>
+
+    <!-- Table Container -->
+    <div class="vh-table-container" *ngIf="!loading() && !error()">
+      <div class="vh-table-header-meta">
+        <span class="vh-meta-count">
+          Showing <strong>{{ totalCount() > 0 ? (page() - 1) * pageSize() + 1 : 0 }}</strong> to 
+          <strong>{{ totalCount() < page() * pageSize() ? totalCount() : page() * pageSize() }}</strong> of 
+          <strong>{{ totalCount() }}</strong> history records
+        </span>
+
+        <div class="vh-page-size-select">
+          <label for="page-size">Rows per page:</label>
+          <select 
+            id="page-size" 
+            class="vh-select-sm" 
+            [ngModel]="pageSize()" 
+            (ngModelChange)="onPageSizeChange($event)">
+            <option [value]="25">25</option>
+            <option [value]="50">50</option>
+            <option [value]="100">100</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="vh-table-scroll">
+        <table class="vh-table" role="table" aria-label="Verification history ledger">
+          <thead>
+            <tr>
+              <th scope="col" class="vh-th-sortable" (click)="onSort('decisionAt')">
+                <div class="vh-th-inner">
+                  <span>DATE & TIME</span>
+                  <span class="vh-sort-indicator" *ngIf="sortBy() === 'decisionAt'">
+                    {{ sortDirection() === 'asc' ? '▲' : '▼' }}
+                  </span>
+                </div>
+              </th>
+              <th scope="col" class="vh-th-sortable" (click)="onSort('business')">
+                <div class="vh-th-inner">
+                  <span>BUSINESS</span>
+                  <span class="vh-sort-indicator" *ngIf="sortBy() === 'business'">
+                    {{ sortDirection() === 'asc' ? '▲' : '▼' }}
+                  </span>
+                </div>
+              </th>
+              <th scope="col" class="vh-th-sortable" (click)="onSort('type')">
+                <div class="vh-th-inner">
+                  <span>TYPE</span>
+                  <span class="vh-sort-indicator" *ngIf="sortBy() === 'type'">
+                    {{ sortDirection() === 'asc' ? '▲' : '▼' }}
+                  </span>
+                </div>
+              </th>
+              <th scope="col" class="vh-th-sortable" (click)="onSort('decision')">
+                <div class="vh-th-inner">
+                  <span>DECISION</span>
+                  <span class="vh-sort-indicator" *ngIf="sortBy() === 'decision'">
+                    {{ sortDirection() === 'asc' ? '▲' : '▼' }}
+                  </span>
+                </div>
+              </th>
+              <th scope="col">VERIFIER</th>
+              <th scope="col">CASE</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr 
+              *ngFor="let item of items()" 
+              class="vh-tr" 
+              [class.vh-tr-selected]="selectedRow()?.eventId === item.eventId"
+              tabindex="0"
+              (click)="selectRow(item)"
+              (keydown.enter)="selectRow(item)"
+              (keydown.space)="selectRow(item); $event.preventDefault()"
+              role="row"
+              [attr.aria-selected]="selectedRow()?.eventId === item.eventId">
+              
+              <!-- 1. DATE & TIME -->
+              <td class="vh-td vh-td-datetime">
+                <div class="vh-date-primary">{{ formatDate(item.decisionAtUtc).datePart }}</div>
+                <div class="vh-time-secondary">{{ formatDate(item.decisionAtUtc).timePart }}</div>
+                <span class="vh-time-relative" *ngIf="formatRelative(item.decisionAtUtc)">
+                  {{ formatRelative(item.decisionAtUtc) }}
+                </span>
+              </td>
+
+              <!-- 2. BUSINESS -->
+              <td class="vh-td vh-td-business">
+                <div class="vh-biz-name">{{ item.businessName }}</div>
+                <div class="vh-biz-identifier font-mono" *ngIf="item.supplierIdentifier">
+                  {{ item.supplierIdentifier }}
+                </div>
+              </td>
+
+              <!-- 3. TYPE -->
+              <td class="vh-td vh-td-type">
+                <span class="vh-type-pill">{{ item.verificationType }}</span>
+              </td>
+
+              <!-- 4. DECISION -->
+              <td class="vh-td vh-td-decision">
+                <span class="vh-decision-badge" [ngClass]="item.decision.toLowerCase()">
+                  <span class="vh-badge-icon" *ngIf="item.decision === 'APPROVED'">✓</span>
+                  <span class="vh-badge-icon" *ngIf="item.decision === 'REJECTED'">✕</span>
+                  <span class="vh-badge-icon" *ngIf="item.decision === 'ESCALATED'">↗</span>
+                  <span class="vh-badge-icon" *ngIf="item.decision === 'MORE_INFO'">?</span>
+                  <span>{{ item.decision === 'MORE_INFO' ? 'MORE INFO' : item.decision }}</span>
+                </span>
+              </td>
+
+              <!-- 5. VERIFIER -->
+              <td class="vh-td vh-td-verifier">
+                <div class="vh-verifier-name">{{ item.verifierName }}</div>
+                <div class="vh-verifier-role">{{ item.verifierRole }}</div>
+              </td>
+
+              <!-- 6. CASE -->
+              <td class="vh-td vh-td-case" (click)="$event.stopPropagation()">
+                <a 
+                  [routerLink]="['/verifier/cases', item.caseId]" 
+                  class="vh-case-link font-mono" 
+                  title="Open verification case">
+                  {{ item.caseId }}
+                </a>
+              </td>
+            </tr>
+
+            <!-- Empty State Inside Table -->
+            <tr *ngIf="items().length === 0">
+              <td colspan="6" class="vh-td-empty">
+                <div class="vh-empty-box">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="vh-empty-icon">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="8" y1="12" x2="16" y2="12"/>
+                  </svg>
+                  <p class="vh-empty-title">No verification history found.</p>
+                  <p class="vh-empty-desc">Try changing the date or filters.</p>
+                  <button type="button" class="vh-btn vh-btn-secondary" (click)="resetFilters()">
+                    Reset All Filters
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Footer -->
+      <footer class="vh-pagination-bar" *ngIf="totalCount() > 0">
+        <div class="vh-pagination-info">
+          Page {{ page() }} of {{ totalPages() }}
+        </div>
+
+        <nav class="vh-pagination-nav" aria-label="Table pagination">
+          <button 
+            type="button" 
+            class="vh-page-btn" 
+            [disabled]="page() <= 1" 
+            (click)="goToPage(1)"
+            title="First page">
+            «
+          </button>
+          <button 
+            type="button" 
+            class="vh-page-btn" 
+            [disabled]="page() <= 1" 
+            (click)="goToPage(page() - 1)"
+            title="Previous page">
+            ‹
+          </button>
+
+          <ng-container *ngFor="let p of getPaginationRange()">
+            <button 
+              type="button" 
+              class="vh-page-btn" 
+              [class.vh-page-active]="p === page()" 
+              (click)="goToPage(p)">
+              {{ p }}
+            </button>
+          </ng-container>
+
+          <button 
+            type="button" 
+            class="vh-page-btn" 
+            [disabled]="page() >= totalPages()" 
+            (click)="goToPage(page() + 1)"
+            title="Next page">
+            ›
+          </button>
+          <button 
+            type="button" 
+            class="vh-page-btn" 
+            [disabled]="page() >= totalPages()" 
+            (click)="goToPage(totalPages())"
+            title="Last page">
+            »
+          </button>
+        </nav>
+      </footer>
+    </div>
+  </main>
+
+  <!-- 4. Right-side Detail Drawer -->
+  <div 
+    class="vh-drawer-backdrop" 
+    *ngIf="selectedRow()" 
+    (click)="closeDrawer()"
+    aria-hidden="true">
+  </div>
+
+  <aside 
+    class="vh-drawer-panel" 
+    *ngIf="selectedRow() as row" 
+    role="dialog" 
+    aria-modal="true" 
+    aria-labelledby="drawer-heading">
+    
+    <!-- Drawer Header -->
+    <div class="vh-drawer-header">
+      <div class="vh-dh-title-wrap">
+        <span class="vh-dh-eyebrow">VERIFICATION EVENT</span>
+        <h2 id="drawer-heading" class="vh-dh-title font-mono">{{ row.caseId }}</h2>
+      </div>
+      <button 
+        type="button" 
+        class="vh-drawer-close-btn" 
+        (click)="closeDrawer()" 
+        aria-label="Close detail drawer">
+        ✕
+      </button>
+    </div>
+
+    <!-- Drawer Content -->
+    <div class="vh-drawer-body">
+      <!-- Loading inside Drawer -->
+      <div class="vh-drawer-loading" *ngIf="detailLoading()">
+        <div class="vh-spinner-sm"></div>
+        <span>Loading event records...</span>
+      </div>
+
+      <!-- Detail Content when loaded -->
+      <ng-container *ngIf="!detailLoading() && (detailData() || row) as d">
+        <!-- Section 1: Event Summary -->
+        <section class="vh-drawer-section">
+          <h3 class="vh-sec-heading">Event Summary</h3>
+          <dl class="vh-summary-grid">
+            <div class="vh-grid-row">
+              <dt>Decision</dt>
+              <dd>
+                <span class="vh-decision-badge" [ngClass]="d.decision.toLowerCase()">
+                  <span class="vh-badge-icon" *ngIf="d.decision === 'APPROVED'">✓</span>
+                  <span class="vh-badge-icon" *ngIf="d.decision === 'REJECTED'">✕</span>
+                  <span class="vh-badge-icon" *ngIf="d.decision === 'ESCALATED'">↗</span>
+                  <span class="vh-badge-icon" *ngIf="d.decision === 'MORE_INFO'">?</span>
+                  <span>{{ d.decision === 'MORE_INFO' ? 'MORE INFO' : d.decision }}</span>
+                </span>
+              </dd>
+            </div>
+
+            <div class="vh-grid-row">
+              <dt>Business</dt>
+              <dd class="font-bold">{{ d.businessName }}</dd>
+            </div>
+
+            <div class="vh-grid-row" *ngIf="d.supplierIdentifier">
+              <dt>Identifier</dt>
+              <dd class="font-mono">{{ d.supplierIdentifier }}</dd>
+            </div>
+
+            <div class="vh-grid-row">
+              <dt>Verification Type</dt>
+              <dd>{{ d.verificationType }}</dd>
+            </div>
+
+            <div class="vh-grid-row">
+              <dt>Verifier</dt>
+              <dd>{{ d.verifierName }}</dd>
+            </div>
+
+            <div class="vh-grid-row">
+              <dt>Decision Time</dt>
+              <dd>
+                <div>{{ formatDate(d.decisionAtUtc).datePart }}</div>
+                <div class="text-secondary">{{ formatDate(d.decisionAtUtc).timePart }}</div>
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <!-- Section 2: Case Information -->
+        <section class="vh-drawer-section">
+          <h3 class="vh-sec-heading">Case Information</h3>
+          <dl class="vh-summary-grid">
+            <div class="vh-grid-row">
+              <dt>Case ID</dt>
+              <dd>
+                <a [routerLink]="['/verifier/cases', d.caseId]" class="vh-inline-link font-mono">
+                  {{ d.caseId }} →
+                </a>
+              </dd>
+            </div>
+
+            <div class="vh-grid-row">
+              <dt>Previous State</dt>
+              <dd class="font-mono text-muted">{{ d.previousState || 'IN_REVIEW' }}</dd>
+            </div>
+
+            <div class="vh-grid-row">
+              <dt>New State</dt>
+              <dd class="font-mono font-bold">{{ d.newState || d.decision }}</dd>
+            </div>
+
+            <div class="vh-grid-row">
+              <dt>Priority</dt>
+              <dd>{{ d.priority }}</dd>
+            </div>
+
+            <div class="vh-grid-row">
+              <dt>Risk</dt>
+              <dd>
+                <span class="vh-risk-tag" [class.vh-risk-high]="d.riskLevel === 'HIGH'" [class.vh-risk-low]="d.riskLevel === 'LOW'">
+                  {{ d.riskLevel }} ({{ d.riskScore }}/100)
+                </span>
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <!-- Section 3: State Change Visual Transition -->
+        <section class="vh-drawer-section">
+          <h3 class="vh-sec-heading">State Change</h3>
+          <div class="vh-state-transition-box">
+            <div class="vh-st-node vh-st-prev">
+              <span class="vh-st-lbl">PREVIOUS</span>
+              <span class="vh-st-val">{{ d.previousState || 'IN_REVIEW' }}</span>
+            </div>
+            <div class="vh-st-arrow">↓</div>
+            <div class="vh-st-node vh-st-new" [ngClass]="d.decision.toLowerCase()">
+              <span class="vh-st-lbl">NEW STATE</span>
+              <span class="vh-st-val">{{ d.newState || d.decision }}</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 4: Decision Reason -->
+        <section class="vh-drawer-section">
+          <h3 class="vh-sec-heading">Decision Reason</h3>
+          <div class="vh-reason-box">
+            <p *ngIf="d.decisionReason" class="vh-reason-text">{{ d.decisionReason }}</p>
+            <p *ngIf="!d.decisionReason" class="vh-reason-empty">No reason was recorded.</p>
+          </div>
+        </section>
+
+        <!-- Section 5: Evidence Examined -->
+        <section class="vh-drawer-section">
+          <h3 class="vh-sec-heading">Evidence Examined</h3>
+          <ul class="vh-evidence-list" *ngIf="d.evidenceExamined && d.evidenceExamined.length > 0">
+            <li *ngFor="let ev of d.evidenceExamined" class="vh-evidence-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="vh-check-icon">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <span>{{ ev }}</span>
+            </li>
+          </ul>
+          <p *ngIf="!d.evidenceExamined || d.evidenceExamined.length === 0" class="vh-reason-empty">
+            No evidence record available.
+          </p>
+        </section>
+
+        <!-- Section 6: Evidence Change / Audit History -->
+        <section class="vh-drawer-section" *ngIf="detailData()?.timelineChanges as timeline">
+          <h3 class="vh-sec-heading">Audit & Transition Ledger</h3>
+          <div class="vh-timeline" *ngIf="timeline.length > 0">
+            <div class="vh-timeline-item" *ngFor="let item of timeline">
+              <div class="vh-tl-bullet"></div>
+              <div class="vh-tl-content">
+                <div class="vh-tl-action">{{ item.action }}</div>
+                <div class="vh-tl-meta">
+                  <span>{{ item.actorName }}</span> • 
+                  <span>{{ formatDate(item.timestamp).fullFormatted }}</span>
+                </div>
+                <div class="vh-tl-reason" *ngIf="item.reason">{{ item.reason }}</div>
+              </div>
+            </div>
+          </div>
+          <p *ngIf="timeline.length === 0" class="vh-reason-empty">
+            No previous audit log records for this case.
+          </p>
+        </section>
+      </ng-container>
+    </div>
+
+    <!-- Drawer Footer Actions -->
+    <div class="vh-drawer-footer" *ngIf="selectedRow() as r">
+      <a [routerLink]="['/verifier/cases', r.caseId]" class="vh-btn vh-btn-primary vh-btn-block">
+        Open Verification Case {{ r.caseId }}
+      </a>
+    </div>
+  </aside>
+</div>

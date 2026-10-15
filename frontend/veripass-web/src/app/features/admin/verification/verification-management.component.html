@@ -1,0 +1,151 @@
+    <div class="verification-page">
+      <!-- HEADER -->
+      <div class="header-card">
+        <div>
+          <div class="header-tag">VERIFICATION OPERATIONS CONTROL</div>
+          <h1 class="page-title">Verification Management</h1>
+          <p class="page-subtitle">
+            Operations control center monitoring real-time case triage, pipeline throughput, verifier SLA compliance, and queue distribution.
+          </p>
+        </div>
+        <div class="header-status-box">
+          <span class="status-dot-pulse"></span>
+          <span>Operations Live &bull; 3 Verifiers Active</span>
+        </div>
+      </div>
+
+      <!-- GOVERNANCE MANDATE CALLOUT -->
+      <div class="governance-banner">
+        <div class="gov-title">OPERATIONAL GOVERNANCE RULE:</div>
+        <div class="gov-text">
+          Platform Admin monitors systemic queue health, workload balance, and SLA breaches, but <strong>does not casually override individual forensic decisions</strong> made by authorized verification officers.
+        </div>
+      </div>
+
+      <!-- 6 OPERATIONS KPIS -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <span class="kpi-title">PENDING TRIAGE</span>
+          <div class="kpi-val text-amber">{{ metrics().pending | number }}</div>
+          <span class="kpi-sub">Awaiting officer assignment</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">CURRENTLY IN REVIEW</span>
+          <div class="kpi-val">{{ metrics().inReview | number }}</div>
+          <span class="kpi-sub">Active evidence examination</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">TOTAL APPROVED</span>
+          <div class="kpi-val text-success">{{ metrics().approved | number }}</div>
+          <span class="kpi-sub">Cryptographically signed</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">TOTAL REJECTED</span>
+          <div class="kpi-val text-danger">{{ metrics().rejected | number }}</div>
+          <span class="kpi-sub">Statutory taxonomies applied</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">ESCALATED CASES</span>
+          <div class="kpi-val text-purple">{{ metrics().escalated }}</div>
+          <span class="kpi-sub">In Senior Compliance queue</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">SLA BREACHED</span>
+          <div class="kpi-val text-danger">{{ metrics().slaBreached }}</div>
+          <span class="kpi-sub">Automated priority alert sent</span>
+        </div>
+      </div>
+
+      <!-- TWO COL: PIPELINE + WORKLOAD -->
+      <div class="two-col-grid">
+        <!-- VERIFICATION PIPELINE CHART -->
+        <div class="section-card">
+          <div class="card-head">
+            <div>
+              <h3 class="card-title">VERIFICATION PIPELINE THROUGHPUT</h3>
+              <span class="card-sub">Current flow of cases through verification stages today</span>
+            </div>
+            <span class="pipeline-badge">Live Flow</span>
+          </div>
+
+          <div class="pipeline-bars">
+            <div class="pipe-item" *ngFor="let p of metrics().pipeline">
+              <div class="pipe-info">
+                <span class="pipe-stage font-bold">{{ p.stage }}</span>
+                <span class="pipe-count font-mono">{{ p.count | number }} cases</span>
+              </div>
+              <div class="track">
+                <div class="fill" [ngClass]="p.stage.toLowerCase().replace(' ', '-')" [style.width.%]="p.percentage"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VERIFIER WORKLOAD TABLE -->
+        <div class="section-card">
+          <div class="card-head">
+            <div>
+              <h3 class="card-title">VERIFIER WORKLOAD &amp; SLA COMPLIANCE</h3>
+              <span class="card-sub">Officer throughput and timeliness telemetry</span>
+            </div>
+            <span class="workload-tag">Today's Shift</span>
+          </div>
+
+          <div class="table-wrap">
+            <table class="dense-table">
+              <thead>
+                <tr>
+                  <th>OFFICER</th>
+                  <th>ROLE</th>
+                  <th>ACTIVE CASES</th>
+                  <th>COMPLETED TODAY</th>
+                  <th class="text-right">SLA ADHERENCE</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="font-bold">Rahul Sharma</td>
+                  <td class="text-muted">Senior Compliance</td>
+                  <td class="font-mono">14</td>
+                  <td class="font-mono">42</td>
+                  <td class="text-right font-mono text-success font-bold">98%</td>
+                </tr>
+                <tr>
+                  <td class="font-bold">Priya Singh</td>
+                  <td class="text-muted">Compliance Officer</td>
+                  <td class="font-mono">11</td>
+                  <td class="font-mono">38</td>
+                  <td class="text-right font-mono text-success font-bold">96%</td>
+                </tr>
+                <tr>
+                  <td class="font-bold">Amit Kumar</td>
+                  <td class="text-muted">Compliance Officer</td>
+                  <td class="font-mono">18</td>
+                  <td class="font-mono">44</td>
+                  <td class="text-right font-mono text-success font-bold">91%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUEUE HEALTH BY CREDENTIAL TYPE -->
+      <div class="section-card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">QUEUE HEALTH BY CREDENTIAL CATEGORY</h3>
+            <span class="card-sub">Distribution of pending compliance verifications across credential types</span>
+          </div>
+          <a routerLink="/verifier/queue" class="link-action">Inspect Verifier Queue &rarr;</a>
+        </div>
+
+        <div class="queue-categories-grid">
+          <div class="cat-card" *ngFor="let q of metrics().queueHealth">
+            <span class="cat-type font-bold">{{ q.type }}</span>
+            <div class="cat-val font-mono">{{ q.pending | number }}</div>
+            <span class="cat-sub">cases pending</span>
+          </div>
+        </div>
+      </div>
+    </div>

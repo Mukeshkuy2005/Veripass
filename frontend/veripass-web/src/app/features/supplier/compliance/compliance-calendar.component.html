@@ -1,0 +1,567 @@
+<div class="calendar-view">
+  <!-- TOAST NOTIFICATION -->
+  <div class="vp-toast-banner" *ngIf="toastMessage()">
+    <span class="toast-icon">✨</span>
+    <span class="toast-text">{{ toastMessage() }}</span>
+    <button class="toast-close" (click)="toastMessage.set(null)">✕</button>
+  </div>
+
+  <!-- HEADER -->
+  <div class="cal-header">
+    <div class="cal-header-info">
+      <div class="cal-tags-row">
+        <span class="view-tag">OBLIGATION TRACKER</span>
+        <span class="sovereign-tag">🏛️ STATUTORY REGISTRY TIMELINE</span>
+      </div>
+      <h1 class="page-title">Compliance Calendar</h1>
+      <p class="page-sub">
+        Statutory filing deadlines, credential expiries, and scheduled verification checks for
+        <strong>{{ companyName }}</strong>.
+      </p>
+    </div>
+
+    <!-- Header Actions & View Mode Toggle -->
+    <div class="cal-header-actions">
+      <button class="btn btn-secondary btn-sm" (click)="exportIcs()" title="Export .ics for Outlook / Google Calendar">
+        <span>📅</span>
+        <span>Export (.ics)</span>
+      </button>
+
+      <button class="btn btn-secondary btn-sm" (click)="downloadCalendarPdf()" title="Download printable schedule (PDF)">
+        <span>📥</span>
+        <span>Download Schedule (PDF)</span>
+      </button>
+
+      <a routerLink="/supplier/compliance" class="btn btn-outline btn-sm" title="Back to Compliance Center">
+        <span>&larr;</span>
+        <span>Compliance Center</span>
+      </a>
+
+      <!-- View Modes (Month / Week / List) -->
+      <div class="view-mode-toggle">
+        <button
+          class="mode-btn"
+          [class.active]="viewMode() === 'month'"
+          (click)="viewMode.set('month')">
+          Month
+        </button>
+        <button
+          class="mode-btn"
+          [class.active]="viewMode() === 'week'"
+          (click)="viewMode.set('week')">
+          Week
+        </button>
+        <button
+          class="mode-btn"
+          [class.active]="viewMode() === 'list'"
+          (click)="viewMode.set('list')">
+          List
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SOVEREIGN IDENTIFIER RIBBON (Matching Dashboard, Documents & Compliance) -->
+  <div class="identifier-ribbon">
+    <div class="ribbon-item">
+      <span class="ribbon-label">ENTITY NAME</span>
+      <strong class="ribbon-val">{{ companyName }}</strong>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-item">
+      <span class="ribbon-label">GSTIN</span>
+      <code class="ribbon-val font-mono">{{ gstin }}</code>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-item">
+      <span class="ribbon-label">CORPORATE PAN</span>
+      <code class="ribbon-val font-mono">{{ pan }}</code>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-item">
+      <span class="ribbon-label">CIN</span>
+      <code class="ribbon-val font-mono">{{ cin }}</code>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-item flex-1">
+      <span class="ribbon-label">PRINCIPAL OPERATING ADDRESS</span>
+      <span class="ribbon-val text-truncate">{{ principalAddress }}</span>
+    </div>
+  </div>
+
+  <!-- CALENDAR KPI QUICK STATS (Interactive Filters) -->
+  <div class="cal-kpi-bar">
+    <div class="kpi-chip" [class.active-filter]="statusFilter() === 'ALL'" (click)="setStatusFilter('ALL')" title="Click to show all obligations">
+      <span class="kpi-dot blue"></span>
+      <span class="kpi-label">Upcoming Schedule:</span>
+      <strong class="kpi-val">{{ totalUpcomingCount() }} Deadlines</strong>
+    </div>
+    <div class="kpi-chip" [class.highlight-amber]="actionRequiredCount() > 0" [class.active-filter]="statusFilter() === 'ACTION_REQUIRED'" (click)="setStatusFilter('ACTION_REQUIRED')" title="Click to filter to action required obligations">
+      <span class="kpi-dot amber"></span>
+      <span class="kpi-label">Immediate Action Needed:</span>
+      <strong class="kpi-val">{{ actionRequiredCount() }} Items</strong>
+    </div>
+    <div class="kpi-chip" [class.active-filter]="statusFilter() === 'COMPLIANT'" (click)="setStatusFilter('COMPLIANT')" title="Click to filter to compliant obligations">
+      <span class="kpi-dot green"></span>
+      <span class="kpi-label">Sovereign Cleared:</span>
+      <strong class="kpi-val text-green">{{ compliantCount() }} Compliant</strong>
+    </div>
+  </div>
+
+  <!-- MAIN CALENDAR & RIGHT UPCOMING AGENDA GRID -->
+  <div class="calendar-grid-container">
+    <!-- LEFT COLUMN: CALENDAR DISPLAY (MONTH / WEEK / LIST) -->
+    <div class="calendar-card vp-card">
+      <!-- MONTH BAR (With Navigation) -->
+      <div class="month-bar">
+        <div class="month-title-group">
+          <button class="month-nav-btn" (click)="prevMonth()" [disabled]="currentMonth() <= 7" title="Previous Month">&larr;</button>
+          <h2 class="current-month-title">{{ currentMonthTitle() }}</h2>
+          <button class="month-nav-btn" (click)="nextMonth()" [disabled]="currentMonth() >= 11" title="Next Month">&rarr;</button>
+        </div>
+
+        <div class="month-actions-right">
+          <button class="btn btn-secondary btn-xs" (click)="goToToday()" title="Jump to Current Date (27 Sep 2026)">
+            Today (27 Sep)
+          </button>
+        </div>
+      </div>
+
+      <!-- VIEW 1: MONTH GRID -->
+      <div *ngIf="viewMode() === 'month'" class="month-view-wrapper">
+        <!-- Days of week -->
+        <div class="days-header-row">
+          <span class="day-head">Mon</span>
+          <span class="day-head">Tue</span>
+          <span class="day-head">Wed</span>
+          <span class="day-head">Thu</span>
+          <span class="day-head">Fri</span>
+          <span class="day-head">Sat</span>
+          <span class="day-head">Sun</span>
+        </div>
+
+        <!-- Dynamic Days Grid -->
+        <div class="days-grid">
+          <div
+            *ngFor="let cell of calendarGridDays()"
+            class="day-cell"
+            [class.muted]="!cell.isCurrentMonth"
+            [class.has-event]="cell.hasEvent"
+            [class.event-expiry]="cell.hasExpiry"
+            [class.event-active]="cell.isCurrentMonth && selectedDay() === cell.day"
+            [class.is-today]="cell.isCurrentMonth && currentMonth() === 8 && cell.day === 27"
+            (click)="selectDay(cell.day, cell.isCurrentMonth)">
+            <div class="cell-top">
+              <span class="day-num">{{ cell.day }}</span>
+              <span *ngIf="cell.isCurrentMonth && currentMonth() === 8 && cell.day === 27" class="today-badge">TODAY</span>
+              <span *ngIf="cell.hasEvent" class="event-dot" [class.amber-dot]="cell.hasExpiry"></span>
+            </div>
+
+            <!-- Inline Day Badges -->
+            <div class="day-events-pills-container">
+              <div
+                class="day-event-pill"
+                *ngFor="let ev of cell.events"
+                [ngClass]="ev.status.toLowerCase()"
+                (click)="$event.stopPropagation(); openEventModal(ev)"
+                [title]="ev.title + ' (' + ev.status + ')'"
+              >
+                <span class="pill-code">{{ ev.category === 'Statutory Returns' ? '📋' : (ev.category === 'Tax Deadlines' ? '💰' : (ev.category === 'Credential Expiries' ? '⚠️' : '🏦')) }}</span>
+                <span class="pill-text">{{ ev.title }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 2: DYNAMIC WEEK VIEW -->
+      <div *ngIf="viewMode() === 'week'" class="week-view-wrapper">
+        <div class="week-intro-bar">
+          <span>Weekly Focus Schedule: <strong>21 Sep 2026 &ndash; 27 Sep 2026</strong></span>
+          <span class="week-tag-badge">Operational Cycle Focus</span>
+        </div>
+        <div class="week-days-grid">
+          <div class="week-day-col" *ngFor="let item of currentWeekDays()" [class.is-today]="item.isToday">
+            <div class="week-day-header">
+              <span class="week-day-name">{{ item.dayName }}</span>
+              <div class="week-num-wrap">
+                <span class="week-day-num">{{ item.day }}</span>
+                <span *ngIf="item.isToday" class="week-today-pill">TODAY</span>
+              </div>
+            </div>
+            <div class="week-day-events">
+              <div
+                *ngFor="let ev of item.events"
+                class="week-event-card"
+                [ngClass]="ev.status.toLowerCase()"
+                (click)="openEventModal(ev)"
+              >
+                <div class="we-top">
+                  <span class="we-badge" [ngClass]="ev.status.toLowerCase()">
+                    {{ ev.status === 'COMPLIANT' ? '✓ Cleared' : (ev.status === 'ACTION_REQUIRED' ? '⚠️ Due Today' : '○ Upcoming') }}
+                  </span>
+                  <span class="we-cat">{{ ev.category }}</span>
+                </div>
+                <strong class="we-title">{{ ev.title }}</strong>
+                <p class="we-desc">{{ ev.description }}</p>
+                <div class="we-footer">
+                  <span class="we-auth">{{ ev.authorityLogoText }}</span>
+                  <button
+                    *ngIf="ev.status === 'ACTION_REQUIRED'"
+                    class="btn-we-resolve"
+                    (click)="$event.stopPropagation(); openUploadModal(ev)"
+                  >
+                    Resolve &rarr;
+                  </button>
+                </div>
+              </div>
+              <div *ngIf="item.events.length === 0" class="week-no-events">
+                <span>No obligations due</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 3: LIST VIEW -->
+      <div *ngIf="viewMode() === 'list'" class="list-view-wrapper">
+        <div class="list-table">
+          <div class="list-row list-header-row">
+            <span class="col-date">DATE</span>
+            <span class="col-title">STATUTORY OBLIGATION</span>
+            <span class="col-auth">AUTHORITY</span>
+            <span class="col-cat">CATEGORY</span>
+            <span class="col-stat">STATUS</span>
+            <span class="col-act">ACTION</span>
+          </div>
+
+          <div *ngFor="let ev of filteredEvents()" class="list-row" [class.selected]="selectedDay() === ev.day">
+            <span class="col-date font-mono"><strong>{{ ev.dateStr }}</strong></span>
+            <div class="col-title">
+              <strong>{{ ev.title }}</strong>
+              <span class="col-ref-text">{{ ev.statutoryRef }}</span>
+            </div>
+            <span class="col-auth">{{ ev.authorityLogoText }}</span>
+            <span class="col-cat"><span class="cat-pill-tag">{{ ev.category }}</span></span>
+            <span class="col-stat">
+              <span class="status-pill-badge" [ngClass]="ev.status.toLowerCase()">
+                {{ ev.status === 'COMPLIANT' ? '✓ COMPLIANT' : (ev.status === 'ACTION_REQUIRED' ? '⚠ ACTION REQUIRED' : '○ UPCOMING') }}
+              </span>
+            </span>
+            <div class="col-act">
+              <button class="btn btn-secondary btn-xs" (click)="openEventModal(ev)">Details</button>
+              <button
+                *ngIf="ev.status === 'ACTION_REQUIRED'"
+                class="btn-list-resolve"
+                (click)="openUploadModal(ev)"
+                title="Resolve Obligation"
+              >
+                Resolve
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: UPCOMING AGENDA & FILTERS -->
+    <div class="vp-card agenda-card">
+      <div class="agenda-header-row">
+        <div class="agenda-title-group">
+          <div class="agenda-top-line">
+            <h3 class="agenda-title">UPCOMING AGENDA</h3>
+            <span class="events-count">{{ displayedAgendaEvents().length }} Obligations</span>
+          </div>
+          <p class="agenda-sub">
+            <span *ngIf="agendaScope() === 'MONTH'">Obligations for <strong>{{ currentMonthTitle() }}</strong></span>
+            <span *ngIf="agendaScope() === 'ALL'">All Quarter Obligations (Sep &ndash; Dec 2026)</span>
+            <span *ngIf="agendaScope() === 'DAY'">Obligations for <strong>{{ selectedDay() }} {{ monthNames[currentMonth()] }}</strong></span>
+          </p>
+        </div>
+
+        <!-- Scope Pills (This Month / All Quarter / Day) -->
+        <div class="agenda-scope-pills">
+          <button class="scope-pill" [class.active]="agendaScope() === 'MONTH'" (click)="setScope('MONTH')" title="Show active calendar month">
+            This Month
+          </button>
+          <button class="scope-pill" [class.active]="agendaScope() === 'ALL'" (click)="setScope('ALL')" title="Show entire quarter">
+            All Quarter
+          </button>
+          <button *ngIf="agendaScope() === 'DAY'" class="scope-pill active day-active" (click)="setScope('MONTH')" title="Return to month view">
+            Day {{ selectedDay() }} ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter Active Notice Banner -->
+      <div *ngIf="statusFilter() !== 'ALL' || agendaScope() === 'DAY' || agendaSearchQuery()" class="filter-active-notice">
+        <span>
+          Showing: <strong>{{ statusFilter() !== 'ALL' ? (statusFilter() === 'ACTION_REQUIRED' ? 'Immediate Action Required Items' : 'Compliant Items') : (agendaScope() === 'DAY' ? 'Day ' + selectedDay() + ' Events' : 'Filtered Search Results') }}</strong>
+        </span>
+        <button class="btn-clear-filter" (click)="resetFilters()" title="Reset all filters">Clear Filter &larr;</button>
+      </div>
+
+      <!-- Agenda Toolbar: Search & Category Filter Pills -->
+      <div class="agenda-toolbar">
+        <div class="agenda-search-box">
+          <span class="search-glass-icon">🔍</span>
+          <input
+            type="text"
+            class="agenda-search-input"
+            placeholder="Search obligations, GST, EPFO, MCA, Tax..."
+            [ngModel]="agendaSearchQuery()"
+            (ngModelChange)="agendaSearchQuery.set($event)"
+          />
+          <button *ngIf="agendaSearchQuery()" class="clear-search-btn" (click)="agendaSearchQuery.set('')" title="Clear search">✕</button>
+        </div>
+
+        <div class="filter-pills-row">
+          <button
+            *ngFor="let filter of filters"
+            class="filter-pill"
+            [class.active]="selectedFilter() === filter"
+            (click)="setFilter(filter)">
+            {{ filter }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Upcoming Events List -->
+      <div class="events-list">
+        <div *ngIf="displayedAgendaEvents().length === 0" class="no-events-box">
+          <span class="no-ev-icon">🔍</span>
+          <strong class="no-ev-title">No obligations match this query</strong>
+          <p class="no-ev-sub">Try clearing filters or changing the search keyword.</p>
+          <button class="btn btn-secondary btn-xs mt-2" (click)="resetFilters()">Reset to All Obligations</button>
+        </div>
+
+        <div
+          *ngFor="let ev of displayedAgendaEvents()"
+          class="event-item"
+          [ngClass]="ev.status.toLowerCase()"
+          [class.selected]="selectedDay() === ev.day && currentMonth() === ev.month"
+          (click)="openEventModal(ev)"
+        >
+          <!-- Left: Sovereign Date Badge -->
+          <div class="event-date-box" [ngClass]="ev.status.toLowerCase()">
+            <span class="ev-day">{{ ev.day }}</span>
+            <span class="ev-month">{{ monthNames[ev.month].substring(0, 3).toUpperCase() }}</span>
+            <span class="ev-cat-glyph">
+              {{ ev.category === 'Statutory Returns' ? '📋' : (ev.category === 'Tax Deadlines' ? '💰' : (ev.category === 'Credential Expiries' ? '⚠️' : '🏦')) }}
+            </span>
+          </div>
+
+          <!-- Middle: Content & Metadata -->
+          <div class="event-details">
+            <div class="ev-top-bar">
+              <span class="ev-type-tag" [ngClass]="ev.status.toLowerCase()">
+                {{ ev.status === 'COMPLIANT' ? '✓ Reconciled' : (ev.status === 'ACTION_REQUIRED' ? '⚠ Action Required' : '○ Upcoming Filing') }}
+              </span>
+              <span class="ev-category-tag">{{ ev.category }}</span>
+              <span class="ev-date-badge">{{ ev.dateStr }}</span>
+            </div>
+
+            <div class="ev-title-row">
+              <strong class="ev-title">{{ ev.title }}</strong>
+            </div>
+
+            <div class="ev-meta-row">
+              <span class="ev-auth-badge">{{ ev.authorityLogoText }}</span>
+              <span class="ev-ref font-mono">{{ ev.statutoryRef }}</span>
+              <span *ngIf="ev.arnNumber" class="ev-arn font-mono">ARN: {{ ev.arnNumber }}</span>
+              <span *ngIf="ev.feeAmount" class="ev-fee font-mono">{{ ev.feeAmount }}</span>
+            </div>
+
+            <div *ngIf="ev.status === 'ACTION_REQUIRED' && ev.penaltyNotice" class="ev-penalty-row">
+              <span class="penalty-tag">Risk Alert:</span>
+              <span class="penalty-text">{{ ev.penaltyNotice }}</span>
+            </div>
+          </div>
+
+          <!-- Right: Interactive Actions -->
+          <div class="event-actions-col" (click)="$event.stopPropagation()">
+            <button
+              *ngIf="ev.status === 'ACTION_REQUIRED'"
+              class="btn-quick-resolve"
+              (click)="openUploadModal(ev)"
+              title="Upload Proof or Challan to Resolve"
+            >
+              <span>Resolve</span>
+              <span class="arrow-glyph">&rarr;</span>
+            </button>
+
+            <span *ngIf="ev.status === 'COMPLIANT'" class="reconciled-pill" title="Verified against sovereign registry">
+              <span class="check-glyph">✓</span> Cleared
+            </span>
+
+            <button class="btn-inspect" (click)="openEventModal(ev)" title="View Statutory Provisions">
+              Details
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calendar Sync Note -->
+      <div class="cal-sync-box">
+        <span class="sync-icon">🔔</span>
+        <div class="sync-content">
+          <strong>Watchtower Automated Regulatory Alerts</strong>
+          <p>Email reminders automatically triggered 30, 15, and 3 days before any statutory filing deadline.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 1: EVENT DETAILS INSPECTION MODAL -->
+<div class="modal-backdrop" *ngIf="activeEventModal()" (click)="closeEventModal()">
+  <div class="statutory-modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <span class="modal-cat-tag">{{ activeEventModal()?.category }}</span>
+        <h2 class="modal-title">{{ activeEventModal()?.title }}</h2>
+        <span class="modal-sub">Authoritative Gateway: {{ activeEventModal()?.authority }}</span>
+      </div>
+      <button class="btn-close-modal" (click)="closeEventModal()" title="Close Details">✕</button>
+    </div>
+
+    <div class="modal-body-scrollable">
+      <!-- Status & Sovereign Authority Banner -->
+      <div class="auth-banner" [ngClass]="activeEventModal()?.status?.toLowerCase()">
+        <div class="auth-banner-left">
+          <span class="auth-glyph">{{ activeEventModal()?.authorityLogoText }}</span>
+          <div>
+            <span class="auth-lbl">STATUTORY STATUS</span>
+            <strong class="auth-name">
+              {{ activeEventModal()?.status === 'COMPLIANT' ? 'CLEARED & COMPLIANT' : (activeEventModal()?.status === 'ACTION_REQUIRED' ? 'IMMEDIATE ACTION REQUIRED' : 'UPCOMING REGISTRY OBLIGATION') }}
+            </strong>
+          </div>
+        </div>
+        <div class="confidence-badge">
+          <span class="conf-dot" [class.amber-dot]="activeEventModal()?.status === 'ACTION_REQUIRED'"></span>
+          <span>Due: {{ activeEventModal()?.dateStr }}</span>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="modal-desc-box">
+        <p>{{ activeEventModal()?.description }}</p>
+      </div>
+
+      <!-- Particulars Table -->
+      <div class="stat-table">
+        <div class="stat-table-header">REGULATORY PARTICULAR & STATUTORY PROVISIONS</div>
+        <div class="stat-row">
+          <span class="stat-key">Statutory Act & Section</span>
+          <span class="stat-val highlight">{{ activeEventModal()?.statutoryRef }}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-key">Regulatory Authority</span>
+          <span class="stat-val">{{ activeEventModal()?.authority }}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-key">Due Date</span>
+          <span class="stat-val font-mono">{{ activeEventModal()?.dateStr }}</span>
+        </div>
+        <div class="stat-row" *ngIf="activeEventModal()?.arnNumber">
+          <span class="stat-key">ARN / Reference Number</span>
+          <span class="stat-val font-mono highlight">{{ activeEventModal()?.arnNumber }}</span>
+        </div>
+        <div class="stat-row" *ngIf="activeEventModal()?.feeAmount">
+          <span class="stat-key">Tax / Fee Amount</span>
+          <span class="stat-val text-green font-mono">{{ activeEventModal()?.feeAmount }}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-key">Non-Compliance Impact</span>
+          <span class="stat-val text-amber">{{ activeEventModal()?.penaltyNotice }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Actions -->
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" (click)="closeEventModal()">Close</button>
+      <button
+        *ngIf="activeEventModal()?.status === 'ACTION_REQUIRED'"
+        class="btn btn-primary btn-sm btn-pulse"
+        (click)="openUploadModal(activeEventModal()!)"
+      >
+        <span>📤</span>
+        <span>Upload Proof / Challan & Resolve</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 2: UPLOAD CHALLAN & RESOLVE MODAL -->
+<div class="modal-backdrop" *ngIf="showUploadChallanModal()" (click)="closeUploadModal()">
+  <div class="statutory-modal-card upload-modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <span class="modal-cat-tag">CHALLAN RECONCILIATION</span>
+        <h2 class="modal-title">Resolve Obligation: {{ showUploadChallanModal()?.title }}</h2>
+        <span class="modal-sub">{{ showUploadChallanModal()?.authority }}</span>
+      </div>
+      <button class="btn-close-modal" (click)="closeUploadModal()" [disabled]="isProcessingUpload()">✕</button>
+    </div>
+
+    <div class="modal-body-scrollable">
+      <div class="upload-intro-box">
+        <p>
+          Upload your payment receipt, renewed license, or official challan acknowledgment for
+          <strong>{{ showUploadChallanModal()?.title }}</strong>.
+        </p>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Payment ARN / Challan Reference *</label>
+        <input
+          type="text"
+          class="form-control font-mono"
+          [ngModel]="challanRefInput()"
+          (ngModelChange)="challanRefInput.set($event)"
+          placeholder="e.g. CHALLAN-2026-99214"
+          [disabled]="isProcessingUpload()"
+        />
+      </div>
+
+      <!-- File Dropzone -->
+      <div class="form-group">
+        <label class="form-label">Statutory Proof Document (PDF, JPEG, max 10MB) *</label>
+        <div class="file-dropzone" [class.has-file]="uploadedFileName()">
+          <input type="file" class="dropzone-input" (change)="onFileSelected($event)" accept=".pdf,.png,.jpg,.jpeg" [disabled]="isProcessingUpload()" />
+          <div class="dropzone-content">
+            <span class="dropzone-icon">📁</span>
+            <div *ngIf="!uploadedFileName()">
+              <strong class="dropzone-title">Click to browse or drag and drop receipt</strong>
+              <span class="dropzone-sub">Official Bank Challan, Municipal Receipt, or Certificate</span>
+            </div>
+            <div *ngIf="uploadedFileName()" class="file-selected-box">
+              <span class="file-name">📄 {{ uploadedFileName() }}</span>
+              <span class="file-status text-green">✓ Ready for Sovereign Reconciliation</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress bar when processing -->
+      <div class="progress-container" *ngIf="uploadProgress() !== null">
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" [style.width.%]="uploadProgress()"></div>
+        </div>
+        <div class="progress-info">
+          <span class="spinner-icon" *ngIf="uploadProgress()! < 100">⚙️</span>
+          <span class="check-icon" *ngIf="uploadProgress() === 100">✓</span>
+          <span class="progress-step-text">{{ uploadStepText() }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" (click)="closeUploadModal()" [disabled]="isProcessingUpload()">Cancel</button>
+      <button class="btn btn-primary btn-sm" (click)="submitChallanUpload()" [disabled]="isProcessingUpload()">
+        {{ isProcessingUpload() ? 'Reconciling...' : 'Submit & Reconcile Sovereign Rails' }}
+      </button>
+    </div>
+  </div>
+</div>

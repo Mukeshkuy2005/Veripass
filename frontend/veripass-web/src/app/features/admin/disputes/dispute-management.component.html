@@ -1,0 +1,178 @@
+    <div class="dispute-page">
+      <!-- HEADER -->
+      <div class="header-card">
+        <div>
+          <div class="header-tag">FORMAL COMPLIANCE ADJUDICATION</div>
+          <h1 class="page-title">Dispute Management</h1>
+          <p class="page-subtitle">
+            Formal supplier appeals contesting verification rejections, risk penalties, or identity flags.
+          </p>
+        </div>
+        <div class="dispute-kpi-badge">
+          <span class="d-dot"></span>
+          <span>84 Active Disputes &bull; 12 Require Action</span>
+        </div>
+      </div>
+
+      <!-- DISPUTE ADJUDICATION MANDATE CALLOUT -->
+      <div class="mandate-callout">
+        <div class="mc-title">CRITICAL ADJUDICATION RULE:</div>
+        <div class="mc-body">
+          Admin <strong>never flips a rejected credential directly to approved</strong>. Instead, Admin reviews evidence and routes the dispute to <em>Reverification</em> or <em>Senior Escalation</em>, ensuring an authentic verifier signs off and an auditable event is generated.
+        </div>
+      </div>
+
+      <!-- 5 DISPUTE KPIS -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <span class="kpi-title">OPEN APPEALS</span>
+          <div class="kpi-val text-amber">84</div>
+          <span class="kpi-sub">Awaiting admin triage</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">UNDER REVIEW</span>
+          <div class="kpi-val">32</div>
+          <span class="kpi-sub">Assigned to compliance desk</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">RESOLVED (YTD)</span>
+          <div class="kpi-val text-success">421</div>
+          <span class="kpi-sub">Reverified or corrected</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">REJECTIONS UPHELD</span>
+          <div class="kpi-val text-danger">73</div>
+          <span class="kpi-sub">Appeals dismissed</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">ESCALATED TO LEGAL</span>
+          <div class="kpi-val text-purple">11</div>
+          <span class="kpi-sub">Statutory regulatory counsel</span>
+        </div>
+      </div>
+
+      <!-- DISPUTES QUEUE TABLE -->
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="dense-table">
+            <thead>
+              <tr>
+                <th>DISPUTE ID</th>
+                <th>APPELLANT BUSINESS</th>
+                <th>ORIGINAL CASE</th>
+                <th>CREDENTIAL</th>
+                <th>GROUNDS &amp; REASON</th>
+                <th>PREVIOUS VERIFIER</th>
+                <th>STATUS</th>
+                <th class="text-right">ADJUDICATION</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let d of disputes()" (click)="selectDispute(d)" class="clickable-row" [class.selected]="selectedDispute()?.id === d.id">
+                <td class="font-mono font-bold text-dark">{{ d.id }}</td>
+                <td>
+                  <span class="biz-name font-bold">{{ d.businessName }}</span>
+                </td>
+                <td class="font-mono text-muted">{{ d.originalCaseId }}</td>
+                <td>
+                  <span class="type-pill">{{ d.credentialType }}</span>
+                </td>
+                <td>
+                  <div class="reason-cell">
+                    <span class="r-title font-bold">{{ d.reason }}</span>
+                    <span class="r-snippet text-muted">{{ d.supplierStatement | slice:0:50 }}...</span>
+                  </div>
+                </td>
+                <td class="text-muted">{{ d.previousVerifier }}</td>
+                <td>
+                  <span class="badge-status" [ngClass]="d.status.toLowerCase()">
+                    ● {{ d.status }}
+                  </span>
+                </td>
+                <td class="text-right" (click)="$event.stopPropagation()">
+                  <button type="button" class="btn-adjudicate" (click)="openResolutionModal(d)">
+                    Adjudicate Dispute
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- DISPUTE RESOLUTION MODAL (A9 SPEC) -->
+      <div class="modal-overlay" *ngIf="activeModalDispute() as d" (click)="closeModal()">
+        <div class="modal-panel modal-lg" (click)="$event.stopPropagation()">
+          <div class="modal-head">
+            <div>
+              <span class="modal-tag">DISPUTE ADJUDICATION &bull; {{ d.id }}</span>
+              <h2 class="modal-title">{{ d.businessName }} (Case {{ d.originalCaseId }})</h2>
+            </div>
+            <button type="button" class="close-btn" (click)="closeModal()">✕</button>
+          </div>
+
+          <div class="modal-body">
+            <!-- Supplier Appeal Statement -->
+            <div class="statement-card">
+              <div class="sc-head">APPELLANT SUPPLIER STATEMENT:</div>
+              <p class="sc-body">"{{ d.supplierStatement }}"</p>
+              <span class="sc-meta">Original Decision: <strong class="text-danger">{{ d.originalDecision }}</strong> &bull; Previous Verifier: {{ d.previousVerifier }}</span>
+            </div>
+
+            <!-- Evidence Examined -->
+            <div class="evidence-box">
+              <span class="ev-title">EXAMINED EVIDENCE DOSSIER</span>
+              <div class="ev-tags">
+                <span *ngFor="let ev of d.evidenceExamined" class="ev-pill font-mono">✓ {{ ev }}</span>
+              </div>
+            </div>
+
+            <!-- Admin Review Actions -->
+            <div class="form-group">
+              <label class="form-label required">Adjudication Determination *</label>
+              <div class="choice-grid">
+                <label class="choice-card" [class.selected]="resolutionAction === 'UPHOLD'">
+                  <input type="radio" name="resAction" value="UPHOLD" [(ngModel)]="resolutionAction">
+                  <div>
+                    <span class="choice-title text-danger">Uphold Decision</span>
+                    <span class="choice-sub">Dismiss appeal. The original rejection was correct under statutory rules.</span>
+                  </div>
+                </label>
+
+                <label class="choice-card" [class.selected]="resolutionAction === 'REVERIFY'">
+                  <input type="radio" name="resAction" value="REVERIFY" [(ngModel)]="resolutionAction">
+                  <div>
+                    <span class="choice-title text-success">Return for Reverification</span>
+                    <span class="choice-sub">Routes case to a senior officer with notes to re-evaluate evidence.</span>
+                  </div>
+                </label>
+
+                <label class="choice-card" [class.selected]="resolutionAction === 'ESCALATE'">
+                  <input type="radio" name="resAction" value="ESCALATE" [(ngModel)]="resolutionAction">
+                  <div>
+                    <span class="choice-title text-purple">Escalate to Legal</span>
+                    <span class="choice-sub">Complex jurisdictional edge case requiring policy interpretation.</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Statutory Adjudication Rationale *</label>
+              <textarea 
+                [(ngModel)]="resolutionReason" 
+                rows="4" 
+                placeholder="Detail the regulatory justification for this dispute ruling..." 
+                class="form-textarea"></textarea>
+            </div>
+          </div>
+
+          <div class="modal-foot">
+            <button type="button" class="btn-sec" (click)="closeModal()">Cancel</button>
+            <button type="button" class="btn-primary" (click)="submitResolution(d.id)">
+              Sign &amp; Issue Resolution
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>

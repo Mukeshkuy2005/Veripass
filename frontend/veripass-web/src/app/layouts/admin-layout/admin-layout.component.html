@@ -1,0 +1,185 @@
+    <div class="admin-shell">
+      <!-- TOPBAR (64px) -->
+      <header class="admin-topbar">
+        <div class="topbar-left">
+          <a routerLink="/admin/dashboard" class="topbar-brand">
+            <div class="brand-badge">
+              <svg viewBox="0 0 24 24" fill="none" class="brand-shield">
+                <path d="M12 2L4 6V11.5C4 16.5 7.4 21.1 12 22C16.6 21.1 20 16.5 20 11.5V6L12 2Z" fill="#0F172A" stroke="#2563EB" stroke-width="1.5"/>
+                <path d="M9 11.5L11 13.5L15.5 9" stroke="#38BDF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="brand-text">
+              <span class="brand-name">VERIPASS</span>
+              <span class="brand-sub">/ PLATFORM CONTROL PLANE</span>
+            </div>
+          </a>
+
+          <!-- Global Omnisearch -->
+          <div class="topbar-search">
+            <span class="search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder="Search platform registry, GSTIN, CIN, Passport ID, Dispute..."
+              class="topbar-search-input"
+              (keyup.enter)="onSearch($event)" />
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Platform Mode Indicator -->
+          <div class="soc-pill">
+            <span class="soc-dot"></span>
+            <span class="soc-text">ALL ENGINES LIVE</span>
+          </div>
+
+          <!-- Alert Notifications Bell -->
+          <a routerLink="/admin/audit" class="topbar-icon-btn" title="System Notifications">
+            <span>🔔</span>
+            <span class="badge-dot">3</span>
+          </a>
+
+          <!-- Help / SOP Link -->
+          <a routerLink="/help" class="topbar-icon-btn" title="Platform Operations SOP" target="_blank">
+            <span>?</span>
+          </a>
+
+          <!-- Admin User Badge -->
+          <div class="admin-user-badge">
+            <div class="admin-avatar">AD</div>
+            <div class="admin-user-info">
+              <span class="admin-name">Sanjay Mehta</span>
+              <span class="admin-role">Platform Administrator</span>
+            </div>
+            <button class="btn-logout" (click)="logout()" title="Logout">&#x21aa;</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- BODY: 250px SIDEBAR + CONTENT -->
+      <div class="admin-body">
+        <aside class="admin-sidebar">
+          <nav class="sidebar-nav">
+            <!-- 1. OVERVIEW -->
+            <div class="nav-group">
+              <span class="group-title">OVERVIEW</span>
+              <a routerLink="/admin/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+                <span class="nav-icon">▣</span>
+                <span class="nav-label">Dashboard</span>
+              </a>
+            </div>
+
+            <!-- 2. ECOSYSTEM -->
+            <div class="nav-group">
+              <span class="group-title">ECOSYSTEM</span>
+              <a routerLink="/admin/businesses" routerLinkActive="active">
+                <span class="nav-icon">🏢</span>
+                <span class="nav-label">Businesses</span>
+                <span class="nav-badge">84k</span>
+              </a>
+              <a routerLink="/admin/buyers" routerLinkActive="active">
+                <span class="nav-icon">🏛</span>
+                <span class="nav-label">Buyers</span>
+                <span class="nav-badge">8.9k</span>
+              </a>
+            </div>
+
+            <!-- 3. VERIFICATION -->
+            <div class="nav-group">
+              <span class="group-title">VERIFICATION</span>
+              <a routerLink="/admin/verifiers" routerLinkActive="active">
+                <span class="nav-icon">👥</span>
+                <span class="nav-label">Verifiers</span>
+              </a>
+              <a routerLink="/admin/verification" routerLinkActive="active">
+                <span class="nav-icon">⚡</span>
+                <span class="nav-label">Operations</span>
+              </a>
+              <a routerLink="/admin/verification-rules" routerLinkActive="active">
+                <span class="nav-icon">📜</span>
+                <span class="nav-label">Rules</span>
+                <span class="nav-badge badge-blue">v4</span>
+              </a>
+              <a routerLink="/admin/credentials" routerLinkActive="active">
+                <span class="nav-icon">🪪</span>
+                <span class="nav-label">Credentials</span>
+              </a>
+              <a routerLink="/admin/documents" routerLinkActive="active">
+                <span class="nav-icon">📁</span>
+                <span class="nav-label">Documents</span>
+              </a>
+            </div>
+
+            <!-- 4. RISK & TRUST -->
+            <div class="nav-group">
+              <span class="group-title">RISK &amp; TRUST</span>
+              <a routerLink="/admin/risk" routerLinkActive="active">
+                <span class="nav-icon">⚠</span>
+                <span class="nav-label">Risk Intelligence</span>
+                <span class="nav-badge badge-red">421</span>
+              </a>
+              <a routerLink="/admin/disputes" routerLinkActive="active">
+                <span class="nav-icon">⚖</span>
+                <span class="nav-label">Disputes</span>
+                <span class="nav-badge badge-amber">12</span>
+              </a>
+            </div>
+
+            <!-- 5. GOVERNANCE -->
+            <div class="nav-group">
+              <span class="group-title">GOVERNANCE</span>
+              <a routerLink="/admin/audit" routerLinkActive="active">
+                <span class="nav-icon">🔒</span>
+                <span class="nav-label">Audit Logs</span>
+              </a>
+              <a routerLink="/admin/reports" routerLinkActive="active">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Reports &amp; Analytics</span>
+              </a>
+            </div>
+
+            <!-- 6. ACCESS -->
+            <div class="nav-group">
+              <span class="group-title">ACCESS</span>
+              <a routerLink="/admin/users" routerLinkActive="active">
+                <span class="nav-icon">👥</span>
+                <span class="nav-label">Users &amp; Roles</span>
+              </a>
+            </div>
+
+            <!-- 7. PLATFORM -->
+            <div class="nav-group">
+              <span class="group-title">PLATFORM</span>
+              <a routerLink="/admin/configuration" routerLinkActive="active">
+                <span class="nav-icon">⚙</span>
+                <span class="nav-label">Configuration</span>
+              </a>
+              <a routerLink="/admin/security" routerLinkActive="active">
+                <span class="nav-icon">🛡</span>
+                <span class="nav-label">Admin Security</span>
+              </a>
+            </div>
+          </nav>
+
+          <!-- SIDEBAR FOOTER -->
+          <div class="sidebar-footer">
+            <div class="status-banner">
+              <div class="sb-title">VERIPASS ADMIN</div>
+              <div class="sb-sub">Platform Governance &bull; Tier 4</div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- MAIN VIEWPORT (32px padding, dense tables, 16px cards) -->
+        <main class="admin-main-viewport">
+          <div class="admin-content-container">
+            <router-outlet></router-outlet>
+          </div>
+        </main>
+      </div>
+
+      <!-- FOOTER STATUS BAR -->
+      <footer class="admin-footer-bar">
+        <span>VERIPASS ADMIN &bull; PLATFORM CONTROL &bull; CLUSTER AP-SOUTH-1 (MUMBAI) &bull; TLS 1.3 &bull; FIDO2 SECURED</span>
+      </footer>
+    </div>

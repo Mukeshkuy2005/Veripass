@@ -1,0 +1,75 @@
+.compliance-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-top: 3px solid #06B6D4; /* Cyan / Teal Accent */
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  background: linear-gradient(180deg, #F0FDFA 0%, #FFFFFF 100%);
+  border-bottom: 1px solid #CCFBF1;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0F172A !important;
+  margin: 0;
+}
+
+.score-badge {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0E7490;
+  background-color: #ECFEFF;
+  border: 1px solid #A5F3FC;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.link-details {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0891B2;
+  text-decoration: none;
+}
+
+.link-details:hover {
+  text-decoration: underline;
+}
+
+.chart-container {
+  padding: 20px 24px 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.trend-svg {
+  width: 100%;
+  max-width: 480px;
+  height: auto;
+  overflow: visible;
+}
+
+.empty-chart-state {
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.empty-msg {
+  font-size: 13.5px;
+  color: #64748B;
+  margin: 0;
+}

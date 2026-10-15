@@ -1,0 +1,167 @@
+<div class="queue-table-card">
+  <div class="table-responsive">
+    <table class="queue-table" aria-label="Verification Queue Table">
+      <thead>
+        <tr>
+          <th scope="col" class="th-case-id">CASE ID</th>
+          <th scope="col" class="th-sortable" (click)="onSort('business')">
+            <span class="th-content">
+              SUPPLIER / BUSINESS
+              <span class="sort-indicator" [class.active]="sortBy === 'business'">{{ getSortIcon('business') }}</span>
+            </span>
+          </th>
+          <th scope="col" class="th-sortable" (click)="onSort('type')">
+            <span class="th-content">
+              TYPE
+              <span class="sort-indicator" [class.active]="sortBy === 'type'">{{ getSortIcon('type') }}</span>
+            </span>
+          </th>
+          <th scope="col" class="th-sortable" (click)="onSort('submitted')">
+            <span class="th-content">
+              SUBMITTED
+              <span class="sort-indicator" [class.active]="sortBy === 'submitted'">{{ getSortIcon('submitted') }}</span>
+            </span>
+          </th>
+          <th scope="col" class="th-sortable" (click)="onSort('risk')">
+            <span class="th-content">
+              RISK
+              <span class="sort-indicator" [class.active]="sortBy === 'risk'">{{ getSortIcon('risk') }}</span>
+            </span>
+          </th>
+          <th scope="col" class="th-sortable" (click)="onSort('priority')">
+            <span class="th-content">
+              PRIORITY
+              <span class="sort-indicator" [class.active]="sortBy === 'priority'">{{ getSortIcon('priority') }}</span>
+            </span>
+          </th>
+          <th scope="col">ASSIGNED TO</th>
+          <th scope="col" class="th-sortable" (click)="onSort('sla')">
+            <span class="th-content">
+              SLA
+              <span class="sort-indicator" [class.active]="sortBy === 'sla'">{{ getSortIcon('sla') }}</span>
+            </span>
+          </th>
+          <th scope="col">STATUS</th>
+          <th scope="col" class="th-actions">ACTION</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          *ngFor="let c of items"
+          class="queue-row"
+          [class.row-urgent]="c.priority === 'HIGH' && c.status !== 'APPROVED'"
+          [class.row-escalated]="c.status === 'ESCALATED'">
+          <!-- 1. CASE ID -->
+          <td class="td-case-id">
+            <a
+              [routerLink]="['/verifier/cases', c.id]"
+              class="case-id-link"
+              title="Open Verification Case {{ c.caseNumber }}">
+              <code class="case-code">{{ c.caseNumber }}</code>
+            </a>
+          </td>
+
+          <!-- 2. SUPPLIER / BUSINESS -->
+          <td class="td-supplier">
+            <div class="supplier-info">
+              <span class="supplier-name" [title]="c.businessName">{{ c.businessName }}</span>
+              <span *ngIf="c.businessIdentifier" class="supplier-identifier">
+                {{ c.businessIdentifier }}
+              </span>
+            </div>
+          </td>
+
+          <!-- 3. TYPE -->
+          <td class="td-type">
+            <span class="type-pill">{{ c.verificationType }}</span>
+          </td>
+
+          <!-- 4. SUBMITTED -->
+          <td class="td-submitted">
+            <span
+              class="relative-time"
+              [title]="'Exact Submission Time: ' + queueService.formatExactDate(c.submittedAt)">
+              {{ queueService.formatRelativeTime(c.submittedAt) }}
+            </span>
+          </td>
+
+          <!-- 5. RISK -->
+          <td class="td-risk">
+            <span
+              class="risk-chip"
+              [class.risk-low]="c.riskLevel === 'LOW'"
+              [class.risk-med]="c.riskLevel === 'MEDIUM'"
+              [class.risk-high]="c.riskLevel === 'HIGH'"
+              [title]="'Risk Score: ' + c.riskScore + '/100'">
+              <span class="risk-dot">●</span>
+              {{ c.riskLevel }}
+            </span>
+          </td>
+
+          <!-- 6. PRIORITY -->
+          <td class="td-priority">
+            <span
+              class="priority-chip"
+              [class.prio-high]="c.priority === 'HIGH'"
+              [class.prio-med]="c.priority === 'MEDIUM'"
+              [class.prio-low]="c.priority === 'LOW'">
+              {{ c.priority }}
+            </span>
+          </td>
+
+          <!-- 7. ASSIGNED TO -->
+          <td class="td-assigned">
+            <div *ngIf="c.assignedTo; else unassignedTpl" class="assignee-wrap">
+              <span class="assignee-avatar">{{ c.assignedTo.name.charAt(0) }}</span>
+              <span class="assignee-name">{{ c.assignedTo.name }}</span>
+            </div>
+            <ng-template #unassignedTpl>
+              <span class="unassigned-badge">Unassigned</span>
+            </ng-template>
+          </td>
+
+          <!-- 8. SLA -->
+          <td class="td-sla">
+            <span
+              class="sla-badge"
+              [class.overdue]="c.sla.isOverdue"
+              [class.urgent]="!c.sla.isOverdue && c.sla.remainingMinutes > 0 && c.sla.remainingMinutes < 60"
+              [class.completed]="c.sla.formattedRemaining === 'Completed'"
+              [title]="'Authoritative Deadline: ' + queueService.formatExactDate(c.sla.dueAt)">
+              <span *ngIf="c.sla.isOverdue" class="sla-icon">⚠️</span>
+              {{ c.sla.formattedRemaining }}
+            </span>
+          </td>
+
+          <!-- 9. STATUS -->
+          <td class="td-status">
+            <span
+              class="status-pill"
+              [class.status-pending]="c.status === 'PENDING'"
+              [class.status-in-review]="c.status === 'IN_REVIEW'"
+              [class.status-more-info]="c.status === 'MORE_INFO_REQUIRED'"
+              [class.status-approved]="c.status === 'APPROVED'"
+              [class.status-rejected]="c.status === 'REJECTED'"
+              [class.status-escalated]="c.status === 'ESCALATED'"
+              [class.status-cancelled]="c.status === 'CANCELLED'">
+              {{ c.status === 'IN_REVIEW' ? 'IN REVIEW' : c.status === 'MORE_INFO_REQUIRED' ? 'MORE INFO' : c.status }}
+            </span>
+          </td>
+
+          <!-- 10. ACTION -->
+          <td class="td-action">
+            <a
+              [routerLink]="['/verifier/cases', c.id]"
+              class="btn-row-action"
+              [class.btn-review]="c.actionLabel === 'Review'"
+              [class.btn-continue]="c.actionLabel === 'Continue Review'"
+              [class.btn-view]="c.actionLabel === 'View'"
+              [title]="c.actionLabel + ' verification case ' + c.caseNumber">
+              {{ c.actionLabel }} &rarr;
+            </a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

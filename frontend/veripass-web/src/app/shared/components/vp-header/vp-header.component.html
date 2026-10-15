@@ -1,0 +1,56 @@
+    <header class="vp-header" [class.scrolled]="isScrolled()">
+      <div class="header-container">
+        <!-- Logo: [V] VERIPASS -->
+        <a routerLink="/" class="vp-logo" (click)="closeMobileMenu()">
+          <div class="logo-mark">
+            <svg viewBox="0 0 24 24" fill="none" class="shield-icon">
+              <path d="M12 2L4 6V11.5C4 16.5 7.4 21.1 12 22C16.6 21.1 20 16.5 20 11.5V6L12 2Z" fill="#2563EB" stroke="#1D4ED8" stroke-width="1.5"/>
+              <path d="M9 11.5L11 13.5L15.5 9" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="logo-text">
+            <span class="brand-name">VERIPASS</span>
+            <span class="brand-sub">TRUST NETWORK</span>
+          </div>
+        </a>
+
+        <!-- Desktop Navigation: How It Works | Verify Business | Security | Help -->
+        <nav class="desktop-nav">
+          <a routerLink="/how-it-works" routerLinkActive="active">How It Works</a>
+          <a routerLink="/verify" routerLinkActive="active">Verify Business</a>
+          <a routerLink="/security" routerLinkActive="active">Security</a>
+          <a routerLink="/help" routerLinkActive="active">Help</a>
+        </nav>
+
+        <!-- Desktop CTAs: [Login] [Create Passport] -->
+        <div class="header-actions">
+          <a routerLink="/auth/login" class="btn btn-outline">Login</a>
+          <a routerLink="/auth/register-supplier" class="btn btn-primary">Create Passport</a>
+        </div>
+
+        <!-- Mobile Hamburger ☰ -->
+        <button class="mobile-toggle" (click)="toggleMobileMenu()" [attr.aria-expanded]="mobileMenuOpen()" aria-label="Toggle Navigation">
+          <span class="bar" [class.open]="mobileMenuOpen()"></span>
+          <span class="bar" [class.open]="mobileMenuOpen()"></span>
+          <span class="bar" [class.open]="mobileMenuOpen()"></span>
+        </button>
+      </div>
+
+      <!-- Mobile Dropdown Menu -->
+      <div class="mobile-menu" [class.open]="mobileMenuOpen()">
+        <nav class="mobile-nav">
+          <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" (click)="closeMobileMenu()">Home</a>
+          <a routerLink="/how-it-works" routerLinkActive="active" (click)="closeMobileMenu()">How It Works</a>
+          <a routerLink="/verify" routerLinkActive="active" (click)="closeMobileMenu()">Verify Business</a>
+          <a routerLink="/security" routerLinkActive="active" (click)="closeMobileMenu()">Security</a>
+          <a routerLink="/about" routerLinkActive="active" (click)="closeMobileMenu()">About</a>
+          <a routerLink="/help" routerLinkActive="active" (click)="closeMobileMenu()">Help</a>
+          <a routerLink="/contact" routerLinkActive="active" (click)="closeMobileMenu()">Contact</a>
+          <div class="mobile-divider"></div>
+          <div class="mobile-actions">
+            <a routerLink="/auth/login" class="btn btn-outline w-full" (click)="closeMobileMenu()">Login</a>
+            <a routerLink="/auth/register-supplier" class="btn btn-primary w-full" (click)="closeMobileMenu()">Create Passport</a>
+          </div>
+        </nav>
+      </div>
+    </header>

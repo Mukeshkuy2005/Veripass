@@ -1,0 +1,291 @@
+/* ==========================================================================
+   ENTERPRISE S1 — SUPPLIER DASHBOARD STYLES
+   ========================================================================== */
+
+.dashboard-page-container {
+  max-width: 1360px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* --------------------------------------------------------------------------
+   DASHBOARD HEADER
+   -------------------------------------------------------------------------- */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-bottom: 4px;
+}
+
+.header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.page-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: #667085;
+  margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Button System */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 16px;
+  font-size: 13.5px;
+  font-weight: 500;
+  border-radius: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease-out;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background-color: #1D4ED8;
+  color: #FFFFFF;
+  border: 1px solid #1D4ED8;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+}
+
+.btn-primary:hover {
+  background-color: #1E40AF;
+  border-color: #1E40AF;
+}
+
+.btn-secondary {
+  background-color: #FFFFFF;
+  color: #344054;
+  border: 1px solid #D0D5DD;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+}
+
+.btn-secondary:hover {
+  background-color: #F9FAFB;
+  border-color: #98A2B3;
+  color: #111827;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12.5px;
+}
+
+/* --------------------------------------------------------------------------
+   DASHBOARD CONTENT STRUCTURE
+   -------------------------------------------------------------------------- */
+.dashboard-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dashboard-two-col-layout {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.layout-col-primary {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.layout-col-secondary {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* --------------------------------------------------------------------------
+   ERROR BANNER
+   -------------------------------------------------------------------------- */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background-color: #FEF3F2;
+  border: 1px solid #FECDCA;
+  border-radius: 8px;
+  color: #B91C1C;
+}
+
+.error-icon {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.error-content {
+  flex: 1;
+}
+
+.error-content strong {
+  display: block;
+  font-size: 13.5px;
+  margin-bottom: 2px;
+}
+
+.error-content p {
+  font-size: 12.5px;
+  margin: 0;
+  color: #991B1B;
+}
+
+/* --------------------------------------------------------------------------
+   SKELETON LOADER
+   -------------------------------------------------------------------------- */
+.skeleton-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.skeleton-hero {
+  background: #FFFFFF;
+  border: 1px solid #E4E7EC;
+  border-radius: 12px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.skeleton-line {
+  background: #E2E8F0;
+  border-radius: 4px;
+  animation: pulse 1.5s infinite;
+}
+
+.line-title {
+  width: 45%;
+  height: 24px;
+}
+
+.line-sub {
+  width: 65%;
+  height: 16px;
+}
+
+.skeleton-bar {
+  width: 100%;
+  height: 36px;
+  background: #F1F5F9;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.skeleton-card {
+  height: 110px;
+  background: #FFFFFF;
+  border: 1px solid #E4E7EC;
+  border-radius: 12px;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIVE DESIGN (Laptops, Tablets & Mobile)
+   -------------------------------------------------------------------------- */
+@media (min-width: 1200px) {
+  .dashboard-page-container {
+    max-width: 1400px;
+  }
+}
+
+@media (max-width: 1199px) and (min-width: 1025px) {
+  .dashboard-two-col-layout {
+    grid-template-columns: 1.35fr 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .dashboard-two-col-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-page-container {
+    gap: 16px;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding-bottom: 0;
+  }
+
+  .header-actions {
+    width: 100%;
+    gap: 10px;
+  }
+
+  .header-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .page-title {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .header-actions .btn {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+  }
+}

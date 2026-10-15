@@ -1,0 +1,85 @@
+    <div class="instant-page">
+      <div class="container search-container">
+        <div class="search-header">
+          <span class="eyebrow">SOVEREIGN VENDOR SEARCH</span>
+          <h2>Instant Statutory & Trust Verification</h2>
+          <p class="sub">Verify any Indian supplier's GST status, MCA registration, and VeriPass Trust Score in real time.</p>
+        </div>
+
+        <!-- Search Input Box -->
+        <div class="search-box-card">
+          <div class="input-row">
+            <input
+              type="text"
+              class="form-control form-control-lg font-mono uppercase"
+              placeholder="Enter 15-character GSTIN or 10-character PAN (e.g. 27AAACT2704M1ZW)"
+              [(ngModel)]="searchQuery"
+              (keyup.enter)="executeSearch()" />
+            <button class="btn btn-primary" (click)="executeSearch()" [disabled]="searching()">
+              <span *ngIf="!searching()">Verify Now &rarr;</span>
+              <span *ngIf="searching()">Querying Gateways...</span>
+            </button>
+          </div>
+          <div class="quick-examples">
+            <span class="ex-lbl">Try sample GSTINs:</span>
+            <button class="sample-btn" (click)="fillAndSearch('27AABCU9603R1ZM')">ABC INDUSTRIAL DYNAMICS (27AABCU9603R1ZM)</button>
+            <button class="sample-btn" (click)="fillAndSearch('29AABCA1234F1Z5')">Axionis Manufacturing (29AABCA1234F1Z5)</button>
+          </div>
+        </div>
+
+        <!-- Result Card -->
+        <div class="result-card" *ngIf="result() as r">
+          <div class="result-main">
+            <div class="brand-badge">{{ r.name[0] }}</div>
+            <div class="result-details">
+              <div class="title-row">
+                <h3>{{ r.name }}</h3>
+                <span class="badge-verified">✓ SOVEREIGN VERIFIED</span>
+              </div>
+              <div class="identifiers-row">
+                <span class="id-item">GSTIN: <strong class="font-mono text-cyan">{{ r.gstin }}</strong></span>
+                <span class="id-item">PAN: <strong class="font-mono">{{ r.pan }}</strong></span>
+                <span class="id-item">Tax Status: <strong class="text-emerald">Active Regular</strong></span>
+              </div>
+              <span class="addr-text">{{ r.address }}</span>
+            </div>
+            <div class="result-score">
+              <app-trust-score-badge [score]="r.score" [size]="72"></app-trust-score-badge>
+              <span class="score-lbl">Trust Score</span>
+            </div>
+          </div>
+
+          <div class="pillars-preview">
+            <div class="pillar-mini">
+              <span class="p-num">20/20</span>
+              <span class="p-lbl">Statutory Identity</span>
+            </div>
+            <div class="pillar-mini">
+              <span class="p-num">24/25</span>
+              <span class="p-lbl">Tax & GSTR Filing</span>
+            </div>
+            <div class="pillar-mini">
+              <span class="p-num">18/20</span>
+              <span class="p-lbl">Operations Scale</span>
+            </div>
+            <div class="pillar-mini">
+              <span class="p-num">15/15</span>
+              <span class="p-lbl">Watchlist Screen</span>
+            </div>
+            <div class="pillar-mini">
+              <span class="p-num">17/20</span>
+              <span class="p-lbl">Certifications</span>
+            </div>
+          </div>
+
+          <div class="result-footer">
+            <span class="sealed-text">🔒 Cryptographically sealed with VeriPass Key (SHA-256)</span>
+            <div class="footer-actions">
+              <a [routerLink]="['/passport', r.passportId]" class="btn btn-primary btn-sm">
+                View Full Verified Passport &rarr;
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>

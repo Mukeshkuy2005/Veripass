@@ -1,0 +1,260 @@
+    <div class="profile-setup-view" [class.embedded-profile]="isEmbedded">
+      <!-- STEPPER BANNER (Only when standalone onboarding) -->
+      <div class="vp-card stepper-bar" *ngIf="!isEmbedded">
+        <div class="stepper-item done">
+          <div class="step-circle">✓</div>
+          <span class="step-lbl">Account</span>
+        </div>
+        <div class="step-divider filled"></div>
+
+        <div class="stepper-item active">
+          <div class="step-circle">2</div>
+          <span class="step-lbl">Business Profile</span>
+        </div>
+        <div class="step-divider"></div>
+
+        <div class="stepper-item">
+          <div class="step-circle">3</div>
+          <span class="step-lbl">Identity / KYC</span>
+        </div>
+        <div class="step-divider"></div>
+
+        <div class="stepper-item">
+          <div class="step-circle">4</div>
+          <span class="step-lbl">Documents</span>
+        </div>
+        <div class="step-divider"></div>
+
+        <div class="stepper-item">
+          <div class="step-circle">5</div>
+          <span class="step-lbl">Verification</span>
+        </div>
+      </div>
+
+      <!-- MAIN FORM CARD -->
+      <div class="profile-form-card" [class.vp-card]="!isEmbedded">
+        <div class="form-card-header" [class.embedded-header]="isEmbedded">
+          <div class="header-text-block">
+            <div class="pane-tag-row" *ngIf="isEmbedded">
+              <span class="section-badge">CORE RECORD</span>
+              <span class="sovereign-live-badge">● Active on Passport</span>
+            </div>
+            <h2 *ngIf="isEmbedded" class="pane-title">Business Profile & Operating Identity</h2>
+            <h1 *ngIf="!isEmbedded" class="page-title">Business Profile</h1>
+            <p class="pane-sub">
+              Manage statutory legal identity, commercial trade name, and physical principal place of operations.
+            </p>
+          </div>
+          <div class="sovereign-tag">
+            <span class="flag">🇮🇳</span>
+            <span>Sovereign Registry Synced</span>
+          </div>
+        </div>
+
+        <!-- Success Toast -->
+        <div *ngIf="saved()" class="saved-toast">
+          <span class="toast-icon">✓</span>
+          <span>Profile details updated and synchronized with business passport metadata.</span>
+        </div>
+
+        <form (ngSubmit)="saveAndContinue()" class="profile-form">
+          <div class="profile-form-columns">
+            <!-- COLUMN 1: COMMERCIAL & LEGAL IDENTITY -->
+            <div class="form-column">
+              <div class="form-section-header">
+                <span class="section-icon">🏢</span>
+                <span class="form-section-title">COMMERCIAL & LEGAL IDENTITY</span>
+              </div>
+
+              <div class="form-group">
+                <label for="prof-bname">Business Name (Trade Name) <span class="req">*</span></label>
+                <input
+                  id="prof-bname"
+                  type="text"
+                  [(ngModel)]="profileData.businessName"
+                  name="businessName"
+                  required
+                  class="vp-input"
+                  placeholder="e.g. ABC Industrial Dynamics"
+                />
+                <span class="field-hint">Display name recognized by enterprise buyers</span>
+              </div>
+
+              <div class="form-group">
+                <label for="prof-lname">Legal Name (As on MCA/GST) <span class="req">*</span></label>
+                <input
+                  id="prof-lname"
+                  type="text"
+                  [(ngModel)]="profileData.legalName"
+                  name="legalName"
+                  required
+                  class="vp-input"
+                  placeholder="e.g. ABC INDUSTRIAL DYNAMICS"
+                />
+                <span class="field-hint">Statutory legal entity name</span>
+              </div>
+
+              <div class="form-row-2col">
+                <div class="form-group">
+                  <label for="prof-btype">Business Type <span class="req">*</span></label>
+                  <select
+                    id="prof-btype"
+                    [(ngModel)]="profileData.businessType"
+                    name="businessType"
+                    class="vp-select">
+                    <option value="Private Limited Company">Private Limited Company</option>
+                    <option value="Public Limited Company">Public Limited Company</option>
+                    <option value="Limited Liability Partnership">Limited Liability Partnership (LLP)</option>
+                    <option value="Partnership Firm">Partnership Firm</option>
+                    <option value="Sole Proprietorship">Sole Proprietorship</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="prof-ind">Industry <span class="req">*</span></label>
+                  <select
+                    id="prof-ind"
+                    [(ngModel)]="profileData.industry"
+                    name="industry"
+                    class="vp-select">
+                    <option value="" disabled selected>Select Industry</option>
+                    <option value="Manufacturing">Manufacturing & Engineering</option>
+                    <option value="Automotive">Automotive & Components</option>
+                    <option value="Electronics">Electrical & Electronics</option>
+                    <option value="Chemicals">Chemicals & Allied Products</option>
+                    <option value="Textiles">Textiles & Apparel</option>
+                    <option value="Logistics">Logistics & Supply Chain</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row-2col">
+                <div class="form-group">
+                  <label for="prof-year">Year Established <span class="req">*</span></label>
+                  <input
+                    id="prof-year"
+                    type="number"
+                    [(ngModel)]="profileData.yearEstablished"
+                    name="yearEstablished"
+                    required
+                    placeholder="e.g. 2022"
+                    class="vp-input font-mono"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="prof-web">Corporate Website</label>
+                  <input
+                    id="prof-web"
+                    type="url"
+                    [(ngModel)]="profileData.website"
+                    name="website"
+                    placeholder="https://company.in"
+                    class="vp-input"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- COLUMN 2: PRINCIPAL PLACE OF BUSINESS -->
+            <div class="form-column">
+              <div class="form-section-header">
+                <span class="section-icon">📍</span>
+                <span class="form-section-title">PRINCIPAL PLACE OF BUSINESS</span>
+              </div>
+
+              <div class="form-group">
+                <label for="prof-addr">Street Address / Industrial Unit <span class="req">*</span></label>
+                <input
+                  id="prof-addr"
+                  type="text"
+                  [(ngModel)]="profileData.address"
+                  name="address"
+                  required
+                  placeholder="e.g. Plot 42, Sector 9, Industrial Area"
+                  class="vp-input"
+                />
+                <span class="field-hint">Registered facility, plant, or corporate headquarters</span>
+              </div>
+
+              <div class="form-row-2col">
+                <div class="form-group">
+                  <label for="prof-city">City <span class="req">*</span></label>
+                  <input
+                    id="prof-city"
+                    type="text"
+                    [(ngModel)]="profileData.city"
+                    name="city"
+                    required
+                    placeholder="e.g. Pune"
+                    class="vp-input"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="prof-state">State / UT <span class="req">*</span></label>
+                  <select
+                    id="prof-state"
+                    [(ngModel)]="profileData.state"
+                    name="state"
+                    class="vp-select">
+                    <option value="Maharashtra">Maharashtra</option>
+                    <option value="Gujarat">Gujarat</option>
+                    <option value="Karnataka">Karnataka</option>
+                    <option value="Tamil Nadu">Tamil Nadu</option>
+                    <option value="Uttar Pradesh">Uttar Pradesh</option>
+                    <option value="Haryana">Haryana</option>
+                    <option value="Delhi">Delhi</option>
+                    <option value="Telangana">Telangana</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row-2col">
+                <div class="form-group">
+                  <label for="prof-pin">PIN Code <span class="req">*</span></label>
+                  <input
+                    id="prof-pin"
+                    type="text"
+                    maxlength="6"
+                    [(ngModel)]="profileData.pinCode"
+                    name="pinCode"
+                    required
+                    placeholder="e.g. 411001"
+                    class="vp-input font-mono"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label>Country</label>
+                  <div class="country-static-field">
+                    <span class="flag">🇮🇳</span>
+                    <span>India (IN)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Address Verification Trust Box -->
+              <div class="address-assurance-box">
+                <div class="assurance-icon">🔒</div>
+                <div class="assurance-content">
+                  <strong>Statutory Geo-Location Lock</strong>
+                  <p>Operating address is bound to sovereign GSTN filing records and verified through Indian postal code geometry.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ACTIONS FOOTER -->
+          <div class="form-action-row">
+            <button type="submit" class="btn btn-primary" [class.btn-lg]="!isEmbedded" [disabled]="loading()">
+              <span *ngIf="!loading()">{{ isEmbedded ? 'Save Business Profile' : 'Save & Continue →' }}</span>
+              <span *ngIf="loading()">Synchronizing Profile...</span>
+            </button>
+            <span class="action-sync-note">
+              {{ isEmbedded ? 'Updates automatically sync to your sovereign Business Passport.' : 'Next: Business Identity / KYC Evidence' }}
+            </span>
+          </div>
+        </form>
+      </div>
+    </div>

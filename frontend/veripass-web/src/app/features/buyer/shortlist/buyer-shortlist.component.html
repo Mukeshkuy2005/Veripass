@@ -1,0 +1,641 @@
+<div class="shortlist-page">
+  <!-- 1. HEADER HERO -->
+  <header class="shortlist-header vp-card">
+    <div class="header-left">
+      <div class="tag-row">
+        <span class="view-tag">PROCUREMENT PIPELINE</span>
+        <span class="cert-tag">SOVEREIGN CANDIDATE REPOSITORY</span>
+        <span class="sync-tag">
+          <span class="live-dot"></span>
+          Live Database Sync
+        </span>
+      </div>
+      <h1 class="page-title">
+        <span class="title-star-icon">★</span>
+        Shortlisted Suppliers &amp; Sourcing Binders
+      </h1>
+      <p class="page-subtitle">
+        Curated sovereign vendor binders, preferred candidate tiers, and fast-track RFQ dispatch queues integrated with live MCA, GSTN, and banking verification telemetry.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-secondary" (click)="openAddSupplierModal()" title="Add a registered supplier to a sourcing binder">
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+        </svg>
+        <span>+ Add Supplier</span>
+      </button>
+
+      <button class="btn-primary" (click)="openNewCollectionModal()" title="Create a new sourcing binder">
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+        </svg>
+        <span>+ New Binder</span>
+      </button>
+
+      <button class="btn-export-top" (click)="exportCollection()" title="Export current list to CSV">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+        <span>Export CSV</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 2. EXECUTIVE SHORTLIST KPI STATS STRIP -->
+  <div class="kpi-strip-grid" *ngIf="allShortlistedSuppliers().length > 0">
+    <div class="kpi-stat-card vp-card">
+      <div class="ksc-icon-wrap icon-blue">👥</div>
+      <div class="ksc-body">
+        <span class="ksc-label">TOTAL SHORTLISTED</span>
+        <strong class="ksc-num">{{ totalCount() }} Suppliers</strong>
+        <span class="ksc-sub">Across {{ collections().length }} Sourcing Binders</span>
+      </div>
+    </div>
+
+    <div class="kpi-stat-card vp-card">
+      <div class="ksc-icon-wrap icon-indigo">★</div>
+      <div class="ksc-body">
+        <span class="ksc-label">AVERAGE TRUST SCORE</span>
+        <strong class="ksc-num text-blue">{{ averageTrustScore() }}/100</strong>
+        <span class="ksc-sub">Non-Blackbox Sovereign Index</span>
+      </div>
+    </div>
+
+    <div class="kpi-stat-card vp-card">
+      <div class="ksc-icon-wrap icon-green">📈</div>
+      <div class="ksc-body">
+        <span class="ksc-label">COMPLIANCE STANDING</span>
+        <strong class="ksc-num text-green">{{ averageCompliance() }}%</strong>
+        <span class="ksc-sub">Continuous GSTR-3B Filing</span>
+      </div>
+    </div>
+
+    <div class="kpi-stat-card vp-card">
+      <div class="ksc-icon-wrap icon-emerald">🛡</div>
+      <div class="ksc-body">
+        <span class="ksc-label">LOW-RISK EXPEDITION</span>
+        <strong class="ksc-num text-emerald">{{ lowRiskCount() }} of {{ totalCount() }}</strong>
+        <span class="ksc-sub">Pre-Cleared for RFQ Dispatch</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. MAIN 2-COLUMN LAYOUT -->
+  <div class="shortlist-layout-grid">
+    <!-- LEFT SIDEBAR: SOURCING BINDERS -->
+    <aside class="collections-sidebar vp-card">
+      <div class="collections-head">
+        <span class="c-head-label">SOURCING BINDERS ({{ collections().length }})</span>
+      </div>
+
+      <div class="collections-list">
+        <!-- Master View (All Vendors) -->
+        <button
+          class="collection-item"
+          [class.active]="selectedCollectionId() === 'all'"
+          (click)="selectCollection('all')">
+          <span class="col-icon">★</span>
+          <div class="col-text-box">
+            <strong class="col-name">All Shortlisted Suppliers</strong>
+            <span class="col-sub">Comprehensive portfolio</span>
+          </div>
+          <span class="col-count">{{ allShortlistedSuppliers().length }}</span>
+        </button>
+
+        <!-- Custom Sourcing Binders from PostgreSQL -->
+        <div class="collection-item-row" *ngFor="let col of collections()">
+          <button
+            class="collection-item"
+            [class.active]="selectedCollectionId() === col.id"
+            (click)="selectCollection(col.id)">
+            <span class="col-icon">{{ col.icon || '📁' }}</span>
+            <div class="col-text-box">
+              <strong class="col-name" [title]="col.name">{{ col.name }}</strong>
+              <span class="col-sub" *ngIf="col.description" [title]="col.description">{{ col.description }}</span>
+            </div>
+            <span class="col-count">{{ col.items.length }}</span>
+          </button>
+
+          <!-- Delete custom collection button -->
+          <button
+            class="btn-delete-col"
+            *ngIf="col.id.startsWith('custom-')"
+            (click)="deleteCollection(col.id, $event)"
+            title="Delete this collection">
+            &times;
+          </button>
+        </div>
+      </div>
+
+      <!-- Collection Operations -->
+      <div class="export-collection-box">
+        <span class="ec-label">BINDER OPERATIONS</span>
+        <button class="btn-col-op" (click)="compareCollection()" title="Open suppliers in side-by-side benchmark matrix">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+          </svg>
+          <span>Compare Binder (Max 4)</span>
+        </button>
+
+        <button class="btn-col-op" (click)="exportCollection()" title="Download CSV ledger for this binder">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+          <span>Export Ledger CSV</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- RIGHT CONTENT AREA -->
+    <main class="shortlist-content-area">
+      <!-- Binder Title & Context Header -->
+      <div class="active-binder-header vp-card" *ngIf="selectedCollection() as activeCol">
+        <div class="abh-left">
+          <div class="abh-title-row">
+            <span class="abh-icon">{{ activeCol.icon || '📁' }}</span>
+            <h2 class="abh-title">{{ activeCol.name }}</h2>
+            <span class="abh-badge">{{ displaySuppliers().length }} Available</span>
+          </div>
+          <p class="abh-desc" *ngIf="activeCol.description">{{ activeCol.description }}</p>
+        </div>
+
+        <div class="abh-right">
+          <button class="btn-add-to-binder" (click)="openAddSupplierModal()">
+            + Add Vendor to Binder
+          </button>
+        </div>
+      </div>
+
+      <!-- Controls & Filter Toolbar -->
+      <div class="controls-toolbar vp-card">
+        <!-- Search Input -->
+        <div class="search-input-box">
+          <svg class="sib-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            type="text"
+            class="filter-search-input"
+            placeholder="Search suppliers by name, GSTIN, location, or notes..."
+            [ngModel]="searchQuery()"
+            (ngModelChange)="onSearchInput($event)" />
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="filter-tabs-row">
+          <button class="ft-btn" [class.active]="activeCategoryFilter() === 'all'" (click)="setCategoryFilter('all')">
+            All Vendors
+          </button>
+          <button class="ft-btn" [class.active]="activeCategoryFilter() === 'Electrical'" (click)="setCategoryFilter('Electrical')">
+            Electrical &amp; Sensors
+          </button>
+          <button class="ft-btn" [class.active]="activeCategoryFilter() === 'Manufacturing'" (click)="setCategoryFilter('Manufacturing')">
+            Heavy Tooling
+          </button>
+          <button class="ft-btn" [class.active]="activeCategoryFilter() === 'High Priority'" (click)="setCategoryFilter('High Priority')">
+            High Trust (92+)
+          </button>
+          <button class="ft-btn" [class.active]="activeCategoryFilter() === 'Low Risk'" (click)="setCategoryFilter('Low Risk')">
+            Low Risk Only
+          </button>
+        </div>
+
+        <!-- Sort Select -->
+        <div class="sort-box">
+          <label class="sort-lbl">Sort by:</label>
+          <select class="sort-select" [ngModel]="activeSort()" (ngModelChange)="setSort($event)">
+            <option value="trust_desc">Highest Trust Score</option>
+            <option value="compliance_desc">Highest Compliance Rate</option>
+            <option value="name_asc">Alphabetical (A–Z)</option>
+            <option value="recent">Recently Added</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Floating Batch Selection Bar (When items are checked) -->
+      <div class="batch-action-bar vp-card" *ngIf="selectedSupplierIds().length > 0">
+        <div class="bab-left">
+          <span class="bab-counter">
+            <strong>{{ selectedSupplierIds().length }}</strong> suppliers selected
+          </span>
+          <span class="bab-hint">(Max 4 for comparison benchmark)</span>
+        </div>
+
+        <div class="bab-actions">
+          <button class="btn-bab-compare" (click)="compareSelected()">
+            Compare Selected in Matrix &rarr;
+          </button>
+          <button class="btn-bab-clear" (click)="clearSelection()">
+            Deselect All
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading Skeleton Grid -->
+      <div class="shortlist-cards-grid" *ngIf="isLoading()">
+        <div class="shortlist-card vp-card skeleton-card" *ngFor="let _ of [1,2,3,4,5,6]">
+          <div class="card-head-row">
+            <div class="head-left-box">
+              <div class="skeleton-avatar skeleton-shimmer"></div>
+              <div class="skeleton-lines">
+                <div class="skeleton-shimmer bar-title"></div>
+                <div class="skeleton-shimmer bar-sub"></div>
+              </div>
+            </div>
+          </div>
+          <div class="skeleton-shimmer bar-meta"></div>
+          <div class="skeleton-scores-row">
+            <div class="skeleton-shimmer score-pill"></div>
+            <div class="skeleton-shimmer score-pill"></div>
+            <div class="skeleton-shimmer score-pill"></div>
+          </div>
+          <div class="skeleton-shimmer bar-tags"></div>
+        </div>
+      </div>
+
+      <!-- Error State with Retry -->
+      <div class="error-shortlist-card vp-card" *ngIf="!isLoading() && hasError()">
+        <div class="empty-icon-wrap error-icon">
+          <span class="ei-icon">⚠️</span>
+        </div>
+        <h3 class="empty-title">Failed to Synchronize Sourcing Binder</h3>
+        <p class="empty-sub">We were unable to load suppliers from the server. Check your connection or retry.</p>
+        <div class="empty-actions">
+          <button class="btn-primary" (click)="loadShortlists()">🔄 Retry Connection</button>
+        </div>
+      </div>
+
+      <!-- Shortlist Cards Grid -->
+      <div class="shortlist-cards-grid" *ngIf="!isLoading() && !hasError() && displaySuppliers().length > 0">
+        <div
+          class="shortlist-card vp-card"
+          *ngFor="let s of paginatedSuppliers()"
+          [class.card-selected]="isSupplierSelected(s.id)">
+          <!-- Top Row: Checkbox, Avatar, Name, Remove -->
+          <div class="card-head-row">
+            <div class="head-left-box">
+              <label class="card-select-label" (click)="$event.stopPropagation()" title="Select for comparison">
+                <input
+                  type="checkbox"
+                  class="card-checkbox"
+                  [checked]="isSupplierSelected(s.id)"
+                  (change)="toggleSupplierSelection(s.id)" />
+              </label>
+
+              <div class="supplier-avatar">
+                {{ s.name.charAt(0) }}
+              </div>
+
+              <div class="name-legal-box">
+                <div class="title-status-line">
+                  <h3 class="s-name" [title]="s.name">{{ s.name }}</h3>
+                  <span class="badge-status-ok" *ngIf="s.status === 'Verified'">✓ Verified</span>
+                </div>
+                <span class="s-legal-name" [title]="s.legalName">{{ s.legalName }}</span>
+              </div>
+            </div>
+
+            <button
+              class="btn-remove-star"
+              (click)="removeSupplier(s.businessId, s.shortlistId)"
+              title="Remove {{ s.name }} from this binder">
+              &times;
+            </button>
+          </div>
+
+          <!-- Location & CIN meta line -->
+          <div class="meta-location-line">
+            <span class="loc-text">📍 {{ s.location }}</span>
+            <code class="cin-code font-mono">{{ s.businessIdNumber }}</code>
+          </div>
+
+          <!-- Triad Metric Scores -->
+          <div class="card-scores-row">
+            <div class="score-line">
+              <span class="sc-lbl">TRUST SCORE</span>
+              <div class="sc-val-box">
+                <strong class="sc-num text-blue">{{ s.trustScore }}</strong>
+                <span class="sc-den">/100</span>
+              </div>
+            </div>
+
+            <div class="score-line">
+              <span class="sc-lbl">COMPLIANCE</span>
+              <div class="sc-val-box">
+                <strong class="sc-num text-green">{{ s.complianceScore }}%</strong>
+              </div>
+            </div>
+
+            <div class="score-line">
+              <span class="sc-lbl">RISK LEVEL</span>
+              <span class="badge-risk-pill" [class.risk-low]="s.riskLevel === 'Low'" [class.risk-med]="s.riskLevel === 'Medium'" [class.risk-high]="s.riskLevel === 'High'">
+                {{ s.riskLevel }} Risk
+              </span>
+            </div>
+          </div>
+
+          <!-- Statutory Identifiers Chips with Copy -->
+          <div class="statutory-chips-strip">
+            <div class="id-copy-chip">
+              <span class="id-lbl">GSTIN:</span>
+              <code class="id-val font-mono">{{ s.gstin }}</code>
+              <button class="btn-copy-mini" (click)="copyValue(s.gstin, 'GSTIN')" title="Copy GSTIN">
+                {{ copiedField() === s.gstin ? '✓' : 'Copy' }}
+              </button>
+            </div>
+
+            <div class="id-copy-chip">
+              <span class="id-lbl">PAN:</span>
+              <code class="id-val font-mono">{{ s.pan }}</code>
+              <button class="btn-copy-mini" (click)="copyValue(s.pan, 'PAN')" title="Copy PAN">
+                {{ copiedField() === s.pan ? '✓' : 'Copy' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Credential Accreditations -->
+          <div class="tags-strip">
+            <span class="tag-pill">{{ s.industry }}</span>
+            <span class="tag-pill" *ngFor="let c of s.certifications.slice(0, 3)">{{ c }} ✓</span>
+            <span class="tag-pill tag-more" *ngIf="s.certifications.length > 3">+{{ s.certifications.length - 3 }} more</span>
+          </div>
+
+          <!-- Procurement Notes Box (from Database) -->
+          <div class="procurement-note-box" *ngIf="s.notes">
+            <span class="pnb-icon">💬</span>
+            <p class="pnb-text">{{ s.notes }}</p>
+          </div>
+
+          <!-- Card Actions Strip -->
+          <div class="card-actions-strip">
+            <a [routerLink]="['/buyer/suppliers', s.id, 'passport']" class="btn-s-action primary" title="Inspect Full Sovereign Passport">
+              <span>Inspect Passport</span>
+              <span class="arrow-right">&rarr;</span>
+            </a>
+
+            <a [routerLink]="['/buyer/compare']" [queryParams]="{ ids: s.id }" class="btn-s-action" title="Compare this vendor side-by-side">
+              Compare
+            </a>
+
+            <button class="btn-s-action engage" (click)="openEngagementModal(s)" title="Dispatch RFQ / Audit">
+              Engage / RFQ
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination Bar -->
+      <div class="shortlist-pagination-bar vp-card" *ngIf="!isLoading() && !hasError() && displaySuppliers().length > 0">
+        <span class="pagination-info">Showing <strong>{{ paginationRange() }}</strong> shortlisted suppliers</span>
+        <div class="pagination-buttons">
+          <button
+            class="btn-page-nav"
+            (click)="prevPage()"
+            [disabled]="currentPage() === 1"
+            aria-label="Previous page">
+            &larr; Previous
+          </button>
+          <span class="pagination-page-indicator">Page {{ currentPage() }} of {{ totalPages() }}</span>
+          <button
+            class="btn-page-nav"
+            (click)="nextPage()"
+            [disabled]="currentPage() === totalPages()"
+            aria-label="Next page">
+            Next &rarr;
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty State When 0 Suppliers Match Filters -->
+      <div class="empty-shortlist-card vp-card" *ngIf="!isLoading() && !hasError() && displaySuppliers().length === 0">
+        <div class="empty-icon-wrap">
+          <span class="ei-icon">★</span>
+        </div>
+        <h3 class="empty-title">No Suppliers Found in this View</h3>
+        <p class="empty-sub">
+          {{ searchQuery() ? 'No suppliers matched your search query "' + searchQuery() + '".' : 'There are no suppliers saved in this sourcing binder yet.' }}
+        </p>
+        <div class="empty-actions">
+          <a routerLink="/buyer/onboarding" [queryParams]="{ start: 'true' }" class="btn-empty-add" id="btn-start-onboarding-cta">
+            + Start Onboarding
+          </a>
+          <button class="btn-empty-add btn-subtle-cta" (click)="openAddSupplierModal()">
+            + Add Registered Supplier to Binder
+          </button>
+          <a routerLink="/buyer/suppliers" class="btn-empty-browse">
+            Explore Supplier Directory &rarr;
+          </a>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 4. MODAL: CREATE SOURCING BINDER -->
+  <div class="modal-backdrop" *ngIf="showNewCollectionModal()" (click)="closeNewCollectionModal()">
+    <div class="modal-card vp-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-badge">PROCUREMENT PLANNING</span>
+          <h3 class="modal-title">Create Sourcing Binder</h3>
+          <span class="modal-sub">Create a project binder to group candidate vendors for evaluations</span>
+        </div>
+        <button class="modal-close" (click)="closeNewCollectionModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Binder Name *</label>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="e.g. Pune EV Actuator Suppliers FY27"
+            [ngModel]="newCollectionName()"
+            (ngModelChange)="newCollectionName.set($event)" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description / Sourcing Objective</label>
+          <textarea
+            class="form-textarea"
+            rows="2"
+            placeholder="e.g. Candidates for Q4 automotive drive batch sourcing and high-tensile fasteners."
+            [ngModel]="newCollectionDesc()"
+            (ngModelChange)="newCollectionDesc.set($event)"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Binder Icon</label>
+          <div class="icon-selector-row">
+            <button
+              type="button"
+              class="icon-pick-btn"
+              *ngFor="let ic of availableIcons"
+              [class.active]="newCollectionIcon() === ic"
+              (click)="newCollectionIcon.set(ic)">
+              {{ ic }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeNewCollectionModal()">Cancel</button>
+        <button class="btn-primary" (click)="createCollection()" [disabled]="!newCollectionName().trim()">
+          Create Binder
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. MODAL: ADD SUPPLIER TO SHORTLIST -->
+  <div class="modal-backdrop" *ngIf="showAddSupplierModal()" (click)="closeAddSupplierModal()">
+    <div class="modal-card vp-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-badge">PORTFOLIO EXPANSION</span>
+          <h3 class="modal-title">Add Supplier to Sourcing Binder</h3>
+          <span class="modal-sub">Select a registered sovereign supplier to add with procurement notes</span>
+        </div>
+        <button class="modal-close" (click)="closeAddSupplierModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Target Binder Selection -->
+        <div class="form-group">
+          <label class="form-label">Target Sourcing Binder</label>
+          <select
+            class="form-select"
+            [ngModel]="addModalTargetShortlistId()"
+            (ngModelChange)="addModalTargetShortlistId.set($event)">
+            <option *ngFor="let c of collections()" [value]="c.id">{{ c.name }}</option>
+          </select>
+        </div>
+
+        <!-- Supplier Search & Select -->
+        <div class="form-group">
+          <label class="form-label">Choose Supplier *</label>
+          <div class="modal-sup-search-box">
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Filter by name, GSTIN, or category..."
+              [ngModel]="addModalSearchTerm()"
+              (ngModelChange)="addModalSearchTerm.set($event)" />
+          </div>
+
+          <div class="modal-sup-list">
+            <div
+              class="modal-sup-item"
+              *ngFor="let s of catalogSuppliers()"
+              [class.selected]="addModalSelectedSupplierId() === s.id"
+              (click)="addModalSelectedSupplierId.set(s.id)">
+              <div class="msi-left">
+                <strong class="msi-name">{{ s.name }}</strong>
+                <span class="msi-sub">{{ s.category }} &bull; {{ s.location }}</span>
+              </div>
+              <div class="msi-right">
+                <span class="msi-score">Trust: <strong>{{ s.trustScore }}/100</strong></span>
+                <span class="msi-check" *ngIf="addModalSelectedSupplierId() === s.id">✓ Selected</span>
+              </div>
+            </div>
+
+            <div class="msi-empty" *ngIf="catalogSuppliers().length === 0">
+              No matching unassigned suppliers available.
+            </div>
+          </div>
+        </div>
+
+        <!-- Procurement Notes -->
+        <div class="form-group">
+          <label class="form-label">Internal Procurement Notes (Optional)</label>
+          <textarea
+            class="form-textarea"
+            rows="2"
+            placeholder="e.g. Evaluated at AutoExpo 2026. Pre-cleared for Tier-1 quotation."
+            [ngModel]="addModalNotes()"
+            (ngModelChange)="addModalNotes.set($event)"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeAddSupplierModal()">Cancel</button>
+        <button
+          class="btn-primary"
+          (click)="submitAddSupplier()"
+          [disabled]="!addModalSelectedSupplierId() || !addModalTargetShortlistId()">
+          Add Supplier to Binder
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. MODAL: ENGAGEMENT & RFQ -->
+  <div class="modal-backdrop" *ngIf="engagementModalSupplier()" (click)="closeEngagementModal()">
+    <div class="modal-card vp-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-badge">PROCUREMENT ENGAGEMENT</span>
+          <h3 class="modal-title">Initiate Supplier Engagement &amp; RFQ</h3>
+          <span class="modal-sub">Direct sovereign communication protocol</span>
+        </div>
+        <button class="modal-close" (click)="closeEngagementModal()">&times;</button>
+      </div>
+
+      <div class="modal-body" *ngIf="engagementModalSupplier() as s">
+        <div class="modal-supplier-summary">
+          <div class="mss-left">
+            <strong class="mss-name">{{ s.name }}</strong>
+            <span class="mss-meta">GSTIN: <code>{{ s.gstin }}</code> &bull; Location: {{ s.location }}</span>
+          </div>
+          <span class="mss-trust-badge">Trust: {{ s.trustScore }}/100</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Engagement Scope</label>
+          <div class="scope-radios">
+            <label class="radio-label" [class.selected]="engagementScope() === 'full'">
+              <input type="radio" name="scope" value="full" [checked]="engagementScope() === 'full'" (change)="engagementScope.set('full')" />
+              <div>
+                <strong>Full Sovereign Audit &amp; Passport Dispatch</strong>
+                <p>Request latest cryptographic proof of MCA, GSTN, bank reconciliation, and quality accreditations.</p>
+              </div>
+            </label>
+            <label class="radio-label" [class.selected]="engagementScope() === 'rfq'">
+              <input type="radio" name="scope" value="rfq" [checked]="engagementScope() === 'rfq'" (change)="engagementScope.set('rfq')" />
+              <div>
+                <strong>Vendor Empanelment &amp; RFQ Invite</strong>
+                <p>Send direct empanelment invite into enterprise procurement vendor binder.</p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Procurement Instructions / RFQ Notes (Optional)</label>
+          <textarea
+            class="form-textarea"
+            rows="3"
+            placeholder="e.g. Seeking quotation for Q4 batch tooling contract. Please share standard MOQs and ISO audits."
+            [ngModel]="engagementNotes()"
+            (ngModelChange)="engagementNotes.set($event)"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeEngagementModal()">Cancel</button>
+        <button class="btn-primary" [disabled]="engagementSubmitting()" (click)="submitEngagementRequest()">
+          {{ engagementSubmitting() ? 'Dispatching...' : 'Dispatch Request' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. TOAST NOTIFICATION -->
+  <div class="toast-popup" *ngIf="toastNotice()" [class.toast-warning]="toastType() === 'warning'" [class.toast-info]="toastType() === 'info'">
+    <span class="toast-check">{{ toastType() === 'warning' ? '⚠' : (toastType() === 'info' ? 'ℹ' : '✓') }}</span>
+    <span class="toast-text">{{ toastNotice() }}</span>
+  </div>
+</div>

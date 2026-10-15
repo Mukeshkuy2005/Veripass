@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/VeriPass.API/VeriPass.API.csproj" />
+    <Project Path="src/VeriPass.Application/VeriPass.Application.csproj" />
+    <Project Path="src/VeriPass.Domain/VeriPass.Domain.csproj" />
+    <Project Path="src/VeriPass.Infrastructure/VeriPass.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/VeriPass.API.FunctionalTests/VeriPass.API.FunctionalTests.csproj" />
+    <Project Path="tests/VeriPass.Application.UnitTests/VeriPass.Application.UnitTests.csproj" />
+    <Project Path="tests/VeriPass.Domain.UnitTests/VeriPass.Domain.UnitTests.csproj" />
+    <Project Path="tests/VeriPass.Infrastructure.IntegrationTests/VeriPass.Infrastructure.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,766 @@
+<div class="onboarding-page-container">
+  <!-- PAGE HEADER -->
+  <header class="page-header">
+    <div class="header-left">
+      <div class="breadcrumbs">
+        <span class="breadcrumb-item">Procurement</span>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-current">Vendor Onboarding</span>
+      </div>
+      <h1 class="page-title">Vendor Onboarding</h1>
+      <p class="page-subtitle">
+        Manage supplier onboarding requests from invitation through verification and procurement approval.
+      </p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="openStartModal()" id="btn-start-onboarding">
+        <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+        </svg>
+        <span>+ Start Onboarding</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- METRIC SUMMARY CARDS -->
+  <section class="metrics-grid" aria-label="Onboarding Stage Metrics">
+    <div
+      class="metric-card"
+      [class.active]="selectedStatus() === 'NEW'"
+      (click)="setStatusFilter(selectedStatus() === 'NEW' ? 'ALL' : 'NEW')">
+      <div class="metric-top">
+        <span class="metric-label">New</span>
+        <span class="metric-indicator dot-new"></span>
+      </div>
+      <div class="metric-value">{{ statusCounts().newCount }}</div>
+      <div class="metric-caption">Draft invitations</div>
+    </div>
+
+    <div
+      class="metric-card"
+      [class.active]="selectedStatus() === 'REQUESTED'"
+      (click)="setStatusFilter(selectedStatus() === 'REQUESTED' ? 'ALL' : 'REQUESTED')">
+      <div class="metric-top">
+        <span class="metric-label">Requested</span>
+        <span class="metric-indicator dot-requested"></span>
+      </div>
+      <div class="metric-value">{{ statusCounts().requestedCount }}</div>
+      <div class="metric-caption">Awaiting vendor consent</div>
+    </div>
+
+    <div
+      class="metric-card"
+      [class.active]="selectedStatus() === 'IN_VERIFICATION'"
+      (click)="setStatusFilter(selectedStatus() === 'IN_VERIFICATION' ? 'ALL' : 'IN_VERIFICATION')">
+      <div class="metric-top">
+        <span class="metric-label">In Verification</span>
+        <span class="metric-indicator dot-verifying"></span>
+      </div>
+      <div class="metric-value">{{ statusCounts().inVerificationCount }}</div>
+      <div class="metric-caption">Statutory checks running</div>
+    </div>
+
+    <div
+      class="metric-card alert-card"
+      [class.active]="selectedStatus() === 'ACTION_REQUIRED'"
+      (click)="setStatusFilter(selectedStatus() === 'ACTION_REQUIRED' ? 'ALL' : 'ACTION_REQUIRED')">
+      <div class="metric-top">
+        <span class="metric-label">Action Required</span>
+        <span class="metric-indicator dot-action"></span>
+      </div>
+      <div class="metric-value text-amber">{{ statusCounts().actionRequiredCount }}</div>
+      <div class="metric-caption">Blockers / Attention needed</div>
+    </div>
+
+    <div
+      class="metric-card"
+      [class.active]="selectedStatus() === 'APPROVED'"
+      (click)="setStatusFilter(selectedStatus() === 'APPROVED' ? 'ALL' : 'APPROVED')">
+      <div class="metric-top">
+        <span class="metric-label">Approved</span>
+        <span class="metric-indicator dot-approved"></span>
+      </div>
+      <div class="metric-value text-green">{{ statusCounts().approvedCount }}</div>
+      <div class="metric-caption">Empanelled for ERP</div>
+    </div>
+
+    <div
+      class="metric-card"
+      [class.active]="selectedStatus() === 'REJECTED'"
+      (click)="setStatusFilter(selectedStatus() === 'REJECTED' ? 'ALL' : 'REJECTED')">
+      <div class="metric-top">
+        <span class="metric-label">Rejected</span>
+        <span class="metric-indicator dot-rejected"></span>
+      </div>
+      <div class="metric-value text-red">{{ statusCounts().rejectedCount }}</div>
+      <div class="metric-caption">Declined applications</div>
+    </div>
+  </section>
+
+  <!-- CONTROLS & FILTER TOOLBAR -->
+  <section class="toolbar-section">
+    <div class="search-filter-box">
+      <div class="search-input-wrapper">
+        <svg class="search-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+        </svg>
+        <input
+          type="text"
+          placeholder="Search by supplier name, GSTIN, purpose, or ERP code..."
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="onSearchChange()"
+          class="form-control search-input"
+          id="search-onboarding-input" />
+      </div>
+
+      <div class="filter-dropdown-group">
+        <select
+          [ngModel]="selectedStatus()"
+          (ngModelChange)="setStatusFilter($event)"
+          class="form-select filter-select"
+          id="select-status-filter">
+          <option value="ALL">All Statuses ({{ totalCount() }})</option>
+          <option value="NEW">New ({{ statusCounts().newCount }})</option>
+          <option value="REQUESTED">Requested ({{ statusCounts().requestedCount }})</option>
+          <option value="IN_VERIFICATION">In Verification ({{ statusCounts().inVerificationCount }})</option>
+          <option value="ACTION_REQUIRED">Action Required ({{ statusCounts().actionRequiredCount }})</option>
+          <option value="APPROVED">Approved ({{ statusCounts().approvedCount }})</option>
+          <option value="REJECTED">Rejected ({{ statusCounts().rejectedCount }})</option>
+        </select>
+
+        <select
+          [ngModel]="selectedCategory()"
+          (ngModelChange)="setCategoryFilter($event)"
+          class="form-select filter-select"
+          id="select-category-filter">
+          <option value="ALL">All Categories</option>
+          <option value="Precision Engineering & Tooling">Precision Engineering & Tooling</option>
+          <option value="Automotive Electricals">Automotive Electricals</option>
+          <option value="Electrical & Sensors">Electrical & Sensors</option>
+          <option value="Freight & Logistics">Freight & Logistics</option>
+          <option value="Semiconductor Fabrication">Semiconductor Fabrication</option>
+          <option value="Raw Materials & Castings">Raw Materials & Castings</option>
+        </select>
+
+        @if (searchQuery || selectedStatus() !== 'ALL' || selectedCategory() !== 'ALL') {
+          <button class="btn btn-secondary btn-clear" (click)="clearFilters()">
+            Clear Filters
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- VIEW TOGGLE -->
+    <div class="view-toggle-group">
+      <button
+        type="button"
+        class="toggle-btn"
+        [class.active]="viewMode() === 'kanban'"
+        (click)="viewMode.set('kanban')"
+        id="btn-view-kanban">
+        <svg class="toggle-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M3 4a1 1 0 011-1h3a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm6 0a1 1 0 011-1h3a1 1 0 011 1v12a1 1 0 01-1 1h-3a1 1 0 01-1-1V4zm6 0a1 1 0 011-1h3a1 1 0 011 1v12a1 1 0 01-1 1h-3a1 1 0 01-1-1V4z"/>
+        </svg>
+        <span>Kanban</span>
+      </button>
+      <button
+        type="button"
+        class="toggle-btn"
+        [class.active]="viewMode() === 'table'"
+        (click)="viewMode.set('table')"
+        id="btn-view-table">
+        <svg class="toggle-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M5 4a3 3 0 00-3 3v6a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3H5zm-1 9v-1h5v2H5a1 1 0 01-1-1zm7 1h4a1 1 0 001-1v-1h-5v2zm0-4h5V8h-5v2zm-2-2H4v2h5V8z" clip-rule="evenodd"/>
+        </svg>
+        <span>Table</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- LOADING SKELETON -->
+  @if (loading()) {
+    <div class="loading-state-container">
+      <div class="spinner"></div>
+      <p class="loading-text">Loading onboarding requests from PostgreSQL...</p>
+    </div>
+  }
+
+  <!-- ERROR ALERT -->
+  @if (errorMsg()) {
+    <div class="alert alert-danger" role="alert">
+      <span>{{ errorMsg() }}</span>
+      <button class="btn btn-sm btn-outline-danger" (click)="loadOnboardingData()">Retry</button>
+    </div>
+  }
+
+  <!-- MAIN WORKSPACE CONTENT -->
+  @if (!loading() && requests().length === 0) {
+    <!-- EMPTY STATE -->
+    <div class="empty-state-box">
+      <div class="empty-icon-circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+        </svg>
+      </div>
+      <h3 class="empty-title">No onboarding requests found</h3>
+      <p class="empty-desc">
+        @if (searchQuery || selectedStatus() !== 'ALL' || selectedCategory() !== 'ALL') {
+          No supplier onboarding requests match your active search and filter criteria.
+        } @else {
+          Start onboarding a verified sovereign supplier to initiate statutory verification and procurement empanelment.
+        }
+      </p>
+      <div class="empty-actions">
+        @if (searchQuery || selectedStatus() !== 'ALL' || selectedCategory() !== 'ALL') {
+          <button class="btn btn-secondary" (click)="clearFilters()">Clear Filters</button>
+        } @else {
+          <button class="btn btn-primary" (click)="openStartModal()">+ Start Onboarding</button>
+        }
+      </div>
+    </div>
+  }
+
+  @if (!loading() && requests().length > 0) {
+    <!-- 1. KANBAN VIEW -->
+    @if (viewMode() === 'kanban') {
+      <div class="kanban-board">
+        @for (col of kanbanColumns; track col.key) {
+          <div class="kanban-column" [id]="'kanban-col-' + col.key.toLowerCase()">
+            <div class="column-header">
+              <div class="col-title-wrap">
+                <span class="col-indicator" [class]="'col-' + col.key.toLowerCase()"></span>
+                <span class="col-title">{{ col.label }}</span>
+              </div>
+              <span class="col-count">{{ getRequestsByStatus(col.key).length }}</span>
+            </div>
+
+            <div class="column-cards-scroll">
+              @for (item of getRequestsByStatus(col.key); track item.id) {
+                <div class="kanban-card" (click)="viewDetail(item.id)">
+                  <!-- Card Header -->
+                  <div class="card-head">
+                    <span class="supplier-category-tag">{{ item.businessCategory }}</span>
+                    @if (item.status === 'ACTION_REQUIRED') {
+                      <span class="badge-alert-dot" title="Action Required">!</span>
+                    }
+                  </div>
+
+                  <!-- Supplier Title -->
+                  <h4 class="card-supplier-name">{{ item.supplierBusinessName }}</h4>
+                  @if (item.supplierTradeName && item.supplierTradeName !== item.supplierBusinessName) {
+                    <div class="card-trade-name">{{ item.supplierTradeName }}</div>
+                  }
+
+                  <!-- Purpose -->
+                  <p class="card-purpose">{{ item.purpose }}</p>
+
+                  <!-- Action Required Callout -->
+                  @if (item.status === 'ACTION_REQUIRED' && item.actionRequiredReason) {
+                    <div class="action-required-callout">
+                      <div class="action-alert-header">
+                        <svg class="alert-icon" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Action Required</span>
+                      </div>
+                      <div class="action-alert-body">{{ item.actionRequiredReason }}</div>
+                    </div>
+                  }
+
+                  <!-- Verification Progress -->
+                  <div class="verification-progress-wrap">
+                    <div class="progress-labels">
+                      <span class="prog-label">Verification</span>
+                      <span class="prog-counts">
+                        <strong [class.text-green]="item.verifiedRequirements === item.totalRequirements">
+                          {{ item.verifiedRequirements }}
+                        </strong>
+                        / {{ item.totalRequirements }} verified
+                      </span>
+                    </div>
+                    <div class="progress-track">
+                      <div
+                        class="progress-fill"
+                        [class.fill-complete]="item.verifiedRequirements === item.totalRequirements"
+                        [class.fill-action]="item.status === 'ACTION_REQUIRED'"
+                        [style.width.%]="item.totalRequirements > 0 ? (item.verifiedRequirements / item.totalRequirements * 100) : 0">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Card Footer -->
+                  <div class="card-foot">
+                    <div class="foot-left">
+                      <span class="foot-actor">Req: {{ item.requestedByName || 'Procurement' }}</span>
+                      @if (item.expiresAt) {
+                        <span class="foot-date">Exp: {{ formatDate(item.expiresAt) }}</span>
+                      }
+                    </div>
+                    <button class="btn btn-xs btn-outline-view" (click)="viewDetail(item.id); $event.stopPropagation()">
+                      View
+                    </button>
+                  </div>
+                </div>
+              }
+
+              @if (getRequestsByStatus(col.key).length === 0) {
+                <div class="column-empty-placeholder">
+                  <span>No requests in {{ col.label.toLowerCase() }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- 2. TABLE VIEW -->
+    @if (viewMode() === 'table') {
+      <div class="table-container">
+        <table class="enterprise-table" id="onboarding-data-table">
+          <thead>
+            <tr>
+              <th (click)="onSortChange('SupplierBusinessName')" class="sortable">
+                Supplier
+                @if (sortBy() === 'SupplierBusinessName') {
+                  <span>{{ sortDirection() === 'asc' ? '↑' : '↓' }}</span>
+                }
+              </th>
+              <th>Purpose & Category</th>
+              <th>Department</th>
+              <th>Requested By</th>
+              <th (click)="onSortChange('CreatedAt')" class="sortable">
+                Created
+                @if (sortBy() === 'CreatedAt') {
+                  <span>{{ sortDirection() === 'asc' ? '↑' : '↓' }}</span>
+                }
+              </th>
+              <th>Status</th>
+              <th>Verification</th>
+              <th>Expiry</th>
+              <th class="text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of requests(); track row.id) {
+              <tr class="table-row" (click)="viewDetail(row.id)">
+                <td class="cell-supplier">
+                  <div class="sup-legal-name">{{ row.supplierBusinessName }}</div>
+                  <div class="sup-sub-info">
+                    @if (row.supplierPassportNumber) {
+                      <span class="passport-code">{{ row.supplierPassportNumber }}</span>
+                    }
+                    @if (row.supplierGstin) {
+                      <span class="tax-tag">GSTIN: {{ row.supplierGstin }}</span>
+                    }
+                  </div>
+                </td>
+                <td class="cell-purpose">
+                  <div class="purpose-title">{{ row.purpose }}</div>
+                  <div class="category-badge">{{ row.businessCategory }}</div>
+                </td>
+                <td class="cell-department">
+                  <span class="dept-text">{{ row.procurementDepartment }}</span>
+                </td>
+                <td class="cell-actor">
+                  <span class="actor-text">{{ row.requestedByName || 'Procurement Team' }}</span>
+                </td>
+                <td class="cell-date">
+                  <span class="date-text">{{ formatDate(row.createdAt) }}</span>
+                </td>
+                <td class="cell-status">
+                  <span class="status-pill" [ngClass]="getStatusBadgeClass(row.status)">
+                    {{ row.status.replace('_', ' ') }}
+                  </span>
+                </td>
+                <td class="cell-verification">
+                  <div class="table-verif-box">
+                    <span class="verif-fraction">
+                      <strong>{{ row.verifiedRequirements }}</strong>/{{ row.totalRequirements }}
+                    </span>
+                    <div class="mini-bar">
+                      <div
+                        class="mini-bar-fill"
+                        [class.fill-complete]="row.verifiedRequirements === row.totalRequirements"
+                        [style.width.%]="row.totalRequirements > 0 ? (row.verifiedRequirements / row.totalRequirements * 100) : 0">
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td class="cell-expiry">
+                  <span class="expiry-text">{{ formatDate(row.expiresAt) }}</span>
+                </td>
+                <td class="cell-actions text-right" (click)="$event.stopPropagation()">
+                  <button class="btn btn-sm btn-outline-view" (click)="viewDetail(row.id)">
+                    View
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <!-- PAGINATION BAR -->
+        <div class="pagination-footer">
+          <div class="pagination-summary">
+            Showing {{ ((page() - 1) * pageSize()) + 1 }} to {{ page() * pageSize() > totalCount() ? totalCount() : page() * pageSize() }} of {{ totalCount() }} requests
+          </div>
+          <div class="pagination-controls">
+            <button
+              class="btn btn-sm btn-pager"
+              [disabled]="page() <= 1"
+              (click)="goToPage(page() - 1)">
+              Previous
+            </button>
+            <span class="page-indicator">Page {{ page() }} of {{ totalPages() }}</span>
+            <button
+              class="btn btn-sm btn-pager"
+              [disabled]="page() >= totalPages()"
+              (click)="goToPage(page() + 1)">
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  }
+
+  <!-- ============================================================== -->
+  <!-- 4-STEP START ONBOARDING WIZARD MODAL -->
+  <!-- ============================================================== -->
+  @if (isModalOpen()) {
+    <div class="modal-backdrop" (click)="closeStartModal()">
+      <div class="modal-dialog-large" (click)="$event.stopPropagation()">
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <div class="modal-header-info">
+            <h3 class="modal-title">Start Vendor Onboarding</h3>
+            <p class="modal-subtitle">Configure compliance requirements and initiate procurement verification.</p>
+          </div>
+          <button class="modal-close-btn" (click)="closeStartModal()">✕</button>
+        </div>
+
+        <!-- Wizard Step Indicators -->
+        <div class="wizard-stepper">
+          <div class="wizard-step" [class.active]="modalStep() === 1" [class.completed]="modalStep() > 1">
+            <div class="step-num">1</div>
+            <div class="step-text">Select Supplier</div>
+          </div>
+          <div class="wizard-connector" [class.active]="modalStep() > 1"></div>
+          <div class="wizard-step" [class.active]="modalStep() === 2" [class.completed]="modalStep() > 2">
+            <div class="step-num">2</div>
+            <div class="step-text">Requirements</div>
+          </div>
+          <div class="wizard-connector" [class.active]="modalStep() > 2"></div>
+          <div class="wizard-step" [class.active]="modalStep() === 3" [class.completed]="modalStep() > 3">
+            <div class="step-num">3</div>
+            <div class="step-text">Purpose & Terms</div>
+          </div>
+          <div class="wizard-connector" [class.active]="modalStep() > 3"></div>
+          <div class="wizard-step" [class.active]="modalStep() === 4">
+            <div class="step-num">4</div>
+            <div class="step-text">Review & Send</div>
+          </div>
+        </div>
+
+        <!-- Modal Body: Step Content -->
+        <div class="modal-body">
+          @if (submitSuccess()) {
+            <div class="alert alert-success">
+              ✓ {{ submitSuccess() }}
+            </div>
+          }
+
+          <!-- STEP 1: SELECT SUPPLIER -->
+          @if (modalStep() === 1) {
+            <div class="step-pane">
+              <h4 class="step-heading">Step 1: Discover & Select Supplier</h4>
+              <p class="step-instructions">
+                Search verified businesses on the Veripass sovereign network by Legal Name, Trade Name, GSTIN, or Passport ID.
+              </p>
+
+              <div class="search-supplier-box">
+                <input
+                  type="text"
+                  placeholder="Search by legal name, GSTIN (e.g. 27AAACB), or Passport ID..."
+                  [(ngModel)]="supplierSearchQuery"
+                  (ngModelChange)="executeSupplierSearch()"
+                  class="form-control"
+                  id="input-supplier-modal-search" />
+              </div>
+
+              @if (isSearchingSuppliers()) {
+                <div class="supplier-loading-wrap">
+                  <div class="spinner-small"></div>
+                  <span>Searching sovereign registry...</span>
+                </div>
+              }
+
+              <div class="supplier-results-list">
+                @for (sup of supplierSearchResults(); track sup.id) {
+                  <div
+                    class="supplier-result-card"
+                    [class.selected]="selectedSupplier()?.id === sup.id"
+                    (click)="selectSupplier(sup)">
+                    <div class="res-card-top">
+                      <div class="res-names">
+                        <strong class="res-legal-name">{{ sup.businessName }}</strong>
+                        @if (sup.tradeName && sup.tradeName !== sup.businessName) {
+                          <span class="res-trade-name">({{ sup.tradeName }})</span>
+                        }
+                      </div>
+                      <div class="res-badges">
+                        <span class="trust-badge">Trust: {{ sup.trustScore }}/100</span>
+                        <span class="verif-tag" [class.verified]="sup.verificationStatus === 'VERIFIED'">
+                          {{ sup.verificationStatus }}
+                        </span>
+                      </div>
+                    </div>
+                    <div class="res-card-meta">
+                      <span>Passport: <strong>{{ sup.passportId || 'Pending' }}</strong></span>
+                      <span>GSTIN: {{ sup.gstinMasked || 'Unregistered' }}</span>
+                      <span>Location: {{ sup.location || 'India' }}</span>
+                    </div>
+                  </div>
+                }
+
+                @if (!isSearchingSuppliers() && supplierSearchResults().length === 0) {
+                  <div class="no-supplier-match">
+                    No suppliers match your query. Try searching by company name or GSTIN.
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- STEP 2: SELECT REQUIREMENTS -->
+          @if (modalStep() === 2) {
+            <div class="step-pane">
+              <h4 class="step-heading">Step 2: Define Statutory & Quality Verification Requirements</h4>
+              <p class="step-instructions">
+                Select which credentials, registries, and certifications must be verified before procurement approval.
+              </p>
+
+              @if (isLoadingRequirements()) {
+                <div class="supplier-loading-wrap">
+                  <div class="spinner-small"></div>
+                  <span>Loading standard requirement catalogue...</span>
+                </div>
+              }
+
+              <div class="requirements-catalogue-grid">
+                @for (req of requirementsCatalogue(); track req.code) {
+                  <div
+                    class="requirement-card"
+                    [class.selected]="isRequirementSelected(req.code)"
+                    (click)="toggleRequirement(req.code)">
+                    <div class="req-card-header">
+                      <div class="req-title-wrap">
+                        <input
+                          type="checkbox"
+                          [checked]="isRequirementSelected(req.code)"
+                          (change)="toggleRequirement(req.code)"
+                          (click)="$event.stopPropagation()"
+                          class="req-checkbox" />
+                        <span class="req-code-pill">{{ req.code }}</span>
+                        <strong class="req-name">{{ req.name }}</strong>
+                      </div>
+                      <span class="req-cat-tag">{{ req.category }}</span>
+                    </div>
+                    <p class="req-desc">{{ req.description }}</p>
+
+                    @if (isRequirementSelected(req.code)) {
+                      <div class="req-mandatory-bar" (click)="$event.stopPropagation()">
+                        <label class="mandatory-toggle-label">
+                          <input
+                            type="checkbox"
+                            [checked]="isMandatory(req.code)"
+                            (change)="toggleMandatory(req.code, $event)" />
+                          <span>Mandatory for Approval</span>
+                        </label>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- STEP 3: PURPOSE & CONTEXT -->
+          @if (modalStep() === 3) {
+            <div class="step-pane">
+              <h4 class="step-heading">Step 3: Business Purpose & Procurement Parameters</h4>
+              <p class="step-instructions">
+                Define the internal context, target plant, and commercial expectations for this onboarding request.
+              </p>
+
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">Business Category *</label>
+                  <select [(ngModel)]="formCategory" class="form-select">
+                    <option value="Precision Engineering & Tooling">Precision Engineering & Tooling</option>
+                    <option value="Automotive Electricals">Automotive Electricals</option>
+                    <option value="Electrical & Sensors">Electrical & Sensors</option>
+                    <option value="Freight & Logistics">Freight & Logistics</option>
+                    <option value="Semiconductor Fabrication">Semiconductor Fabrication</option>
+                    <option value="Raw Materials & Castings">Raw Materials & Castings</option>
+                    <option value="MRO & Consumables">MRO & Consumables</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Procurement Department *</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="formDepartment"
+                    class="form-control"
+                    placeholder="e.g. Engineering Procurement Division" />
+                </div>
+
+                <div class="form-group full-width">
+                  <label class="form-label">Procurement Purpose / SOW Need *</label>
+                  <textarea
+                    [(ngModel)]="formPurpose"
+                    rows="2"
+                    class="form-control"
+                    placeholder="Specific rationale for vendor qualification..."></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Expected Relationship</label>
+                  <select [(ngModel)]="formRelationship" class="form-select">
+                    <option value="Long-term OEM Partner">Long-term OEM Partner</option>
+                    <option value="Direct Production Vendor">Direct Production Vendor</option>
+                    <option value="Tier-1 Strategic Vendor">Tier-1 Strategic Vendor</option>
+                    <option value="Contractor / Subcontractor">Contractor / Subcontractor</option>
+                    <option value="Standard Commodity Supplier">Standard Commodity Supplier</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Target Plant / Receiving Site</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="formPlant"
+                    class="form-control"
+                    placeholder="e.g. Jamshedpur Works / Heavy Tooling Bay" />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Commercial Payment Terms</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="formPaymentTerms"
+                    class="form-control"
+                    placeholder="e.g. Net 45 Days via RTGS" />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Invitation Expiry (Days)</label>
+                  <input
+                    type="number"
+                    [(ngModel)]="formExpiryDays"
+                    min="7"
+                    max="90"
+                    class="form-control" />
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- STEP 4: REVIEW & SEND -->
+          @if (modalStep() === 4) {
+            <div class="step-pane">
+              <h4 class="step-heading">Step 4: Review Onboarding Request</h4>
+              <p class="step-instructions">
+                Confirm request parameters before dispatching invitation to supplier.
+              </p>
+
+              <div class="review-summary-card">
+                <div class="rev-row">
+                  <span class="rev-label">Selected Supplier:</span>
+                  <strong class="rev-value">{{ selectedSupplier()?.businessName }}</strong>
+                </div>
+                <div class="rev-row">
+                  <span class="rev-label">Passport ID:</span>
+                  <span class="rev-value">{{ selectedSupplier()?.passportId || 'N/A' }}</span>
+                </div>
+                <div class="rev-row">
+                  <span class="rev-label">Purpose:</span>
+                  <span class="rev-value">{{ formPurpose }}</span>
+                </div>
+                <div class="rev-row">
+                  <span class="rev-label">Category / Dept:</span>
+                  <span class="rev-value">{{ formCategory }} | {{ formDepartment }}</span>
+                </div>
+                <div class="rev-row">
+                  <span class="rev-label">Relationship / Plant:</span>
+                  <span class="rev-value">{{ formRelationship }} ({{ formPlant || 'General' }})</span>
+                </div>
+                <div class="rev-row">
+                  <span class="rev-label">Selected Requirements:</span>
+                  <div class="rev-chips">
+                    @for (r of selectedRequirements(); track r.requirementCode) {
+                      <span class="rev-chip" [class.mandatory]="r.isMandatory">
+                        {{ r.requirementCode }} {{ r.isMandatory ? '(Mandatory)' : '(Optional)' }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-top: 16px;">
+                <label class="form-label">Personalized Invitation Message to Supplier</label>
+                <textarea
+                  [(ngModel)]="formMessage"
+                  rows="3"
+                  class="form-control"
+                  placeholder="Add custom notes or instructions for the vendor..."></textarea>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div class="modal-footer">
+          <div class="footer-left">
+            @if (modalStep() > 1) {
+              <button class="btn btn-secondary" (click)="prevModalStep()">Back</button>
+            }
+          </div>
+          <div class="footer-right">
+            <button class="btn btn-secondary" (click)="closeStartModal()">Cancel</button>
+
+            @if (modalStep() < 4) {
+              <button
+                class="btn btn-primary"
+                [disabled]="modalStep() === 1 && !selectedSupplier()"
+                (click)="nextModalStep()">
+                Continue →
+              </button>
+            }
+
+            @if (modalStep() === 4) {
+              <button
+                class="btn btn-secondary"
+                [disabled]="isSubmitting()"
+                (click)="submitOnboardingRequest(false)">
+                Save Draft
+              </button>
+              <button
+                class="btn btn-primary"
+                [disabled]="isSubmitting()"
+                (click)="submitOnboardingRequest(true)">
+                @if (isSubmitting()) {
+                  <span class="spinner-small"></span> Sending...
+                } @else {
+                  Send Onboarding Request
+                }
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

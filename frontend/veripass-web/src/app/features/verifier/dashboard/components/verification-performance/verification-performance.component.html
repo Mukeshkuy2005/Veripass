@@ -1,0 +1,43 @@
+<div class="panel-box" id="verification-performance-panel">
+  <div class="panel-header">
+    <div>
+      <h3 class="panel-title">VERIFICATION PERFORMANCE</h3>
+      <span class="panel-sub">Contextual operational benchmarks (sovereign accuracy prioritized over speed)</span>
+    </div>
+  </div>
+
+  <!-- Skeletons -->
+  <div class="perf-grid" *ngIf="loading()">
+    <div class="perf-cell skeleton-cell" *ngFor="let i of [1, 2, 3, 4]">
+      <div class="skeleton-line-sm"></div>
+      <div class="skeleton-val"></div>
+    </div>
+  </div>
+
+  <!-- Real Metrics -->
+  <div class="perf-grid" *ngIf="!loading() && performance() as p">
+    <!-- Cases reviewed today -->
+    <div class="perf-cell" id="perf-cases-reviewed">
+      <span class="pm-lbl">Cases reviewed today</span>
+      <strong class="pm-val">{{ p.casesReviewedToday }}</strong>
+    </div>
+
+    <!-- Average review time -->
+    <div class="perf-cell" id="perf-avg-time">
+      <span class="pm-lbl">Average review time</span>
+      <strong class="pm-val text-blue">{{ formatDuration(p.averageReviewTimeSeconds) }}</strong>
+    </div>
+
+    <!-- Approval rate -->
+    <div class="perf-cell" id="perf-approval-rate">
+      <span class="pm-lbl">Approval rate</span>
+      <strong class="pm-val text-green">{{ p.approvalRate | number:'1.0-1' }}%</strong>
+    </div>
+
+    <!-- Escalation rate -->
+    <div class="perf-cell" id="perf-escalation-rate">
+      <span class="pm-lbl">Escalation rate</span>
+      <strong class="pm-val text-purple">{{ p.escalationRate | number:'1.0-1' }}%</strong>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,610 @@
+<div class="profile-page-container" role="main">
+  <!-- Loading Skeleton State -->
+  <div *ngIf="loading()" class="skeleton-wrapper" aria-busy="true" aria-label="Loading profile">
+    <div class="skeleton-header">
+      <div class="skeleton-line title"></div>
+      <div class="skeleton-line subtitle"></div>
+    </div>
+    <div class="skeleton-grid">
+      <div class="skeleton-card">
+        <div class="skeleton-line medium"></div>
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-line long"></div>
+        <div class="skeleton-line short"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-line medium"></div>
+        <div class="skeleton-line long"></div>
+        <div class="skeleton-line long"></div>
+      </div>
+    </div>
+    <div class="skeleton-card wide">
+      <div class="skeleton-line medium"></div>
+      <div class="skeleton-row">
+        <div class="skeleton-box"></div>
+        <div class="skeleton-box"></div>
+        <div class="skeleton-box"></div>
+        <div class="skeleton-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="!loading() && error()" class="error-banner" role="alert">
+    <div class="error-content">
+      <svg class="error-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <div>
+        <h3 class="error-title">Could not load your profile</h3>
+        <p class="error-desc">{{ error() }}</p>
+      </div>
+    </div>
+    <button type="button" class="btn-retry" (click)="loadProfile()">Try again</button>
+  </div>
+
+  <!-- Main Profile Content -->
+  <div *ngIf="!loading() && !error() && profileData()" class="profile-content">
+    <!-- 1. Header -->
+    <header class="profile-header">
+      <div class="header-titles">
+        <h1 class="page-title">Profile</h1>
+        <p class="page-subtitle">Manage your account, access and security.</p>
+      </div>
+      <div class="header-actions">
+        <span *ngIf="lastUpdatedLabel()" class="last-updated-text">
+          {{ lastUpdatedLabel() }}
+        </span>
+        <button 
+          type="button" 
+          class="btn-refresh" 
+          (click)="refresh()" 
+          [disabled]="refreshing()"
+          aria-label="Refresh profile details">
+          <svg class="icon-refresh" [class.spinning]="refreshing()" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+          <span>Refresh</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 2. Two-Column Layout -->
+    <div class="profile-grid">
+      <!-- Column Left: Personal Information & Verification Access -->
+      <div class="grid-col left-col">
+        <!-- Section: Personal Information -->
+        <section class="account-card" aria-labelledby="personal-info-heading">
+          <div class="card-header">
+            <h2 id="personal-info-heading" class="card-title">Personal information</h2>
+            <span class="managed-note">Admin-managed</span>
+          </div>
+
+          <div class="personal-info-body">
+            <div class="avatar-row">
+              <div class="user-avatar" [attr.aria-label]="profileData()?.profile?.fullName">
+                {{ userInitials() }}
+              </div>
+              <div class="user-identity">
+                <h3 class="user-fullname">{{ profileData()?.profile?.fullName }}</h3>
+                <span class="user-role-text">{{ profileData()?.profile?.role }}</span>
+                <span class="user-org-text">{{ profileData()?.profile?.organization }}</span>
+              </div>
+            </div>
+
+            <div class="field-list">
+              <!-- Email Row -->
+              <div class="field-row">
+                <div class="field-label-group">
+                  <span class="field-label">Email</span>
+                  <span class="field-value">{{ profileData()?.profile?.email }}</span>
+                </div>
+                <button 
+                  type="button" 
+                  class="btn-copy" 
+                  (click)="copyText(profileData()?.profile?.email || '', 'email', 'Email')"
+                  [attr.aria-label]="'Copy email address'">
+                  <span *ngIf="copiedField() === 'email'" class="copied-badge">Copied</span>
+                  <span *ngIf="copiedField() !== 'email'">Copy</span>
+                </button>
+              </div>
+
+              <!-- Role Row -->
+              <div class="field-row">
+                <div class="field-label-group">
+                  <span class="field-label">Role</span>
+                  <span class="field-value">{{ profileData()?.profile?.role }}</span>
+                </div>
+                <span class="field-readonly-badge">Read-only</span>
+              </div>
+
+              <!-- Verifier ID Row -->
+              <div class="field-row">
+                <div class="field-label-group">
+                  <span class="field-label">Verifier ID</span>
+                  <span class="field-value font-mono">{{ profileData()?.profile?.verifierId }}</span>
+                </div>
+                <button 
+                  type="button" 
+                  class="btn-copy" 
+                  (click)="copyText(profileData()?.profile?.verifierId || '', 'verifierId', 'Verifier ID')"
+                  [attr.aria-label]="'Copy verifier identifier'">
+                  <span *ngIf="copiedField() === 'verifierId'" class="copied-badge">Copied</span>
+                  <span *ngIf="copiedField() !== 'verifierId'">Copy</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section: Verification Access -->
+        <section class="account-card" aria-labelledby="verification-access-heading">
+          <div class="card-header">
+            <div>
+              <h2 id="verification-access-heading" class="card-title">Verification access</h2>
+              <p class="card-subtitle">These settings control which cases you can review.</p>
+            </div>
+          </div>
+
+          <div class="access-section-body">
+            <!-- Assigned Regions -->
+            <div class="access-group">
+              <h3 class="access-group-title">Assigned Regions</h3>
+              <div *ngIf="profileData()?.scope?.regions?.length" class="tags-container">
+                <span *ngFor="let region of profileData()?.scope?.regions" class="access-tag region-tag">
+                  {{ region }}
+                </span>
+              </div>
+              <div *ngIf="!profileData()?.scope?.regions?.length" class="empty-access-note">
+                No regions assigned.
+              </div>
+            </div>
+
+            <!-- Verification Categories -->
+            <div class="access-group">
+              <h3 class="access-group-title">Verification Categories</h3>
+              <div *ngIf="profileData()?.scope?.verificationCategories?.length" class="chips-container">
+                <span *ngFor="let cat of profileData()?.scope?.verificationCategories" class="access-chip cat-chip">
+                  <span class="chip-dot"></span>
+                  <span>{{ cat }}</span>
+                </span>
+              </div>
+              <div *ngIf="!profileData()?.scope?.verificationCategories?.length" class="empty-access-note">
+                No verification categories assigned.
+              </div>
+            </div>
+
+            <!-- Scope Notice -->
+            <div class="scope-policy-callout">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              <span>Queue authorization and case assignment are strictly restricted to your authorized regions and categories.</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Column Right: Account Status & Security -->
+      <div class="grid-col right-col">
+        <!-- Section: Account Status -->
+        <section class="account-card" aria-labelledby="account-status-heading">
+          <div class="card-header">
+            <h2 id="account-status-heading" class="card-title">Account</h2>
+          </div>
+
+          <div class="account-status-body">
+            <div class="status-summary-item">
+              <span class="status-prop-label">Status</span>
+              <span 
+                class="status-indicator-badge"
+                [ngClass]="{
+                  'status-active': profileData()?.profile?.status === 'ACTIVE',
+                  'status-inactive': profileData()?.profile?.status === 'INACTIVE',
+                  'status-suspended': profileData()?.profile?.status === 'SUSPENDED',
+                  'status-locked': profileData()?.profile?.status === 'LOCKED'
+                }">
+                <span class="status-bullet">●</span>
+                <span>{{ profileData()?.profile?.status }}</span>
+              </span>
+            </div>
+
+            <div class="status-summary-item">
+              <span class="status-prop-label">Role</span>
+              <span class="status-prop-value">{{ profileData()?.profile?.role }}</span>
+            </div>
+
+            <div class="status-summary-item">
+              <span class="status-prop-label">Organization</span>
+              <span class="status-prop-value">{{ profileData()?.profile?.organization }}</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section: Security -->
+        <section class="account-card" aria-labelledby="security-heading">
+          <div class="card-header">
+            <div>
+              <h2 id="security-heading" class="card-title">Security</h2>
+              <p class="card-subtitle">Protect your account and review recent sign-ins.</p>
+            </div>
+          </div>
+
+          <div class="security-body">
+            <!-- MFA Row -->
+            <div class="sec-item-row">
+              <div class="sec-item-info">
+                <span class="sec-item-title">Multi-factor authentication</span>
+                <span class="sec-item-desc">Hardware/TOTP authentication protection</span>
+              </div>
+              <div class="sec-item-action-group">
+                <span 
+                  class="badge-mfa-state" 
+                  [class.enabled]="profileData()?.security?.mfaEnabled"
+                  [class.disabled]="!profileData()?.security?.mfaEnabled">
+                  {{ profileData()?.security?.mfaEnabled ? 'Enabled' : 'Disabled' }}
+                </span>
+                <button type="button" class="btn-sec-link" (click)="openMfaModal()">
+                  Manage MFA
+                </button>
+              </div>
+            </div>
+
+            <!-- Last Login Row -->
+            <div class="sec-item-row">
+              <div class="sec-item-info">
+                <span class="sec-item-title">Last login</span>
+                <span class="sec-item-val font-mono">{{ lastLoginFormatted() }}</span>
+              </div>
+            </div>
+
+            <!-- Active Sessions Row -->
+            <div class="sec-item-row">
+              <div class="sec-item-info">
+                <span class="sec-item-title">Active sessions</span>
+                <span class="sec-item-val font-mono">
+                  {{ profileData()?.security?.activeSessionCount }}
+                  {{ profileData()?.security?.activeSessionCount === 1 ? 'session' : 'sessions' }}
+                </span>
+              </div>
+              <div class="sec-actions-cluster">
+                <button type="button" class="btn-sec-link" (click)="openSessionsModal()">
+                  Manage sessions
+                </button>
+              </div>
+            </div>
+
+            <!-- Security Global Actions -->
+            <div class="sec-bottom-actions">
+              <button type="button" class="btn-outline-sec" (click)="openLoginHistoryDrawer()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span>View login history</span>
+              </button>
+
+              <button 
+                type="button" 
+                class="btn-outline-sec danger" 
+                (click)="promptSignOutOthers()"
+                [disabled]="(profileData()?.security?.activeSessionCount || 0) <= 1"
+                [title]="(profileData()?.security?.activeSessionCount || 0) <= 1 ? 'No other active sessions' : 'Sign out other sessions'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                <span>Sign out other sessions</span>
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- 3. Operational Activity Section (Bottom full-width) -->
+    <section class="account-card activity-section" aria-labelledby="activity-heading">
+      <div class="card-header activity-header">
+        <div>
+          <h2 id="activity-heading" class="card-title">Activity</h2>
+          <p class="card-subtitle">Your recent verification work</p>
+        </div>
+
+        <div class="activity-range-picker">
+          <label for="activity-range-select" class="visually-hidden">Activity date range</label>
+          <select 
+            id="activity-range-select" 
+            class="range-select"
+            [ngModel]="selectedRange()"
+            (ngModelChange)="onRangeChange($event)"
+            [disabled]="activityLoading()">
+            <option value="7d">Last 7 days</option>
+            <option value="30d">Last 30 days</option>
+            <option value="90d">Last 90 days</option>
+            <option value="all">All time</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Activity Partial Error Banner -->
+      <div *ngIf="activityError()" class="activity-error-box" role="alert">
+        <span>{{ activityError() }}</span>
+        <button type="button" class="btn-retry-inline" (click)="onRangeChange(selectedRange())">Try again</button>
+      </div>
+
+      <!-- Activity Metrics Grid -->
+      <div *ngIf="!activityError()" class="activity-metrics-grid" [class.is-loading]="activityLoading()">
+        <!-- Total Reviewed -->
+        <div class="metric-card">
+          <span class="metric-val font-mono">{{ profileData()?.activity?.casesReviewed | number }}</span>
+          <span class="metric-lbl">Cases reviewed</span>
+        </div>
+
+        <!-- Approved -->
+        <div class="metric-card approved">
+          <span class="metric-val text-success font-mono">{{ profileData()?.activity?.approved | number }}</span>
+          <span class="metric-lbl">Approved</span>
+        </div>
+
+        <!-- Rejected -->
+        <div class="metric-card rejected">
+          <span class="metric-val text-danger font-mono">{{ profileData()?.activity?.rejected | number }}</span>
+          <span class="metric-lbl">Rejected</span>
+        </div>
+
+        <!-- Escalated -->
+        <div class="metric-card escalated">
+          <span class="metric-val text-escalated font-mono">{{ profileData()?.activity?.escalated | number }}</span>
+          <span class="metric-lbl">Escalated</span>
+        </div>
+
+        <!-- Average Review Time -->
+        <div class="metric-card duration">
+          <span class="metric-val font-mono">
+            {{ formatReviewTime(profileData()?.activity?.averageReviewTimeSeconds || 0) }}
+          </span>
+          <span class="metric-lbl">Average review time</span>
+        </div>
+      </div>
+
+      <div class="operational-notice">
+        <svg class="notice-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <span class="notice-text">
+          Operational statistics represent completed determinations for the selected window. Metrics are contextual audit indicators and are never used as speed quotas or performance ratings.
+        </span>
+      </div>
+    </section>
+  </div>
+
+  <!-- SESSIONS MODAL -->
+  <div *ngIf="showSessionsModal()" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sessions-modal-title">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div>
+          <h3 id="sessions-modal-title" class="modal-title">Active Sessions</h3>
+          <p class="modal-subtitle">Review active authenticated sessions and sign out unrecognized devices.</p>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeSessionsModal()" aria-label="Close active sessions modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div *ngIf="sessionsLoading()" class="sessions-loading">
+          <span>Loading active sessions...</span>
+        </div>
+
+        <div *ngIf="!sessionsLoading() && sessionsList().length === 0" class="empty-sessions-notice">
+          No active sessions found.
+        </div>
+
+        <div *ngIf="!sessionsLoading() && sessionsList().length > 0" class="sessions-items-list">
+          <div *ngFor="let s of sessionsList()" class="session-card-row" [class.current-device]="s.isCurrent">
+            <div class="session-device-meta">
+              <div class="device-primary">
+                <span class="device-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                    <line x1="8" y1="21" x2="16" y2="21"/>
+                    <line x1="12" y1="17" x2="12" y2="21"/>
+                  </svg>
+                </span>
+                <span class="device-name">{{ s.device }}</span>
+                <span *ngIf="s.isCurrent" class="current-badge">Current device</span>
+              </div>
+              <div class="device-secondary">
+                <span class="meta-tag">{{ s.browser }} · {{ s.platform }}</span>
+                <span *ngIf="s.ipAddress" class="meta-tag font-mono">{{ s.ipAddress }}</span>
+                <span class="meta-time">Last active: {{ formatRel(s.lastActiveAtUtc) }}</span>
+              </div>
+            </div>
+
+            <div class="session-action">
+              <button 
+                *ngIf="!s.isCurrent" 
+                type="button" 
+                class="btn-revoke-single" 
+                (click)="revokeSingleSession(s)">
+                Revoke
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button 
+          type="button" 
+          class="btn-modal-action danger-action" 
+          (click)="promptSignOutOthers()"
+          [disabled]="sessionsList().length <= 1">
+          Sign out other sessions
+        </button>
+        <button type="button" class="btn-modal-action" (click)="closeSessionsModal()">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIGN OUT OTHERS CONFIRMATION MODAL -->
+  <div *ngIf="showRevokeConfirmModal()" class="modal-backdrop confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+    <div class="modal-window small-modal">
+      <div class="modal-header">
+        <h3 id="confirm-modal-title" class="modal-title">Sign out other sessions?</h3>
+        <button type="button" class="modal-close-btn" (click)="cancelSignOutOthers()" aria-label="Cancel session revocation">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="confirm-message">
+          This will sign out your account from all other active devices. You will remain logged in on this browser.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button 
+          type="button" 
+          class="btn-modal-action" 
+          (click)="cancelSignOutOthers()"
+          [disabled]="revokingOthers()">
+          Cancel
+        </button>
+        <button 
+          type="button" 
+          class="btn-modal-action danger-solid" 
+          (click)="confirmSignOutOthers()"
+          [disabled]="revokingOthers()">
+          <span *ngIf="revokingOthers()">Signing out...</span>
+          <span *ngIf="!revokingOthers()">Sign out</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGIN HISTORY DRAWER -->
+  <aside 
+    *ngIf="showLoginHistoryDrawer()" 
+    class="history-drawer" 
+    role="dialog" 
+    aria-modal="true" 
+    aria-labelledby="history-drawer-title">
+    <div class="drawer-header">
+      <div>
+        <h3 id="history-drawer-title" class="drawer-title">Login History</h3>
+        <p class="drawer-subtitle">Authoritative sign-in events for this verifier account.</p>
+      </div>
+      <button type="button" class="drawer-close-btn" (click)="closeLoginHistoryDrawer()" aria-label="Close login history drawer">&times;</button>
+    </div>
+
+    <div class="drawer-body">
+      <div *ngIf="loginHistoryLoading()" class="drawer-loading">
+        Loading login history...
+      </div>
+
+      <div *ngIf="!loginHistoryLoading() && loginHistoryList().length === 0" class="empty-drawer-notice">
+        No login history available.
+      </div>
+
+      <div *ngIf="!loginHistoryLoading() && loginHistoryList().length > 0" class="history-list">
+        <div *ngFor="let item of loginHistoryList()" class="history-entry">
+          <div class="entry-header">
+            <span class="entry-time font-mono">{{ formatIst(item.timestampUtc) }}</span>
+            <span 
+              class="entry-status-badge"
+              [class.success]="item.status === 'SUCCESS'"
+              [class.failure]="item.status !== 'SUCCESS'">
+              {{ item.status === 'SUCCESS' ? 'Successful' : 'Failed' }}
+            </span>
+          </div>
+          <div class="entry-meta">
+            <span class="entry-device">{{ item.browser }} · {{ item.platform }}</span>
+            <span *ngIf="item.ipAddress" class="entry-ip font-mono">{{ item.ipAddress }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="drawer-footer">
+      <button type="button" class="btn-drawer-close" (click)="closeLoginHistoryDrawer()">
+        Close
+      </button>
+    </div>
+  </aside>
+
+  <!-- DRAWER BACKDROP -->
+  <div 
+    *ngIf="showLoginHistoryDrawer()" 
+    class="drawer-backdrop" 
+    (click)="closeLoginHistoryDrawer()" 
+    aria-hidden="true">
+  </div>
+
+  <!-- MFA MANAGEMENT MODAL -->
+  <div *ngIf="showMfaModal()" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="mfa-modal-title">
+    <div class="modal-window small-modal">
+      <div class="modal-header">
+        <div>
+          <h3 id="mfa-modal-title" class="modal-title">Multi-Factor Authentication</h3>
+          <p class="modal-subtitle">Configure account sign-in protection.</p>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeMfaModal()" aria-label="Close MFA modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="mfa-status-block">
+          <span class="mfa-status-label">Current Configuration:</span>
+          <span 
+            class="badge-mfa-state" 
+            [class.enabled]="profileData()?.security?.mfaEnabled"
+            [class.disabled]="!profileData()?.security?.mfaEnabled">
+            {{ profileData()?.security?.mfaEnabled ? 'Enabled' : 'Disabled' }}
+          </span>
+        </div>
+
+        <p class="mfa-desc-text">
+          Multi-factor authentication adds an extra layer of security to your verifier account. When enabled, a verified one-time passkey or authenticator token is required to access the compliance portal.
+        </p>
+
+        <div *ngIf="profileData()?.security?.mfaEnabled" class="mfa-action-box">
+          <button 
+            type="button" 
+            class="btn-mfa-toggle disable" 
+            (click)="toggleMfa(false)"
+            [disabled]="mfaToggling()">
+            <span *ngIf="mfaToggling()">Updating...</span>
+            <span *ngIf="!mfaToggling()">Disable MFA</span>
+          </button>
+        </div>
+
+        <div *ngIf="!profileData()?.security?.mfaEnabled" class="mfa-action-box">
+          <button 
+            type="button" 
+            class="btn-mfa-toggle enable" 
+            (click)="toggleMfa(true)"
+            [disabled]="mfaToggling()">
+            <span *ngIf="mfaToggling()">Updating...</span>
+            <span *ngIf="!mfaToggling()">Enable MFA</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-modal-action" (click)="closeMfaModal()">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST FEEDBACK CONTAINER -->
+  <div *ngIf="toast()" class="profile-toast" [class]="'toast-' + toast()?.type" role="status" aria-live="polite">
+    <span>{{ toast()?.message }}</span>
+  </div>
+</div>

@@ -1,0 +1,223 @@
+<div class="passport-viewer-page" *ngIf="supplier() as s">
+  <!-- BREADCRUMB & HEADER -->
+  <div class="viewer-header vp-card">
+    <div class="header-left">
+      <div class="tag-row">
+        <span class="view-tag">SOVEREIGN VENDOR PASSPORT</span>
+        <span class="cert-tag">MCA &bull; GSTN &bull; NPCI VERIFIED</span>
+      </div>
+      <div class="supplier-title-row">
+        <h1 class="supplier-title">{{ s.legalName }}</h1>
+        <span class="verified-badge">
+          <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+          </svg>
+          VERIFIED SOVEREIGN BUSINESS
+        </span>
+      </div>
+      <p class="supplier-meta">
+        {{ s.category }} &bull; <span class="font-mono">CIN: {{ s.cin }}</span> &bull; {{ s.location }}
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-secondary" (click)="toggleShortlist(s.id)">
+        <svg width="13" height="13" viewBox="0 0 20 20" [attr.fill]="s.isShortlisted ? '#D97706' : 'none'" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+        {{ s.isShortlisted ? 'Shortlisted' : 'Shortlist' }}
+      </button>
+      <a routerLink="/buyer/compare" class="btn-secondary">
+        Compare
+      </a>
+      <a routerLink="/buyer/verification-requests" class="btn-primary">
+        Request Re-Verification &rarr;
+      </a>
+    </div>
+  </div>
+
+  <!-- DATA GOVERNANCE MASKING NOTICE -->
+  <div class="governance-banner">
+    <div class="gov-shield">
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944z" clip-rule="evenodd" />
+      </svg>
+    </div>
+    <div class="gov-text">
+      <strong>VERIPASS SOVEREIGN DATA GOVERNANCE:</strong>
+      This is an authorized procurement intelligence view. Director Aadhaar numbers and bank escrow identifiers
+      are masked in strict compliance with RBI regulations and DPDP Act protocols.
+    </div>
+  </div>
+
+  <!-- TOP SUMMARY: TRUST SCORE & PILLARS -->
+  <div class="summary-top-card vp-card">
+    <div class="score-column">
+      <span class="score-label">OVERALL TRUST SCORE</span>
+      <div class="score-big text-blue">{{ s.trustScore }} <span class="score-max">/ 100</span></div>
+      <div class="risk-rating-pill" [class.risk-low]="s.riskLevel === 'Low'" [class.risk-med]="s.riskLevel === 'Medium'">
+        ● {{ s.riskLevel | uppercase }} RISK PROFILE
+      </div>
+    </div>
+
+    <div class="divider-vertical"></div>
+
+    <div class="verification-pillars-grid">
+      <div class="pillar-stat-box">
+        <span class="pillar-stat-name">Identity</span>
+        <span class="pillar-check">✓ Verified</span>
+        <span class="pillar-sub">MCA &bull; DIN Valid</span>
+      </div>
+      <div class="pillar-stat-box">
+        <span class="pillar-stat-name">Tax &amp; ITC</span>
+        <span class="pillar-check">✓ Verified</span>
+        <span class="pillar-sub">GSTR-3B Active</span>
+      </div>
+      <div class="pillar-stat-box">
+        <span class="pillar-stat-name">Address</span>
+        <span class="pillar-check">✓ Verified</span>
+        <span class="pillar-sub">Physical Geo-Match</span>
+      </div>
+      <div class="pillar-stat-box">
+        <span class="pillar-stat-name">Banking</span>
+        <span class="pillar-check">✓ Verified</span>
+        <span class="pillar-sub">NPCI Penny-Drop</span>
+      </div>
+      <div class="pillar-stat-box">
+        <span class="pillar-stat-name">Accreditations</span>
+        <span class="pillar-check">✓ Verified</span>
+        <span class="pillar-sub">ISO &bull; BIS Validated</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABBED INTELLIGENCE VIEWS -->
+  <div class="passport-tabs-panel vp-card">
+    <div class="tabs-nav-bar">
+      <button class="tab-btn" [class.active]="activeTab() === 'overview'" (click)="setTab('overview')">Profile Overview</button>
+      <button class="tab-btn" [class.active]="activeTab() === 'identity'" (click)="setTab('identity')">Identity &amp; Legal</button>
+      <button class="tab-btn" [class.active]="activeTab() === 'verification'" (click)="setTab('verification')">Verification Pillars</button>
+      <button class="tab-btn" [class.active]="activeTab() === 'compliance'" (click)="setTab('compliance')">Statutory Compliance</button>
+      <button class="tab-btn" [class.active]="activeTab() === 'certifications'" (click)="setTab('certifications')">Credentials &amp; Docs</button>
+      <button class="tab-btn" [class.active]="activeTab() === 'activity'" (click)="setTab('activity')">Audit Ledger</button>
+    </div>
+
+    <!-- TAB 1: OVERVIEW -->
+    <div class="tab-content" *ngIf="activeTab() === 'overview'">
+      <div class="overview-grid">
+        <div class="ov-item">
+          <span class="ov-lbl">Corporate Registered Name</span>
+          <span class="ov-val">{{ s.legalName }}</span>
+        </div>
+        <div class="ov-item">
+          <span class="ov-lbl">Corporate Identity Number (CIN)</span>
+          <span class="ov-val font-mono">{{ s.cin }}</span>
+        </div>
+        <div class="ov-item">
+          <span class="ov-lbl">Goods &amp; Services Tax ID (GSTIN)</span>
+          <span class="ov-val font-mono">{{ s.gstin }}</span>
+        </div>
+        <div class="ov-item">
+          <span class="ov-lbl">Permanent Account Number (PAN)</span>
+          <span class="ov-val font-mono">{{ s.pan }}</span>
+        </div>
+        <div class="ov-item">
+          <span class="ov-lbl">Business Constitution &amp; Vintage</span>
+          <span class="ov-val">{{ s.businessType }} &bull; {{ s.yearsActive }} years in continuous operation</span>
+        </div>
+        <div class="ov-item">
+          <span class="ov-lbl">Registered Operational Base</span>
+          <span class="ov-val">{{ s.location }} ({{ s.state }})</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: IDENTITY -->
+    <div class="tab-content" *ngIf="activeTab() === 'identity'">
+      <div class="pane-sub-head">
+        <h4>MCA Director Master Data</h4>
+        <span class="text-muted">Verified against Ministry of Corporate Affairs records</span>
+      </div>
+      <div class="directors-list">
+        <div class="director-card" *ngFor="let d of directors">
+          <div class="d-info">
+            <strong>{{ d.name }}</strong>
+            <span class="d-meta">Designation: {{ d.designation }} &bull; DIN: {{ d.din }}</span>
+          </div>
+          <span class="badge-status-green">✓ Active Standing</span>
+        </div>
+        <div class="empty-state-notice" *ngIf="directors.length === 0" style="padding: 24px; text-align: center; color: #94a3b8; background: #0f172a; border-radius: 8px; border: 1px dashed #334155;">
+          No registered director master records linked to this entity.
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: VERIFICATION PILLARS -->
+    <div class="tab-content" *ngIf="activeTab() === 'verification'">
+      <div class="pillars-expanded-grid">
+        <div class="pillar-card" *ngFor="let p of pillars">
+          <div class="pillar-card-top">
+            <strong>{{ p.name }} Pillar</strong>
+            <span class="badge-status-green">Score: {{ p.score }}/100</span>
+          </div>
+          <p class="pillar-card-desc">{{ p.description }}</p>
+          <div class="pillar-card-meta">
+            <span>Source: {{ p.source }}</span>
+            <span>Audited: {{ p.verifiedAt }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: COMPLIANCE -->
+    <div class="tab-content" *ngIf="activeTab() === 'compliance'">
+      <div class="compliance-box">
+        <h4>GST Invoicing &amp; Tax Telemetry</h4>
+        <p class="text-muted">Continuous real-time verification against Goods and Services Tax Network.</p>
+        <div class="tax-status-row">
+          <div class="tax-item">
+            <span class="tax-lbl">GSTIN Return Status</span>
+            <span class="tax-val text-green font-bold">Active &bull; GSTR-1 &amp; GSTR-3B Filed</span>
+          </div>
+          <div class="tax-item">
+            <span class="tax-lbl">Default History (24 Mo)</span>
+            <span class="tax-val font-bold">0 Defaults Recorded</span>
+          </div>
+          <div class="tax-item">
+            <span class="tax-lbl">ITC Reclaim Safety Rating</span>
+            <span class="tax-val text-green font-bold">Grade A (99.8% Match)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: CERTIFICATIONS / DOCUMENTS -->
+    <div class="tab-content" *ngIf="activeTab() === 'certifications'">
+      <div class="docs-list">
+        <div class="doc-item" *ngFor="let doc of documents">
+          <div class="doc-icon">📄</div>
+          <div class="doc-info">
+            <strong>{{ doc.title }}</strong>
+            <span class="doc-meta">Issued by: {{ doc.issuer }} &bull; Valid until: {{ doc.expiry }}</span>
+          </div>
+          <span class="badge-verified">✓ Verified Copy</span>
+        </div>
+        <div class="empty-state-notice" *ngIf="documents.length === 0" style="padding: 24px; text-align: center; color: #94a3b8; background: #0f172a; border-radius: 8px; border: 1px dashed #334155;">
+          No verified certificates or statutory documents uploaded for this business.
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: AUDIT LEDGER / ACTIVITY -->
+    <div class="tab-content" *ngIf="activeTab() === 'activity'">
+      <div class="ledger-box">
+        <h4>Cryptographic Audit History</h4>
+        <div class="ledger-entry" *ngFor="let h of auditHistory">
+          <span class="ledger-time font-mono">{{ h.timestamp }}</span>
+          <span class="ledger-action">{{ h.action }}</span>
+          <span class="ledger-actor text-muted">{{ h.actor }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

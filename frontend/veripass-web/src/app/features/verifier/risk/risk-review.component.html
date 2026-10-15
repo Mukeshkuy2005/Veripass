@@ -1,0 +1,250 @@
+<div class="risk-container" *ngIf="riskData() as d">
+
+  <!-- ========================================== -->
+  <!-- 1. BREADCRUMB / TOP CONTEXT NAV            -->
+  <!-- ========================================== -->
+  <div class="top-nav">
+    <div class="nav-breadcrumbs">
+      <a *ngIf="routeCaseId()" [routerLink]="['/verifier/cases', d.caseId]" class="back-link">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Back to Case Workstation ({{ d.caseId }})
+      </a>
+      <a *ngIf="!routeCaseId()" routerLink="/verifier/queue" class="back-link">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Back to Verification Queue
+      </a>
+      <span class="nav-sep">/</span>
+      <span class="nav-current">Risk &amp; Anomaly Review</span>
+    </div>
+
+    <div class="case-badge-pill">
+      <span class="case-id">{{ d.caseId }}</span>
+      <span class="dot-sep">&bull;</span>
+      <span class="biz-name">{{ d.businessName }}</span>
+      <span class="dot-sep">&bull;</span>
+      <span class="badge" [ngClass]="d.riskRating.toLowerCase()">{{ d.riskRating | uppercase }} RISK</span>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 2. HEADER & REQUIRED DISCLAIMER            -->
+  <!-- ========================================== -->
+  <header class="header-card">
+    <div class="header-main">
+      <div class="badge-row">
+        <span class="module-tag">AI-ASSISTED EVIDENCE ANALYSIS</span>
+      </div>
+      <h1 class="page-title">Risk &amp; Anomaly Analysis</h1>
+      <p class="page-subtitle">
+        Statutory evidence anomaly signals, neural character variance, and sovereign discrepancy flags.
+      </p>
+    </div>
+
+    <!-- Mandatory Statutory Disclaimer -->
+    <div class="ai-disclaimer-banner" role="note">
+      <div class="disclaimer-icon-box">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+      </div>
+      <div class="disclaimer-content">
+        <span class="disclaimer-title">STATUTORY COMPLIANCE PRINCIPLE</span>
+        <p class="disclaimer-text">
+          <strong>AI assists verification.</strong> Final decisions remain with authorized verifiers.
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================== -->
+  <!-- 3. CASE SWITCHER (GLOBAL /verifier/risk)   -->
+  <!-- ========================================== -->
+  <div class="case-switcher" *ngIf="!routeCaseId()">
+    <span class="switch-lbl">Select Active Risk Case:</span>
+    <div class="switcher-chips">
+      <button 
+        *ngFor="let c of highRiskCases()" 
+        type="button" 
+        class="chip-btn" 
+        [class.active]="activeCaseId() === c.id"
+        (click)="setActiveCase(c.id)">
+        <span class="chip-id">{{ c.id }}</span>
+        <span class="chip-name">{{ c.businessName }}</span>
+        <span class="chip-score" [ngClass]="c.riskRating.toLowerCase()">{{ c.riskScore }}/100</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 4. MAIN RISK & ANOMALY WORKSTATION GRID   -->
+  <!-- ========================================== -->
+  <main class="risk-grid">
+
+    <!-- ---------------------------------------- -->
+    <!-- COLUMN 1: RISK SCORE & DECISION BOUNDARY -->
+    <!-- ---------------------------------------- -->
+    <section class="left-pillar-column" aria-label="Risk Score and Pillars">
+
+      <!-- RISK SCORE CARD -->
+      <div class="risk-score-card">
+        <div class="card-head-row">
+          <h2 class="card-head-title">RISK SCORE</h2>
+          <span class="eval-badge">Authoritative</span>
+        </div>
+
+        <div class="score-hero-block">
+          <div class="score-number-display">
+            <span class="score-primary-val">{{ d.riskScore }}</span>
+            <span class="score-max-val">/ 100</span>
+          </div>
+          <div class="score-level-badge" [ngClass]="d.riskRating.toLowerCase()">
+            {{ d.riskRating | uppercase }}
+          </div>
+        </div>
+
+        <!-- 4 PILLARS BREAKDOWN (Identity, Document, Source, Consistency) -->
+        <div class="pillars-container">
+          <div class="pillar-row" *ngFor="let p of d.pillars">
+            <div class="pillar-label-row">
+              <span class="pillar-name font-semibold">{{ p.name }}</span>
+              <span class="pillar-score font-mono font-bold">{{ p.score }}</span>
+            </div>
+            <div class="pillar-track" [attr.aria-valuenow]="p.score" aria-valuemin="0" aria-valuemax="100">
+              <div class="pillar-bar-fill" [style.width.%]="p.score" [class.fill-high]="p.score >= 70" [class.fill-med]="p.score >= 50 && p.score < 70" [class.fill-low]="p.score < 50"></div>
+            </div>
+            <span class="pillar-note-text">{{ p.note }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI DECISION BOUNDARY BOX -->
+      <div class="ai-boundary-card" role="region" aria-label="AI Assistance Decision Boundary">
+        <div class="boundary-head">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <h3 class="boundary-title">AI ASSISTANCE</h3>
+        </div>
+        <div class="boundary-body">
+          <p class="boundary-p font-medium">
+            AI has identified potential anomalies.
+          </p>
+          <p class="boundary-p boundary-restrict">
+            It does NOT approve or reject this case.
+          </p>
+          <div class="boundary-final-banner">
+            <span class="bf-label">FINAL DECISION:</span>
+            <span class="bf-role">VERIFIER</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ---------------------------------------- -->
+    <!-- COLUMN 2: DETECTED SIGNALS & AI ANALYSIS -->
+    <!-- ---------------------------------------- -->
+    <section class="right-signals-column" aria-label="Anomaly Signals and AI Analysis">
+
+      <!-- DETECTED SIGNALS (ANOMALY LIST) -->
+      <div class="signals-card">
+        <div class="signals-header-row">
+          <div class="sh-title-group">
+            <h2 class="signals-heading">DETECTED SIGNALS</h2>
+            <span class="signals-count-pill">{{ d.signals.length }} Signals</span>
+          </div>
+          <span class="signals-subtitle">Evaluated against statutory and cross-case registers</span>
+        </div>
+
+        <div class="signals-list">
+          <div class="signal-item" 
+            *ngFor="let s of d.signals"
+            [class.sig-warn]="s.severity === 'WARNING'"
+            [class.sig-crit]="s.severity === 'CRITICAL'">
+            <div class="signal-glyph-col">
+              <span class="glyph-symbol" *ngIf="s.severity === 'CRITICAL'">✕</span>
+              <span class="glyph-symbol" *ngIf="s.severity === 'WARNING'">⚠</span>
+              <span class="glyph-symbol" *ngIf="s.severity === 'INFO'">ℹ</span>
+            </div>
+            <div class="signal-content-col">
+              <div class="sig-title-row">
+                <span class="sig-title-text">{{ s.title }}</span>
+                <span class="sig-tag">{{ s.severity }}</span>
+              </div>
+              <p class="sig-desc-text">{{ s.description }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI ANALYSIS (EXPLAINABLE EVIDENCE COMPARISON) -->
+      <div class="ai-analysis-card">
+        <div class="ai-head-row">
+          <div class="ai-title-wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            <h2 class="ai-analysis-title">AI ANALYSIS</h2>
+          </div>
+          <span class="ai-confidence-pill">Confidence: {{ d.analysis.confidence }}%</span>
+        </div>
+
+        <div class="ai-body-content">
+          <p class="ai-lead-statement">
+            {{ d.analysis.summary }}
+          </p>
+
+          <!-- Evidence Comparison -->
+          <div class="evidence-box">
+            <div class="ev-head">
+              <span class="ev-title">Evidence:</span>
+              <button class="btn-copy-ev" (click)="copyEvidenceComparison()" title="Copy comparison text">
+                {{ copiedEvidence() ? 'Copied ✓' : 'Copy' }}
+              </button>
+            </div>
+            <ul class="ev-bullets">
+              <li class="ev-item">
+                <span class="ev-bullet-mark">•</span>
+                <span class="ev-lbl font-semibold">Submitted:</span>
+                <span class="ev-val font-mono">{{ d.analysis.evidence.submitted }}</span>
+              </li>
+              <li class="ev-item ev-source-item">
+                <span class="ev-bullet-mark">•</span>
+                <span class="ev-lbl font-semibold">Source:</span>
+                <span class="ev-val font-mono">{{ d.analysis.evidence.source }}</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Recommended Action -->
+          <div class="action-rec-box">
+            <span class="action-rec-lbl font-semibold">Recommended action:</span>
+            <span class="action-rec-val font-bold">{{ d.analysis.recommendedAction }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADJUDICATION PATHWAY BUTTONS -->
+      <div class="pathway-actions-bar">
+        <a [routerLink]="['/verifier/cases', d.caseId]" class="btn-action-primary">
+          Open Case Workstation &rarr;
+        </a>
+        <a [routerLink]="['/verifier/cases', d.caseId, 'document']" class="btn-action-secondary">
+          Document Review (V4)
+        </a>
+        <a routerLink="/verifier/queue" class="btn-action-ghost">
+          Return to Queue
+        </a>
+      </div>
+
+    </section>
+
+  </main>
+
+</div>

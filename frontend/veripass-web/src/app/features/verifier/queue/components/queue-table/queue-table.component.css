@@ -1,0 +1,397 @@
+.queue-table-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.625rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.queue-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.queue-table thead {
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.queue-table th {
+  padding: 0.75rem 1rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #475569;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.th-sortable {
+  cursor: pointer;
+  transition: color 0.15s ease-in-out;
+}
+
+.th-sortable:hover {
+  color: #0f172a;
+}
+
+.th-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.sort-indicator {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.sort-indicator.active {
+  color: #0284c7;
+  font-weight: 700;
+}
+
+.th-actions {
+  text-align: right;
+  padding-right: 1.25rem;
+}
+
+.queue-table tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.queue-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.queue-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.queue-table td {
+  padding: 0.875rem 1rem;
+  vertical-align: middle;
+  color: #1e293b;
+}
+
+/* Urgent / Escalated rows */
+.queue-row.row-urgent {
+  background-color: rgba(254, 242, 242, 0.35);
+}
+
+.queue-row.row-urgent:hover {
+  background-color: rgba(254, 242, 242, 0.65);
+}
+
+.queue-row.row-escalated {
+  background-color: rgba(254, 243, 199, 0.25);
+}
+
+/* 1. Case ID */
+.td-case-id {
+  font-weight: 600;
+}
+
+.case-id-link {
+  text-decoration: none;
+}
+
+.case-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #0369a1;
+  background-color: #f0f9ff;
+  border: 1px solid #bae6fd;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  transition: all 0.15s ease-in-out;
+}
+
+.case-id-link:hover .case-code {
+  background-color: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+
+/* 2. Supplier */
+.td-supplier {
+  max-width: 260px;
+}
+
+.supplier-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.supplier-name {
+  font-weight: 600;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.supplier-identifier {
+  font-size: 0.6875rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  color: #64748b;
+  letter-spacing: 0.02em;
+}
+
+/* 3. Type */
+.type-pill {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #334155;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.25rem;
+}
+
+/* 4. Submitted */
+.relative-time {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+/* 5. Risk */
+.risk-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  line-height: 1.2;
+}
+
+.risk-dot {
+  font-size: 0.55rem;
+}
+
+.risk-chip.risk-low {
+  background-color: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.risk-chip.risk-med {
+  background-color: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.risk-chip.risk-high {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+/* 6. Priority */
+.priority-chip {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  border-radius: 0.25rem;
+  letter-spacing: 0.03em;
+}
+
+.priority-chip.prio-high {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.priority-chip.prio-med {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.priority-chip.prio-low {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+/* 7. Assigned To */
+.assignee-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.assignee-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background-color: #e0f2fe;
+  color: #0369a1;
+  font-weight: 700;
+  font-size: 0.6875rem;
+}
+
+.assignee-name {
+  font-size: 0.8125rem;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.unassigned-badge {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* 8. SLA */
+.sla-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.sla-badge.overdue {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.sla-badge.urgent {
+  color: #ea580c;
+  font-weight: 600;
+}
+
+.sla-badge.completed {
+  color: #059669;
+}
+
+.sla-icon {
+  font-size: 0.8125rem;
+}
+
+/* 9. Status */
+.status-pill {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 0.25rem;
+}
+
+.status-pill.status-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.status-pill.status-in-review {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.status-pill.status-more-info {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+  border: 1px solid #e9d5ff;
+}
+
+.status-pill.status-approved {
+  background-color: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.status-pill.status-rejected {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.status-pill.status-escalated {
+  background-color: #ffedd5;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+.status-pill.status-cancelled {
+  background-color: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+/* 10. Action */
+.td-action {
+  text-align: right;
+  padding-right: 1.25rem;
+}
+
+.btn-row-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 0.375rem;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-row-action.btn-review {
+  background-color: #0284c7;
+  color: #ffffff;
+  border: 1px solid #0284c7;
+}
+
+.btn-row-action.btn-review:hover {
+  background-color: #0369a1;
+  border-color: #0369a1;
+}
+
+.btn-row-action.btn-continue {
+  background-color: #047857;
+  color: #ffffff;
+  border: 1px solid #047857;
+}
+
+.btn-row-action.btn-continue:hover {
+  background-color: #065f46;
+  border-color: #065f46;
+}
+
+.btn-row-action.btn-view {
+  background-color: #f8fafc;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.btn-row-action.btn-view:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
+}

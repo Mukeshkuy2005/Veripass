@@ -1,0 +1,406 @@
+    .hiw-page {
+      background-color: #F8FAFC;
+      color: #0F172A;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    .pt-8 {
+      padding-top: 32px;
+    }
+
+    /* 1. HERO */
+    .hiw-hero {
+      padding: 80px 0 60px 0;
+      background: #FFFFFF;
+      border-bottom: 1px solid #E2E8F0;
+    }
+
+    .badge-pill {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: #2563EB;
+      background: #EFF6FF;
+      border: 1px solid #DBEAFE;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      margin-bottom: 20px;
+    }
+
+    .hero-title {
+      font-size: 44px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #0F172A;
+      margin-bottom: 16px;
+    }
+
+    .hero-subtitle {
+      font-size: 18px;
+      color: #475569;
+      max-width: 600px;
+      margin: 0 auto 40px auto;
+      line-height: 1.6;
+    }
+
+    .ribbon-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .ribbon-step {
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px 18px;
+      border-radius: 10px;
+      background: #F1F5F9;
+      color: #334155;
+      border: 1px solid #E2E8F0;
+    }
+
+    .ribbon-step.active-step {
+      background: #0F172A;
+      color: #FFFFFF;
+      border-color: #0F172A;
+    }
+
+    .ribbon-arrow {
+      color: #94A3B8;
+      font-weight: 700;
+    }
+
+    /* 2. STEPS */
+    .steps-section {
+      padding: 80px 0;
+    }
+
+    .steps-container {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .step-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 20px;
+      padding: 36px;
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 32px;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.02);
+    }
+
+    .step-badge {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      background: #EFF6FF;
+      color: #2563EB;
+      font-size: 24px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #DBEAFE;
+    }
+
+    .step-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #0F172A;
+      margin-bottom: 8px;
+      letter-spacing: 0.02em;
+    }
+
+    .step-desc {
+      font-size: 15px;
+      color: #64748B;
+      line-height: 1.6;
+      margin-bottom: 24px;
+      max-width: 720px;
+    }
+
+    .step-elements-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .elem-pill {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      padding: 12px 14px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .credentials-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip-item {
+      padding: 8px 16px;
+      background: #F1F5F9;
+      border: 1px solid #CBD5E1;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #1E293B;
+    }
+
+    .flow-pipeline {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .pipeline-node {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #0F172A;
+    }
+
+    .pipe-arr {
+      color: #94A3B8;
+      font-weight: 700;
+    }
+
+    /* Matrix box */
+    .matrix-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      padding: 20px;
+      border-radius: 14px;
+    }
+
+    .matrix-source {
+      background: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      padding: 10px 16px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .matrix-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0F172A;
+      display: block;
+    }
+
+    .matrix-sub {
+      font-size: 11px;
+      color: #64748B;
+    }
+
+    .matrix-cross, .matrix-eq {
+      font-size: 16px;
+      font-weight: 800;
+      color: #94A3B8;
+    }
+
+    .matrix-result {
+      background: #DCFCE7;
+      border: 1px solid #BBF7D0;
+      padding: 10px 16px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .res-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #166534;
+      display: block;
+    }
+
+    .res-sub {
+      font-size: 11px;
+      color: #15803D;
+    }
+
+    .passport-summary-chips {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .summary-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #166534;
+    }
+
+    .chip-chk {
+      font-weight: 800;
+    }
+
+    .loop-diagram {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .loop-step {
+      padding: 8px 14px;
+      background: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .loop-step.alert-step {
+      background: #FEF3C7;
+      border-color: #FDE68A;
+      color: #92400E;
+    }
+
+    .loop-step.active-step {
+      background: #DCFCE7;
+      border-color: #BBF7D0;
+      color: #166534;
+    }
+
+    .loop-arr {
+      color: #94A3B8;
+      font-weight: 700;
+    }
+
+    /* 3. BLUEPRINT */
+    .blueprint-section {
+      padding: 0 0 80px 0;
+    }
+
+    .blueprint-card {
+      background: #0F172A;
+      border-radius: 24px;
+      padding: 56px 40px;
+      color: #FFFFFF;
+    }
+
+    .blueprint-title {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      margin-bottom: 36px;
+      color: #F8FAFC;
+    }
+
+    .blueprint-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .bp-step {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      color: #E2E8F0;
+    }
+
+    .bp-highlight {
+      background: #2563EB;
+      border-color: #3B82F6;
+      color: #FFFFFF;
+    }
+
+    .bp-arr {
+      color: #64748B;
+      font-weight: 700;
+    }
+
+    /* Common button */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 14px 28px;
+      border-radius: 12px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: #2563EB;
+      color: #FFFFFF;
+      border: 1px solid #2563EB;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
+
+    .btn-primary:hover {
+      background: #1D4ED8;
+      border-color: #1D4ED8;
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 900px) {
+      .step-card {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      .step-elements-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .passport-summary-chips {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .hero-title {
+        font-size: 32px;
+      }
+      .step-elements-grid {
+        grid-template-columns: 1fr;
+      }
+    }

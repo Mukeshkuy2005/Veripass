@@ -1,0 +1,858 @@
+<div class="compare-page">
+  <!-- 1. HEADER HERO -->
+  <header class="compare-header vp-card">
+    <div class="header-left">
+      <div class="tag-row">
+        <span class="view-tag">MULTI-VENDOR COMPARISON</span>
+        <span class="cert-tag">NON-BLACKBOX AUDIT BENCHMARK</span>
+        <span class="slot-counter-pill" [class.slot-full]="comparedSuppliers().length >= 4">
+          {{ comparedSuppliers().length }}/4 Slots Active
+        </span>
+      </div>
+      <h1 class="page-title">
+        <svg class="title-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="m9 12 2 2 4-4"/>
+        </svg>
+        Supplier Benchmark Matrix
+      </h1>
+      <p class="page-subtitle">
+        Side-by-side comparative evaluation of sovereign statutory credentials, non-blackbox trust scores, and risk classifications from verified MCA, GSTN, and banking registries.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <!-- Highlight differences toggle -->
+      <button
+        class="btn-toggle-diff"
+        [class.active]="highlightDifferencesOnly()"
+        (click)="toggleHighlightDifferences()"
+        title="Toggle spotlight on rows where values vary between suppliers">
+        <span class="diff-indicator-dot"></span>
+        <span>Highlight Differences</span>
+      </button>
+
+      <!-- Add Supplier Button -->
+      <button
+        class="btn-add-supplier"
+        (click)="openAddModal()"
+        [disabled]="comparedSuppliers().length >= 4"
+        title="Add another sovereign supplier to comparison">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+        </svg>
+        <span>+ Add Supplier</span>
+      </button>
+
+      <!-- Export Report -->
+      <button class="btn-export" (click)="exportReport()" title="Print or save as PDF">
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+        <span>Export Matrix</span>
+      </button>
+
+      <!-- Directory Link -->
+      <a routerLink="/buyer/suppliers" class="btn-back-directory">
+        &larr; Supplier Directory
+      </a>
+    </div>
+  </header>
+
+  <!-- 1.5 SELECTED SUPPLIERS CHIPS STRIP -->
+  <div class="selected-chips-strip vp-card" *ngIf="comparedSuppliers().length > 0">
+    <div class="chips-row-left">
+      <span class="chips-label">Selected Suppliers ({{ comparedSuppliers().length }}/4):</span>
+      <div class="supplier-chip-item" *ngFor="let s of comparedSuppliers()" [class.chip-leader]="s.isLeader">
+        <span class="chip-avatar">{{ s.name.charAt(0) }}</span>
+        <span class="chip-title" [title]="s.name">{{ s.name }}</span>
+        <span class="chip-trust">★ {{ s.overallTrustScore }}</span>
+        <button
+          type="button"
+          class="chip-close-btn"
+          (click)="removeSupplier(s.id)"
+          [attr.aria-label]="'Remove ' + s.name + ' from comparison'">&times;</button>
+      </div>
+      <button
+        *ngIf="comparedSuppliers().length < 4"
+        class="btn-chip-add"
+        (click)="openAddModal()"
+        title="Add another supplier to comparison">
+        + Add Supplier
+      </button>
+    </div>
+    <div class="chips-row-right">
+      <button class="btn-clear-chips" (click)="clearAll()">Clear All</button>
+    </div>
+  </div>
+
+  <!-- HELPFUL PROMPT WHEN FEWER THAN 2 SELECTED -->
+  <div class="fewer-than-two-prompt vp-card" *ngIf="comparedSuppliers().length === 1">
+    <div class="prompt-icon-wrap">
+      <span class="prompt-icon">ℹ️</span>
+    </div>
+    <div class="prompt-content">
+      <h3 class="prompt-title">Select at least 1 more supplier to compare</h3>
+      <p class="prompt-desc">
+        You have selected <strong>{{ comparedSuppliers()[0].name }}</strong>. Benchmarking requires at least 2 suppliers (up to 4) to evaluate statutory compliance and trust differentials side-by-side.
+      </p>
+    </div>
+    <div class="prompt-actions">
+      <button class="btn-primary" (click)="openAddModal()">+ Add Second Supplier</button>
+      <button class="btn-subtle" (click)="loadDefaultCluster()">★ Auto-Fill Benchmark</button>
+    </div>
+  </div>
+
+  <!-- 2. QUICK SECTION TABS & CONTROLS (WHEN SUPPLIERS ARE ACTIVE) -->
+  <div class="matrix-filter-bar" *ngIf="comparedSuppliers().length > 0">
+    <div class="filter-tabs-group">
+      <button class="tab-btn" [class.active]="activeSection() === 'all'" (click)="setSection('all')">
+        All Attributes
+      </button>
+      <button class="tab-btn" [class.active]="activeSection() === 'trust'" (click)="setSection('trust')">
+        Trust &amp; Risk
+      </button>
+      <button class="tab-btn" [class.active]="activeSection() === 'statutory'" (click)="setSection('statutory')">
+        Statutory &amp; Legal
+      </button>
+      <button class="tab-btn" [class.active]="activeSection() === 'operational'" (click)="setSection('operational')">
+        Operational Base
+      </button>
+      <button class="tab-btn" [class.active]="activeSection() === 'standards'" (click)="setSection('standards')">
+        Accreditations
+      </button>
+    </div>
+
+    <div class="matrix-bar-aux">
+      <span class="active-cluster-count">
+        Comparing <strong>{{ comparedSuppliers().length }}</strong> suppliers
+      </span>
+      <button class="btn-clear-cluster" (click)="clearAll()" title="Reset matrix">
+        Clear Matrix
+      </button>
+    </div>
+  </div>
+
+  <!-- 3. DYNAMIC PROCUREMENT INSIGHT BANNER -->
+  <div class="insight-banner-card vp-card" *ngIf="comparedSuppliers().length >= 2 && leaderSupplier() as leader">
+    <div class="insight-badge-row">
+      <div class="badge-left">
+        <span class="insight-chip">PROCUREMENT SYNTHESIS</span>
+        <span class="insight-algo-tag">Traceable Algorithmic Audit &bull; 100% Non-Blackbox</span>
+      </div>
+      <div class="badge-right">
+        <span class="data-live-badge">
+          <span class="live-pulse"></span>
+          Live PostgreSQL Registry Sync
+        </span>
+      </div>
+    </div>
+
+    <div class="insight-body-grid">
+      <!-- Leader Profile Card -->
+      <div class="insight-leader-box">
+        <div class="leader-badge-pill">
+          <span class="crown-icon">★</span>
+          <span>CLUSTER BENCHMARK LEADER</span>
+        </div>
+        <h3 class="insight-headline">
+          {{ leader.name }}
+        </h3>
+        <p class="insight-sub">
+          Leads this comparative benchmark with an Overall Trust Score of <strong>{{ leader.overallTrustScore }}/100</strong> and {{ leader.status }} sovereign status.
+        </p>
+        <div class="leader-kpis-row">
+          <div class="kpi-mini-pill">
+            <span class="kmp-label">Trust Index</span>
+            <span class="kmp-val text-blue">{{ leader.overallTrustScore }}/100</span>
+          </div>
+          <div class="kpi-mini-pill">
+            <span class="kmp-label">Compliance</span>
+            <span class="kmp-val text-green">{{ leader.complianceScore }}%</span>
+          </div>
+          <div class="kpi-mini-pill">
+            <span class="kmp-label">Risk Rating</span>
+            <span class="kmp-val text-emerald">{{ leader.riskLevel }} Risk</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cluster Stats & Reasons -->
+      <div class="insight-reasons-panel">
+        <div class="cluster-stats-grid">
+          <div class="cs-item">
+            <span class="cs-label">Cluster Average Trust</span>
+            <strong class="cs-val">{{ clusterAverageScore() }}/100</strong>
+          </div>
+          <div class="cs-item">
+            <span class="cs-label">GSTR-3B Filing Compliance</span>
+            <strong class="cs-val">{{ clusterAverageCompliance() }}%</strong>
+          </div>
+          <div class="cs-item">
+            <span class="cs-label">Evaluation Basis</span>
+            <strong class="cs-val">MCA &bull; GSTN &bull; NPCI</strong>
+          </div>
+        </div>
+
+        <div class="reasons-bullet-list">
+          <div class="reason-item pass">
+            <span class="reason-icon">✓</span>
+            <span><strong>{{ leader.name }}</strong> maintains top Tier 1 statutory standing with continuous GST returns</span>
+          </div>
+          <div class="reason-item pass">
+            <span class="reason-icon">✓</span>
+            <span>{{ (leader.verifiedCredentials?.length || 0) }} verified sovereign credentials with direct NPCI penny-drop bank match</span>
+          </div>
+          <div class="reason-item warn" *ngIf="clusterHasWarning()">
+            <span class="reason-icon">⚠</span>
+            <span>Cluster advisory: One or more evaluating suppliers have pending filings or expiring certifications</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. VISUAL PILLAR BREAKDOWN COMPARISON -->
+  <div class="pillar-comparison-card vp-card" *ngIf="comparedSuppliers().length > 1 && (activeSection() === 'all' || activeSection() === 'trust')">
+    <div class="pillar-card-head">
+      <div>
+        <h3 class="pillar-card-title">STATUTORY PILLAR BENCHMARK BREAKDOWN</h3>
+        <span class="pillar-card-sub">Comparative analysis of verified statutory pillars across active cluster</span>
+      </div>
+      <span class="pillar-score-legend">Values mapped 0–100 against national benchmarks</span>
+    </div>
+
+    <div class="pillar-bars-grid">
+      <!-- Identity Pillar -->
+      <div class="pillar-bar-item">
+        <div class="pbi-header">
+          <div class="pbi-title-wrap">
+            <span class="pbi-icon icon-blue">🏛</span>
+            <span class="pbi-label">Statutory Identity (MCA &amp; PAN)</span>
+          </div>
+          <span class="pbi-desc">Corporate constitution and direct registry match</span>
+        </div>
+        <div class="vendor-bar-row" *ngFor="let s of comparedSuppliers()">
+          <span class="vbr-name" [title]="s.name">{{ s.name }}</span>
+          <div class="vbr-track">
+            <div class="vbr-fill fill-blue" [style.width.%]="s.identityScore"></div>
+          </div>
+          <span class="vbr-val font-mono">{{ s.identityScore }}</span>
+        </div>
+      </div>
+
+      <!-- Credential Pillar -->
+      <div class="pillar-bar-item">
+        <div class="pbi-header">
+          <div class="pbi-title-wrap">
+            <span class="pbi-icon icon-indigo">📜</span>
+            <span class="pbi-label">Credential Verification (GST &amp; CIN)</span>
+          </div>
+          <span class="pbi-desc">Active certificate validity and licensing verification</span>
+        </div>
+        <div class="vendor-bar-row" *ngFor="let s of comparedSuppliers()">
+          <span class="vbr-name" [title]="s.name">{{ s.name }}</span>
+          <div class="vbr-track">
+            <div class="vbr-fill fill-indigo" [style.width.%]="s.credentialScore"></div>
+          </div>
+          <span class="vbr-val font-mono">{{ s.credentialScore }}</span>
+        </div>
+      </div>
+
+      <!-- Statutory Compliance Pillar -->
+      <div class="pillar-bar-item">
+        <div class="pbi-header">
+          <div class="pbi-title-wrap">
+            <span class="pbi-icon icon-green">📈</span>
+            <span class="pbi-label">Filing Compliance (GSTR-3B / MCA)</span>
+          </div>
+          <span class="pbi-desc">Continuous monthly tax return adherence</span>
+        </div>
+        <div class="vendor-bar-row" *ngFor="let s of comparedSuppliers()">
+          <span class="vbr-name" [title]="s.name">{{ s.name }}</span>
+          <div class="vbr-track">
+            <div class="vbr-fill fill-green" [style.width.%]="s.complianceScore"></div>
+          </div>
+          <span class="vbr-val font-mono">{{ s.complianceScore }}%</span>
+        </div>
+      </div>
+
+      <!-- Physical & Banking Pillar -->
+      <div class="pillar-bar-item">
+        <div class="pbi-header">
+          <div class="pbi-title-wrap">
+            <span class="pbi-icon icon-teal">🏦</span>
+            <span class="pbi-label">Physical &amp; Banking Integrity (NPCI)</span>
+          </div>
+          <span class="pbi-desc">Automated penny-drop beneficiary reconciliation</span>
+        </div>
+        <div class="vendor-bar-row" *ngFor="let s of comparedSuppliers()">
+          <span class="vbr-name" [title]="s.name">{{ s.name }}</span>
+          <div class="vbr-track">
+            <div class="vbr-fill fill-teal" [style.width.%]="s.verificationScore"></div>
+          </div>
+          <span class="vbr-val font-mono">{{ s.verificationScore }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. MAIN COMPARISON MATRIX TABLE -->
+  <div class="matrix-card vp-card" *ngIf="comparedSuppliers().length > 0">
+    <!-- Notice when difference filter is active -->
+    <div class="diff-active-banner" *ngIf="highlightDifferencesOnly()">
+      <span class="dab-icon">🔍</span>
+      <span><strong>Highlight Differences Active:</strong> Dimming identical rows and spotlighting statutory variances between suppliers.</span>
+      <button class="dab-reset" (click)="toggleHighlightDifferences()">Show All Rows</button>
+    </div>
+
+    <div class="matrix-table-wrap">
+      <table class="comparison-table">
+        <!-- STICKY HEADER -->
+        <thead class="sticky-thead">
+          <tr>
+            <th class="metric-head-col">
+              <div class="metric-head-box">
+                <span class="mhb-label">STATUTORY ATTRIBUTES</span>
+                <span class="mhb-sub">Side-by-side benchmark</span>
+              </div>
+            </th>
+
+            <th *ngFor="let s of comparedSuppliers()" class="supplier-col-header" [class.leader-col]="s.isLeader">
+              <div class="col-head-card">
+                <!-- Leader Slot Badge (always reserves space for alignment) -->
+                <div class="leader-slot">
+                  <span class="leader-chip" *ngIf="s.isLeader">★ TOP BENCHMARK</span>
+                  <span class="leader-slot-spacer" *ngIf="!s.isLeader"></span>
+                </div>
+
+                <!-- Entity Card Top -->
+                <div class="col-head-main">
+                  <div class="col-avatar-wrap">
+                    <div class="col-avatar" [class.leader-avatar]="s.isLeader">
+                      {{ s.name.charAt(0) }}
+                    </div>
+                    <div class="col-name-box">
+                      <strong class="col-sup-name" [title]="s.name">{{ s.name }}</strong>
+                      <span class="col-sup-legal" [title]="s.legalName">{{ s.legalName }}</span>
+                    </div>
+                  </div>
+
+                  <button class="btn-remove-col" (click)="removeSupplier(s.id)" title="Remove {{ s.name }} from comparison">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Meta Pills -->
+                <div class="col-head-pills">
+                  <span class="col-pill-loc font-mono">{{ s.location }}</span>
+                  <span class="col-pill-score">
+                    Trust: <strong>{{ s.overallTrustScore }}</strong>/100
+                  </span>
+                </div>
+              </div>
+            </th>
+
+            <!-- Empty slot placeholder column (if < 4 suppliers) -->
+            <th class="add-slot-col" *ngIf="comparedSuppliers().length < 4">
+              <button class="add-slot-card" (click)="openAddModal()" title="Add another supplier to comparison">
+                <div class="asc-icon">+</div>
+                <strong class="asc-title">Add Supplier</strong>
+                <span class="asc-sub">Slot {{ comparedSuppliers().length + 1 }} of 4</span>
+              </button>
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <!-- ================= SECTION 1: TRUST & RISK ================= -->
+          <tr class="section-divider-row" *ngIf="isRowVisible('trust')">
+            <td [attr.colspan]="comparedSuppliers().length + (comparedSuppliers().length < 4 ? 2 : 1)">
+              <div class="section-title-wrap">
+                <span class="sec-num-badge">1</span>
+                <span class="section-title">COMPOSITE TRUST &amp; RISK INDICES</span>
+                <span class="section-count">Non-Blackbox Algorithmic Evaluation</span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- VeriPass Trust Score -->
+          <tr class="highlight-row" *ngIf="isRowVisible('trust')">
+            <td class="metric-label-cell">
+              <strong>VeriPass Trust Score</strong>
+              <span class="cell-sub">Composite sovereign integrity index (0–100)</span>
+            </td>
+            <td *ngFor="let s of comparedSuppliers()" [class.leader-col]="s.isLeader" [class.diff-cell]="hasFieldVariance('overallTrustScore')">
+              <div class="metric-val-cell">
+                <div class="score-radial-box">
+                  <span class="big-score text-blue">{{ s.overallTrustScore }}</span>
+                  <span class="score-den">/ 100</span>
+                </div>
+                <span class="rank-tag" *ngIf="s.isLeader">Highest in Cluster</span>
+              </div>
+            </td>
+            <td class="add-slot-cell" *ngIf="comparedSuppliers().length < 4"></td>
+          </tr>
+
+          <!-- Statutory Compliance Index -->
+          <tr *ngIf="isRowVisible('trust')">
+            <td class="metric-label-cell">
+              <strong>Statutory Compliance Index</strong>
+              <span class="cell-sub">GSTN &amp; MCA on-time return filing telemetry</span>
+            </td>
+            <td *ngFor="let s of comparedSuppliers()" [class.leader-col]="s.isLeader" [class.diff-cell]="hasFieldVariance('complianceScore')">
+              <div class="compliance-pill-box">
+                <span class="score-pill text-green font-bold">{{ s.complianceScore }}%</span>
+                <span class="micro-status-text">Continuous Filing</span>
+              </div>
+            </td>
+            <td class="add-slot-cell" *ngIf="comparedSuppliers().length < 4"></td>
+          </tr>
+
+          <!-- Risk Classification -->
+          <tr *ngIf="isRowVisible('trust')">
+            <td class="metric-label-cell">
+              <strong>Risk Classification</strong>
+              <span class="cell-sub">Algorithmic insolvency &amp; ITC exposure rating</span>
+            </td>
+            <td *ngFor="let s of comparedSuppliers()" [class.leader-col]="s.isLeader" [class.diff-cell]="hasFieldVariance('riskLevel')">
+              <span class="badge-risk-pill" [class.risk-low]="s.riskLevel === 'Low'" [class.risk-med]="s.riskLevel === 'Medium'" [class.risk-high]="s.riskLevel === 'High'">
+                ● {{ s.riskLevel }} Risk Standing
+              </span>
+            </td>
+            <td class="add-slot-cell" *ngIf="comparedSuppliers().length < 4"></td>
+          </tr>
+
+          <!-- Verification Standing -->
+          <tr *ngIf="isRowVisible('trust')">
+            <td class="metric-label-cell">
+              <strong>Sovereign Verification Status</strong>
+              <span class="cell-sub">Cryptographic passport status in VeriPass network</span>
+            </td>
+            <td *ngFor="let s of comparedSuppliers()" [class.leader-col]="s.isLeader" [class.diff-cell]="hasFieldVariance('status')">
+              <span class="status-badge" [class.status-verified]="s.status === 'Verified'" [class.status-warning]="s.status !== 'Verified'">
+                ✓ {{ s.status }}
+              </span>
+            </td>
+            <td class="add-slot-cell" *ngIf="comparedSuppliers().length < 4"></td>
+          </tr>
+
+          <!-- ================= SECTION 2: STATUTORY & LEGAL ================= -->
+          <tr class="section-divider-row" *ngIf="isRowVisible('statutory')">
+            <td [attr.colspan]="comparedSuppliers().length + (comparedSuppliers().length < 4 ? 2 : 1)">
+              <div class="section-title-wrap">
+                <span class="sec-num-badge">2</span>
+                <span class="section-title">STATUTORY &amp; LEGAL IDENTIFIERS</span>
+                <span class="section-count">Direct Ministry &amp; Tax Authority Match</span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- GSTIN -->
+          <tr *ngIf="isRowVisible('statutory')">
+            <td class="metric-label-cell">
+              <strong>GSTIN &amp; Invoicing Standing</strong>
+              <span class="cell-sub">Goods &amp; Services Tax Identification &amp; ITC safety</span>
+            </td>
+            <td *ngFor="let s of comparedSuppliers()" [class.leader-col]="s.isLeader">
+              <div class="val-stack">
+                <div class="code-copy-row">
+                  <code class="mono-id">{{ s.gstin }}</code>
+                  <button class="btn-copy-chip" (click)="copyValue(s.gstin, 'GSTIN')" title="Copy GSTIN">
+                    {{ copiedId() === s.gstin ? '✓' : 'Copy' }}
+                  </button>
+                </div>
+                <span class="badge-check-ok">✓ Active &bull; GSTR-3B Filed</span>
+              </div>
+            </td>
+            <td class="add-slot-cell" *ngIf="comparedSuppliers().length < 4"></td>
+          </tr>
+
+          <!-- PAN -->
+          <tr *ngIf="isRowVisible('statutory')">
+            <td class="metric-label-cell">
+              <strong>Corporate PAN Verification</strong>
+              <span class="cell-sub">NSDL / CBDT Permanent Account Number match</span>
+            </td>
+            <td *ngFor="let s of comparedSuppliers()" [class.leader-col]="s.isLeader">
+              <div class="val-stack">
+                <div class="code-copy-row">
+                  <code class="mono-id">{{ s.pan }}</code>
+                  <button class="btn-copy-chip" (click)="copyValue(s.pan, 'PAN')" title="Copy PAN">
+                    {{ copiedId() === s.pan ? '✓' : 'Copy' }}
+                  </button>
+                </div>
+                <span class="badge-check-ok">✓ NSDL Registry Confirmed</span>
+              </div>
+            </td>
+            <td class="add-slot-cell" *ngIf="comparedSuppliers().length < 4"></td>
+          </tr>
+
+          <!-- CIN / Registry -->
+          <tr *ngIf="isRowVisible('statutory')">
+            <td class="metric-label-cell">
+              <strong>Corporate Registration (CIN)</strong>
+              <span class="cell-sub">Ministry of Corporate Affairs registry identifier</span>
+            </td>
+            <td *ngFor="let s of comparedSuppliers()" [class.leader-col]="s.isLeader">
+              <div class="code-copy-row">
+                <code class="mono-id">{{ s.businessIdNumber }}</code>
+                <button class="btn-copy-chip" (click)="copyValue(s.businessIdNumber, 'CIN')" title="Copy CIN">
+                  {{ copiedId() === s.businessIdNumber ? '✓' : 'Copy' }}
+                </button>
+              </div>
+            </td>
+            <td class="add-slot-cell" *ngIf="comparedSuppliers().length < 4"></td>
+          </tr>
+
+          <!-- MSME Udyam -->
+          <tr *ngIf="isRowVisible('statutory')">
+            <td class="metric-label-cell">
+              <strong>MSME / Udyam Standing</strong>
+              <span class="cell-sub">Ministry of MSME sovereign certification</span>
+            </td>
+            <td *ngFor="let s of comparedSuppliers()" [class.leader-col]="s.isLeader" [class.diff-cell]="hasFieldVariance('udyam')">
+              <div class="val-stack" *ngIf="s.udyam && s.udyam !== 'N/A'">
+                <div class="code-copy-row">
+                  <code class="mono-id">{{ s.udyam }}</code>
+                  <button class="btn-copy-chip" (click)="copyValue(s.udyam, 'Udyam')" title="Copy Udyam">
+                    {{ copiedId() === s.udyam ? '✓' : 'Copy' }}
+                  </button>
+                </div>
+                <span class="badge-check-ok">✓ Registered Enterprise</span>
+              </div>
+              <span class="val-muted" *ngIf="!s.udyam || s.udyam === 'N/A'">Large Enterprise (Non-MSME)</span>
+            </td>
+            <td class="add-slot-cell" *ngIf="comparedSuppliers().length < 4"></td>
+          </tr>
+
+          <!-- Banking Verification -->
+          <tr *ngIf="isRowVisible('statutory')">
+            <td class="metric-label-cell">
+              <strong>Bank Account Authentication</strong>
+              <span class="cell-sub">NPCI penny-drop beneficiary reconciliation</span>
+            </td>
+            <td *ngFor="let s of comparedSuppliers()" [class.leader-col]="s.isLeader">
+              <div class="val-stack">
+                <span class="badge-check-ok">✓ Automated NPCI Match</span>
+                <span class="cell-sub">Name &amp; IFSC Match 100%</span>
+              </div>
+            </td>
+            <td class="add-slot-cell" *ngIf="comparedSuppliers().length < 4"></td>
+          </tr>
+
+          <!-- ================= SECTION 3: OPERATIONAL PROFILE ================= -->
+          <tr class="section-divider-row" *ngIf="isRowVisible('operational')">
+            <td [attr.colspan]="comparedSuppliers().length + (comparedSuppliers().length < 4 ? 2 : 1)">
+              <div class="section-title-wrap">
+                <span class="sec-num-badge">3</span>
+                <span class="section-title">OPERATIONAL PROFILE &amp; CAPACITY</span>
+                <span class="section-count">Facility Infrastructure &amp; Commercial Scope</span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Legal Constitution -->
+          <tr *ngIf="isRowVisible('operational')">
+            <td class="metric-label-cell">
+              <strong>Incorporated Structure</strong>
+              <span class="cell-sub">Legal entity classification</span>
+            </td>
+            <td *ngFor="let s of comparedSuppliers()" [class.leader-col]="s.isLeader" [class.diff-cell]="hasFieldVariance('businessType')">
+              <span class="val-text font-bold">{{ s.businessType }}</span>
+            </td>
+            <td class="add-slot-cell" *ngIf="comparedSuppliers().length < 4"></td>
+          </tr>
+
+          <!-- Category & Scope -->
+          <tr *ngIf="isRowVisible('operational')">
+            <td class="metric-label-cell">
+              <strong>Industrial Scope &amp; Specialization</strong>
+              <span class="cell-sub">Registered manufacturing competencies</span>
+            </td>
+            <td *ngFor="let s of comparedSuppliers()" [class.leader-col]="s.isLeader">
+              <span class="val-desc-text">{{ s.category }}</span>
+            </td>
+            <td class="add-slot-cell" *ngIf="comparedSuppliers().length < 4"></td>
+          </tr>
+
+          <!-- Location -->
+          <tr *ngIf="isRowVisible('operational')">
+            <td class="metric-label-cell">
+              <strong>Operational Base &amp; State</strong>
+              <span class="cell-sub">Registered plant &amp; dispatch hub</span>
+            </td>
+            <td *ngFor="let s of comparedSuppliers()" [class.leader-col]="s.isLeader" [class.diff-cell]="hasFieldVariance('location')">
+              <div class="loc-text-row">
+                <span class="loc-pin">📍</span>
+                <span class="val-text">{{ s.location }}</span>
+              </div>
+            </td>
+            <td class="add-slot-cell" *ngIf="comparedSuppliers().length < 4"></td>
+          </tr>
+
+          <!-- Years in Business -->
+          <tr *ngIf="isRowVisible('operational')">
+            <td class="metric-label-cell">
+              <strong>Operating Vintage</strong>
+              <span class="cell-sub">Years active from incorporation date</span>
+            </td>
+            <td *ngFor="let s of comparedSuppliers()" [class.leader-col]="s.isLeader" [class.diff-cell]="hasFieldVariance('yearsActive')">
+              <div class="vintage-badge">
+                <span class="val-text font-bold">{{ s.yearsActive }} years</span>
+                <span class="cell-sub font-mono">Incorporated</span>
+              </div>
+            </td>
+            <td class="add-slot-cell" *ngIf="comparedSuppliers().length < 4"></td>
+          </tr>
+
+          <!-- Workforce -->
+          <tr *ngIf="isRowVisible('operational')">
+            <td class="metric-label-cell">
+              <strong>Workforce Scale</strong>
+              <span class="cell-sub">Estimated active personnel scale</span>
+            </td>
+            <td *ngFor="let s of comparedSuppliers()" [class.leader-col]="s.isLeader" [class.diff-cell]="hasFieldVariance('employeeCount')">
+              <span class="val-text">{{ s.employeeCount ? (s.employeeCount + '+ employees') : '100+ employees' }}</span>
+            </td>
+            <td class="add-slot-cell" *ngIf="comparedSuppliers().length < 4"></td>
+          </tr>
+
+          <!-- ================= SECTION 4: STANDARDS & ACCREDITATIONS ================= -->
+          <tr class="section-divider-row" *ngIf="isRowVisible('standards')">
+            <td [attr.colspan]="comparedSuppliers().length + (comparedSuppliers().length < 4 ? 2 : 1)">
+              <div class="section-title-wrap">
+                <span class="sec-num-badge">4</span>
+                <span class="section-title">QUALITY ACCREDITATIONS &amp; CREDENTIALS</span>
+                <span class="section-count">Verified Sovereign Accreditations</span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Accreditations -->
+          <tr *ngIf="isRowVisible('standards')">
+            <td class="metric-label-cell">
+              <strong>Accreditation Portfolio</strong>
+              <span class="cell-sub">ISO, BIS, MSME, and tax certifications verified</span>
+            </td>
+            <td *ngFor="let s of comparedSuppliers()" [class.leader-col]="s.isLeader">
+              <div class="creds-tags-cell">
+                <span class="cred-chip" *ngFor="let c of s.verifiedCredentials" [title]="c">
+                  <span class="cred-chip-check">✓</span>
+                  <span>{{ c }}</span>
+                </span>
+              </div>
+            </td>
+            <td class="add-slot-cell" *ngIf="comparedSuppliers().length < 4"></td>
+          </tr>
+
+          <!-- ================= SECTION 5: ACTIONS ================= -->
+          <tr class="action-footer-row">
+            <td class="metric-label-cell">
+              <strong>Procurement Next Steps</strong>
+              <span class="cell-sub">Direct sovereign action suite</span>
+            </td>
+            <td *ngFor="let s of comparedSuppliers()" [class.leader-col]="s.isLeader">
+              <div class="matrix-action-bar">
+                <a [routerLink]="['/buyer/suppliers', s.id, 'passport']" class="btn-matrix-primary" title="View Full Sovereign Passport">
+                  <span>Inspect Passport</span>
+                  <span class="btn-arrow">&rarr;</span>
+                </a>
+                <div class="action-btn-group">
+                  <button class="btn-matrix-engage" (click)="openEngagementModal(s)" title="Dispatch RFQ / Audit">
+                    <span>Engage / RFQ</span>
+                  </button>
+                  <button
+                    class="btn-matrix-star"
+                    (click)="toggleShortlist(s)"
+                    [class.active]="s.isShortlisted"
+                    title="{{ s.isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist' }}">
+                    <span class="star-icon">{{ s.isShortlisted ? '★' : '☆' }}</span>
+                    <span>{{ s.isShortlisted ? 'Saved' : 'Save' }}</span>
+                  </button>
+                </div>
+              </div>
+            </td>
+            <td class="add-slot-cell" *ngIf="comparedSuppliers().length < 4">
+              <button class="btn-add-inline" (click)="openAddModal()">
+                + Add Vendor
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 6. EMPTY STATE WHEN 0 SUPPLIERS SELECTED -->
+  <div class="empty-matrix-card vp-card" *ngIf="comparedSuppliers().length === 0">
+    <div class="empty-matrix-icon">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.8">
+        <path d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h3 class="empty-matrix-title">No Suppliers Selected for Comparison</h3>
+    <p class="empty-matrix-sub">
+      Select 2 to 4 sovereign suppliers to run a side-by-side statutory audit, trust score benchmark, and compliance matrix.
+    </p>
+    <div class="empty-actions">
+      <button class="btn-empty-primary" (click)="loadDefaultCluster()">
+        ★ Load Recommended Sovereign Benchmark
+      </button>
+      <button class="btn-empty-add" (click)="openAddModal()">
+        + Choose Suppliers Manually
+      </button>
+      <a routerLink="/buyer/suppliers" class="btn-empty-browse">
+        Browse Supplier Directory &rarr;
+      </a>
+    </div>
+  </div>
+
+  <!-- 7. ADD SUPPLIER MODAL -->
+  <div class="modal-backdrop" *ngIf="isAddModalOpen()" (click)="closeAddModal()">
+    <div class="add-modal-card vp-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-badge">BENCHMARK SELECTION</span>
+          <h2 class="modal-title">Add Supplier to Benchmark Matrix</h2>
+          <span class="modal-sub">Compare up to 4 sovereign verified suppliers</span>
+        </div>
+        <button class="modal-close" (click)="closeAddModal()">&times;</button>
+      </div>
+
+      <!-- Search & Filters -->
+      <div class="modal-search-row">
+        <div class="modal-search-box">
+          <svg class="msb-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            type="text"
+            class="modal-search-input"
+            placeholder="Search by vendor trade name, GSTIN, location, or industry..."
+            [ngModel]="modalSearchTerm()"
+            (ngModelChange)="modalSearchTerm.set($event)" />
+        </div>
+
+        <select class="modal-industry-select" [ngModel]="modalIndustryFilter()" (ngModelChange)="modalIndustryFilter.set($event)">
+          <option value="all">All Industries</option>
+          <option *ngFor="let ind of availableIndustries()" [value]="ind">{{ ind }}</option>
+        </select>
+      </div>
+
+      <!-- Suppliers List -->
+      <div class="modal-suppliers-list">
+        <div class="supplier-list-item" *ngFor="let s of availableSuppliers()">
+          <div class="sli-avatar">
+            {{ s.name.charAt(0) }}
+          </div>
+          <div class="sli-info">
+            <div class="sli-title-row">
+              <strong class="sli-name">{{ s.name }}</strong>
+              <span class="sli-cat-tag">{{ s.industry }}</span>
+            </div>
+            <span class="sli-sub">{{ s.category }} &bull; {{ s.location }}</span>
+            <div class="sli-tags">
+              <span class="score-tag">Trust: <strong>{{ s.trustScore }}/100</strong></span>
+              <span class="status-tag">● {{ s.status }}</span>
+              <code class="sli-gst-mono">{{ s.gstin }}</code>
+            </div>
+          </div>
+
+          <div class="sli-action">
+            <button
+              class="btn-sli-add"
+              *ngIf="!isAlreadyCompared(s.id)"
+              (click)="addSupplierToCompare(s)"
+              [disabled]="comparedSuppliers().length >= 4">
+              + Add to Compare
+            </button>
+            <span class="already-added-pill" *ngIf="isAlreadyCompared(s.id)">
+              ✓ In Benchmark
+            </span>
+          </div>
+        </div>
+
+        <div class="sli-empty" *ngIf="availableSuppliers().length === 0">
+          <p>No matching suppliers found for "{{ modalSearchTerm() }}".</p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <span class="footer-hint">Currently active: <strong>{{ comparedSuppliers().length }} of 4 slots</strong></span>
+        <button class="btn-modal-close" (click)="closeAddModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. ENGAGEMENT / RFQ MODAL -->
+  <div class="modal-backdrop" *ngIf="engagementModalSupplier()" (click)="closeEngagementModal()">
+    <div class="add-modal-card vp-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-badge">PROCUREMENT ENGAGEMENT</span>
+          <h2 class="modal-title">Initiate Supplier Engagement &amp; RFQ</h2>
+          <span class="modal-sub">Direct sovereign communication protocol</span>
+        </div>
+        <button class="modal-close" (click)="closeEngagementModal()">&times;</button>
+      </div>
+
+      <div class="modal-body" *ngIf="engagementModalSupplier() as s">
+        <div class="modal-supplier-summary">
+          <div class="mss-left">
+            <strong class="mss-name">{{ s.name }}</strong>
+            <span class="mss-meta">GSTIN: <code>{{ s.gstin }}</code> &bull; Location: {{ s.location }}</span>
+          </div>
+          <span class="mss-trust-badge">Trust: {{ s.overallTrustScore }}/100</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Engagement Scope</label>
+          <div class="scope-radios">
+            <label class="radio-label" [class.selected]="engagementScope() === 'full'">
+              <input type="radio" name="scope" value="full" [checked]="engagementScope() === 'full'" (change)="engagementScope.set('full')" />
+              <div>
+                <strong>Full Sovereign Audit &amp; Passport Dispatch</strong>
+                <p>Request latest cryptographic proof of MCA, GSTN, bank reconciliation, and quality accreditations.</p>
+              </div>
+            </label>
+            <label class="radio-label" [class.selected]="engagementScope() === 'rfq'">
+              <input type="radio" name="scope" value="rfq" [checked]="engagementScope() === 'rfq'" (change)="engagementScope.set('rfq')" />
+              <div>
+                <strong>Vendor Empanelment &amp; RFQ Invite</strong>
+                <p>Send direct empanelment invite into enterprise procurement vendor binder.</p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Procurement Instructions / RFQ Notes (Optional)</label>
+          <textarea
+            class="form-textarea"
+            rows="3"
+            placeholder="e.g. Seeking quotation for Q4 batch tooling contract. Please share standard MOQs and ISO audits."
+            [ngModel]="engagementNotes()"
+            (ngModelChange)="engagementNotes.set($event)"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-modal-cancel" (click)="closeEngagementModal()">Cancel</button>
+        <button class="btn-modal-submit" [disabled]="engagementSubmitting()" (click)="submitEngagementRequest()">
+          {{ engagementSubmitting() ? 'Dispatching...' : 'Dispatch Request' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. TOAST NOTIFICATION -->
+  <div class="toast-popup" *ngIf="toastMessage()" [class.toast-warning]="toastType() === 'warning'" [class.toast-info]="toastType() === 'info'">
+    <span class="toast-check">{{ toastType() === 'warning' ? '⚠' : (toastType() === 'info' ? 'ℹ' : '✓') }}</span>
+    <span class="toast-text">{{ toastMessage() }}</span>
+  </div>
+</div>

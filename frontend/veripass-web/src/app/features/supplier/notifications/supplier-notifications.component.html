@@ -1,0 +1,104 @@
+    <div class="notifications-view">
+      <!-- HEADER -->
+      <div class="notif-header">
+        <div>
+          <span class="view-tag">TELEMETRY INBOX</span>
+          <h1 class="page-title">Notifications</h1>
+          <p class="page-sub">Real-time alerts regarding statutory obligations, verification updates, and buyer requests.</p>
+        </div>
+        <button class="btn btn-outline btn-sm" (click)="markAllAsRead()">
+          ✓ Mark all as read
+        </button>
+      </div>
+
+      <!-- TABS -->
+      <div class="tabs-bar">
+        <button
+          *ngFor="let tab of tabs"
+          class="tab-btn"
+          [class.active]="selectedTab() === tab"
+          (click)="selectedTab.set(tab)">
+          {{ tab }}
+        </button>
+      </div>
+
+      <!-- NOTIFICATIONS LIST -->
+      <div class="vp-card notif-card">
+        <!-- Loading State -->
+        <div *ngIf="loading()" class="empty-notif text-center">
+          <p>Loading notifications...</p>
+        </div>
+
+        <!-- Error State -->
+        <div *ngIf="!loading() && error()" class="empty-notif text-center">
+          <p class="text-danger">Failed to load notifications.</p>
+          <button class="btn btn-secondary btn-sm mt-2" (click)="loadNotifications()">Retry</button>
+        </div>
+
+        <div class="notif-items-list" *ngIf="!loading() && !error()">
+          <div
+            *ngFor="let item of filteredNotifications()"
+            class="notif-item"
+            [class.unread]="!item.read"
+            (click)="selectNotification(item)">
+            <div class="notif-icon-col">
+              <span class="notif-badge-icon" [ngClass]="item.iconColor">{{ item.icon }}</span>
+              <span *ngIf="!item.read" class="unread-dot"></span>
+            </div>
+
+            <div class="notif-content">
+              <div class="notif-top">
+                <strong class="notif-title">{{ item.title }}</strong>
+                <span class="notif-time">{{ item.timeStr }}</span>
+              </div>
+              <p class="notif-desc">{{ item.desc }}</p>
+            </div>
+
+            <button class="btn btn-secondary btn-sm" (click)="selectNotification(item); $event.stopPropagation()">
+              View &rarr;
+            </button>
+          </div>
+
+          <div *ngIf="filteredNotifications().length === 0" class="empty-notif text-center">
+            <p>No notifications</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- NOTIFICATION DETAIL SIDE DRAWER -->
+      <div class="drawer-backdrop" *ngIf="selectedNotification()" (click)="selectedNotification.set(null)">
+        <div class="notif-drawer vp-card" (click)="$event.stopPropagation()">
+          <div class="drawer-header">
+            <div>
+              <span class="drawer-tag">{{ selectedNotification()?.type }} ALERT</span>
+              <h2 class="drawer-title">{{ selectedNotification()?.title }}</h2>
+            </div>
+            <button class="close-btn" (click)="selectedNotification.set(null)">&times;</button>
+          </div>
+
+          <div class="drawer-body">
+            <p class="drawer-desc">{{ selectedNotification()?.desc }}</p>
+
+            <div class="drawer-meta-box" *ngIf="selectedNotification()?.expiryDate">
+              <div class="meta-row">
+                <span class="m-lbl">Target Expiry Date:</span>
+                <strong class="m-val text-amber">{{ selectedNotification()?.expiryDate }}</strong>
+              </div>
+              <div class="meta-row">
+                <span class="m-lbl">Action Required:</span>
+                <span class="m-val">{{ selectedNotification()?.actionRequired }}</span>
+              </div>
+            </div>
+
+            <div class="drawer-actions">
+              <a routerLink="/supplier/documents" class="btn btn-primary w-full" (click)="selectedNotification.set(null)">
+                Update Credential &rarr;
+              </a>
+              <button class="btn btn-secondary w-full" (click)="selectedNotification.set(null)">
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>

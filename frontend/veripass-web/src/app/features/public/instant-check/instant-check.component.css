@@ -1,0 +1,182 @@
+    .instant-page {
+      padding: 60px 0 80px;
+      min-height: calc(100vh - 70px);
+    }
+    .search-container {
+      max-width: 860px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+    .search-header {
+      text-align: center;
+    }
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--accent-cyan);
+      letter-spacing: 2px;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .search-header h2 {
+      font-size: 32px;
+      color: var(--text-white);
+      margin-bottom: 8px;
+    }
+    .sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+    }
+    .search-box-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-card);
+    }
+    .input-row {
+      display: flex;
+      gap: 12px;
+    }
+    .form-control-lg {
+      height: 48px;
+      font-size: 15px;
+    }
+    .uppercase {
+      text-transform: uppercase;
+    }
+    .quick-examples {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    .ex-lbl {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .sample-btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-light);
+      color: var(--accent-cyan);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .sample-btn:hover {
+      background: var(--bg-card-hover);
+    }
+    .result-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: var(--shadow-card);
+    }
+    .result-main {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    .brand-badge {
+      width: 52px;
+      height: 52px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent-cyan) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+      font-weight: 800;
+    }
+    .result-details {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .title-row h3 {
+      font-size: 20px;
+      color: var(--text-white);
+    }
+    .badge-verified {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #10b981;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .identifiers-row {
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .addr-text {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .result-score {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .score-lbl {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+    .pillars-preview {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-light);
+      padding: 14px;
+      border-radius: var(--radius-sm);
+    }
+    .pillar-mini {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .p-num {
+      font-size: 14px;
+      font-weight: 800;
+      font-family: var(--font-heading);
+      color: var(--text-white);
+    }
+    .p-lbl {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    .result-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border-light);
+      padding-top: 16px;
+    }
+    .sealed-text {
+      font-size: 12px;
+      color: var(--text-muted);
+    }

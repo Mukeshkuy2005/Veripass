@@ -1,0 +1,134 @@
+    <div class="verifier-shell">
+      <!-- TOPBAR (64px) -->
+      <header class="verifier-topbar">
+        <div class="topbar-left">
+          <a routerLink="/verifier/dashboard" class="topbar-brand">
+            <div class="brand-shield-wrap">
+              <svg viewBox="0 0 24 24" fill="none" class="brand-shield">
+                <path d="M12 2L4 6V11.5C4 16.5 7.4 21.1 12 22C16.6 21.1 20 16.5 20 11.5V6L12 2Z" fill="#2563EB" stroke="#1D4ED8" stroke-width="1.5"/>
+                <path d="M9 11.5L11 13.5L15.5 9" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="brand-titles">
+              <span class="brand-name">VERIPASS</span>
+              <span class="brand-sub">/ VERIFICATION CONSOLE</span>
+            </div>
+          </a>
+
+          <!-- Quick Case Search -->
+          <div class="topbar-search">
+            <span class="search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder="Search by case ID (VP-...), business name, GSTIN..."
+              class="topbar-search-input"
+              (keyup.enter)="onQuickSearch($event)" />
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Notification Bell -->
+          <a routerLink="/verifier/history" class="topbar-icon-btn" title="Activity Notifications">
+            <span>🔔</span>
+            <span class="badge-dot">4</span>
+          </a>
+
+          <!-- Help / SOP Link -->
+          <a routerLink="/help" class="topbar-icon-btn" title="Verification SOPs & Manual" target="_blank">
+            <span>?</span>
+          </a>
+
+          <!-- Verifier User Badge -->
+          <div class="verifier-user-badge">
+            <div class="user-avatar">RV</div>
+            <div class="user-details">
+              <span class="user-name">Rahul Sharma</span>
+              <span class="user-role">Compliance Officer &bull; Level 2</span>
+            </div>
+            <button class="btn-logout" (click)="logout()" title="Logout">&#x21aa;</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- BODY: 250px SIDEBAR + CONTENT -->
+      <div class="verifier-body">
+        <aside class="verifier-sidebar">
+          <nav class="sidebar-nav">
+            <!-- GROUP 1: WORKSPACE -->
+            <div class="nav-group">
+              <span class="group-title">WORKSPACE</span>
+              <a routerLink="/verifier/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+                <span class="nav-icon">▣</span>
+                <span class="nav-label">Dashboard</span>
+              </a>
+            </div>
+
+            <!-- GROUP 2: VERIFICATION -->
+            <div class="nav-group">
+              <span class="group-title">VERIFICATION</span>
+              <a routerLink="/verifier/queue" routerLinkActive="active">
+                <span class="nav-icon">▤</span>
+                <span class="nav-label">Queue</span>
+                <span class="nav-badge badge-blue">{{ queueCount() }}</span>
+              </a>
+              <a [routerLink]="['/verifier/cases', activeCaseId()]" routerLinkActive="active">
+                <span class="nav-icon">◉</span>
+                <span class="nav-label">Active Case</span>
+                <span class="nav-badge badge-amber">{{ activeCaseId() }}</span>
+              </a>
+              <a routerLink="/verifier/risk" routerLinkActive="active">
+                <span class="nav-icon">⚠</span>
+                <span class="nav-label">Risk &amp; Anomaly</span>
+                <span class="nav-badge badge-red">{{ riskCount() }}</span>
+              </a>
+            </div>
+
+            <!-- GROUP 3: AUDIT -->
+            <div class="nav-group">
+              <span class="group-title">AUDIT</span>
+              <a routerLink="/verifier/history" routerLinkActive="active">
+                <span class="nav-icon">◌</span>
+                <span class="nav-label">History</span>
+              </a>
+            </div>
+
+            <!-- GROUP 4: ESCALATION -->
+            <div class="nav-group">
+              <span class="group-title">ESCALATION</span>
+              <a routerLink="/verifier/escalated" routerLinkActive="active">
+                <span class="nav-icon">↗</span>
+                <span class="nav-label">Escalated</span>
+                <span class="nav-badge badge-purple">{{ escalatedCount() }}</span>
+              </a>
+            </div>
+
+            <!-- GROUP 5: ACCOUNT -->
+            <div class="nav-group">
+              <span class="group-title">ACCOUNT</span>
+              <a routerLink="/verifier/profile" routerLinkActive="active">
+                <span class="nav-icon">⚙</span>
+                <span class="nav-label">Profile</span>
+              </a>
+            </div>
+          </nav>
+
+          <!-- SIDEBAR FOOTER: Operational Status -->
+          <div class="sidebar-footer">
+            <div class="footer-card">
+              <div class="status-indicator-line">
+                <span class="status-dot"></span>
+                <strong>VERIFIER WORKSTATION</strong>
+              </div>
+              <span class="footer-sub">Compliance Operations &bull; Active</span>
+            </div>
+          </div>
+        </aside>
+
+        <!-- MAIN VIEWPORT (1200–1500px, 24–32px padding) -->
+        <main class="verifier-main-viewport">
+          <div class="verifier-content-container">
+            <router-outlet></router-outlet>
+          </div>
+        </main>
+      </div>
+    </div>

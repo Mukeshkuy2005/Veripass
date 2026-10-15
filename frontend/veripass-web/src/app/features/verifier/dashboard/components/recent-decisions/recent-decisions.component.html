@@ -1,0 +1,58 @@
+<div class="panel-box" id="recent-decisions-panel">
+  <div class="panel-header">
+    <div>
+      <h3 class="panel-title">RECENT DECISIONS</h3>
+      <span class="panel-sub">Real-time decisions logged across compliance officers</span>
+    </div>
+    <a routerLink="/verifier/history" class="panel-link" id="link-full-history">
+      Full History &rarr;
+    </a>
+  </div>
+
+  <!-- Skeletons -->
+  <div class="decisions-grid" *ngIf="loading()">
+    <div class="decision-card skeleton-card" *ngFor="let i of [1, 2, 3]">
+      <div class="skeleton-badge"></div>
+      <div class="skeleton-title"></div>
+      <div class="skeleton-meta"></div>
+      <div class="skeleton-sub"></div>
+    </div>
+  </div>
+
+  <!-- Decisions List -->
+  <div class="decisions-grid" *ngIf="!loading() && decisions().length > 0">
+    <a
+      *ngFor="let d of decisions()"
+      [routerLink]="['/verifier/cases', d.id]"
+      class="decision-card"
+      [attr.id]="'decision-card-' + d.id"
+      [attr.aria-label]="d.businessName + ' ' + d.verificationType + ' ' + d.decision">
+      
+      <!-- Semantic Badge with accessible icon and text -->
+      <div class="dec-badge" [ngClass]="getDecisionBadge(d.decision).cssClass">
+        <span class="badge-icon" aria-hidden="true">{{ getDecisionBadge(d.decision).icon }}</span>
+        <span>{{ getDecisionBadge(d.decision).text }}</span>
+      </div>
+
+      <!-- Business Name -->
+      <strong class="dec-business">{{ d.businessName }}</strong>
+
+      <!-- Verification Type and Timestamp -->
+      <span class="dec-type">
+        {{ d.verificationType }} Verification &bull; {{ d.timestamp | date:'hh:mm a' }}
+      </span>
+
+      <!-- Verifier Officer -->
+      <span class="dec-officer">
+        Verifier: {{ d.verifierName }}
+      </span>
+    </a>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!loading() && decisions().length === 0" id="empty-recent-decisions">
+    <div class="empty-icon">◌</div>
+    <div class="empty-title">No verification decisions yet.</div>
+    <div class="empty-sub">Completed verification decisions will appear here as compliance officers resolve cases.</div>
+  </div>
+</div>

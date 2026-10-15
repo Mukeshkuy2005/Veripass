@@ -1,0 +1,38 @@
+<div class="action-card">
+  <div class="action-card-header">
+    <div class="title-with-count">
+      <h2 class="section-title">Action Required</h2>
+      <span class="count-badge" *ngIf="items.length > 0">{{ items.length }} items</span>
+    </div>
+    <span class="header-caption" *ngIf="items.length === 0">All actions resolved</span>
+  </div>
+
+  <div class="action-list-body" *ngIf="items.length > 0; else emptyState">
+    <div class="action-row" *ngFor="let item of items" [ngClass]="item.urgency">
+      <div class="action-icon-cell">
+        <span class="urgency-icon" *ngIf="item.urgency === 'critical'">✕</span>
+        <span class="urgency-icon" *ngIf="item.urgency === 'warning'">⚠</span>
+        <span class="urgency-icon" *ngIf="item.urgency === 'info'">ℹ</span>
+      </div>
+
+      <div class="action-text-cell">
+        <div class="item-title">{{ item.title }}</div>
+        <div class="item-subtitle">{{ item.subtitle }}</div>
+      </div>
+
+      <div class="action-btn-cell">
+        <a [routerLink]="item.routerLink" [queryParams]="item.queryParams" class="btn btn-action">
+          {{ item.actionLabel }}
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #emptyState>
+    <div class="empty-action-state">
+      <div class="check-circle">✓</div>
+      <div class="empty-title">No pending compliance actions</div>
+      <p class="empty-sub">Your business identity and all statutory credentials are up to date.</p>
+    </div>
+  </ng-template>
+</div>

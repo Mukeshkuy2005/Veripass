@@ -1,0 +1,212 @@
+# ==============================================================================
+# VeriPass Enterprise Monorepo - Master Git Ignore (.gitignore)
+# Tech Stack: .NET 8 (C# / EF Core) + Angular 19 (TypeScript / Node.js)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. .NET, C# & MSBuild Artifacts
+# ------------------------------------------------------------------------------
+# Build outputs and intermediate files
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+publish/
+[Pp]ublish/
+
+# Generated assemblies, debug symbols and executables
+*.dll
+*.exe
+*.pdb
+*.mdb
+*.lib
+*.exp
+*.so
+*.dylib
+
+# Microsoft Roslyn compiler caches
+*.Generated.cs
+Generated_Code/
+
+# NuGet packages, caches, and props
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+project.lock.json
+project.assets.json
+*.nuget.props
+*.nuget.targets
+
+# ClickOnce and install files
+*.application
+*.manifest
+*.deploy
+*.msi
+*.msm
+*.msp
+
+# ------------------------------------------------------------------------------
+# 2. Node.js & Angular Frontend
+# ------------------------------------------------------------------------------
+# Dependency directories
+node_modules/
+jspm_packages/
+web_modules/
+
+# Angular build outputs and cache
+dist/
+/frontend/veripass-web/dist/
+out-tsc/
+bazel-out/
+.angular/
+.angular/cache/
+.sass-cache/
+
+# Package manager logs & debug outputs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-debug.log*
+.yarn-integrity
+
+# Typings
+typings/
+
+# ------------------------------------------------------------------------------
+# 3. Test Results, Code Coverage & Profiler Data
+# ------------------------------------------------------------------------------
+# .NET test results & coverage
+[Tt]est[Rr]esults/
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+coverage/
+/frontend/veripass-web/coverage/
+coverage-report/
+.nyc_output/
+
+# Test runners & end-to-end tooling
+testem.log
+playwright-report/
+cypress/videos/
+cypress/screenshots/
+*.vsp
+*.vspx
+*.sap
+*.dotCover
+
+# ------------------------------------------------------------------------------
+# 4. IDEs, Editors & Developer Tooling
+# ------------------------------------------------------------------------------
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.VisualState.xml
+UpgradeLog.htm
+UpgradeLog.XML
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+
+# JetBrains Rider / IntelliJ / WebStorm
+.idea/
+*.sln.iml
+*.iws
+
+# Eclipse / OmniSharp / Other editors
+.project
+.classpath
+.settings/
+.c9/
+*.launch
+*.sublime-workspace
+.ionide/
+
+# ------------------------------------------------------------------------------
+# 5. Secrets, Sensitive Configurations & Certificates
+# ------------------------------------------------------------------------------
+# Environment variable files
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+
+# Local configuration overrides (keep standard appsettings.json committed)
+appsettings.Local.json
+appsettings.*.Local.json
+appsettings.override.json
+local.settings.json
+
+# Certificates, private keys and key stores
+*.pfx
+*.p12
+*.pem
+*.key
+*.cer
+*.crt
+*.der
+dev-cert.*
+aspnetapp.pfx
+
+# ------------------------------------------------------------------------------
+# 6. Database & Local Storage Files
+# ------------------------------------------------------------------------------
+# SQLite local databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Local storage and scratch files
+scratch/
+uploads/
+temp/
+tmp/
+*.tmp
+*.temp
+
+# ------------------------------------------------------------------------------
+# 7. Operating System Artifacts
+# ------------------------------------------------------------------------------
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# ------------------------------------------------------------------------------
+# 8. Docker & Virtualization
+# ------------------------------------------------------------------------------
+.docker/
+docker-compose.override.yml

@@ -1,0 +1,255 @@
+    <div class="rules-page">
+      <!-- HEADER -->
+      <div class="header-card">
+        <div>
+          <div class="header-tag">COMPLIANCE POLICY AUTOMATION</div>
+          <h1 class="page-title">Verification Rules Engine</h1>
+          <p class="page-subtitle">
+            Declarative statutory verification policies, condition trees, versioned rulesets, and autonomous failure routing.
+          </p>
+        </div>
+        <button type="button" class="btn-create-rule" (click)="openCreateRuleModal()">
+          + Create Verification Rule
+        </button>
+      </div>
+
+      <!-- RULE VERSIONING ARCHITECTURE BANNER -->
+      <div class="versioning-banner">
+        <div class="vb-icon">🛡</div>
+        <div class="vb-body">
+          <span class="vb-title">IMMUTABLE RULE VERSIONING PROTOCOL:</span>
+          <span class="vb-desc">
+            Production rules are strictly append-only ($v1 \rightarrow v2 \rightarrow v3$) and never overwritten in place. Each version preserves author attribution, effective dates, and statutory change justification for regulatory auditability.
+          </span>
+        </div>
+      </div>
+
+      <!-- RULES TABLE CARD -->
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="dense-table">
+            <thead>
+              <tr>
+                <th>RULE ID</th>
+                <th>RULE NAME &amp; TARGET</th>
+                <th>CATEGORY</th>
+                <th>LOGIC SUMMARY (WHEN &rarr; THEN)</th>
+                <th>VERSION</th>
+                <th>STATUS</th>
+                <th class="text-right">ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of rules()" (click)="selectRule(r)" class="clickable-row" [class.selected]="selectedRule()?.id === r.id">
+                <td class="font-mono font-bold text-dark">{{ r.id }}</td>
+                <td>
+                  <div class="rule-title-box">
+                    <span class="rule-name">{{ r.name }}</span>
+                    <span class="rule-target">Applies to: {{ r.appliesTo }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge-type" [ngClass]="r.type.toLowerCase()">
+                    {{ r.type }}
+                  </span>
+                </td>
+                <td>
+                  <div class="logic-summary font-mono">
+                    WHEN [{{ r.whenField }} {{ r.whenOperator }} {{ r.whenValue }}] 
+                    &rarr; THEN [{{ r.thenAction }}]
+                  </div>
+                </td>
+                <td>
+                  <span class="badge-version font-mono">{{ r.version }}</span>
+                </td>
+                <td>
+                  <span class="badge-status" [ngClass]="r.status.toLowerCase()">
+                    ● {{ r.status }}
+                  </span>
+                </td>
+                <td class="text-right" (click)="$event.stopPropagation()">
+                  <button type="button" class="btn-inspect" (click)="selectRule(r)">Inspect Version</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RULE DETAIL / VERSION INSPECTION DRAWER -->
+      <div class="drawer-overlay" *ngIf="selectedRule() as r" (click)="closeDrawer()">
+        <div class="drawer-panel" (click)="$event.stopPropagation()">
+          <div class="drawer-head">
+            <div>
+              <span class="drawer-tag">{{ r.id }} &bull; VERSION {{ r.version }}</span>
+              <h2 class="drawer-title">{{ r.name }}</h2>
+            </div>
+            <button type="button" class="close-btn" (click)="closeDrawer()">✕</button>
+          </div>
+
+          <div class="drawer-body">
+            <div class="meta-strip">
+              <span class="badge-status" [ngClass]="r.status.toLowerCase()">{{ r.status }}</span>
+              <span class="prio-tag" [ngClass]="r.priority.toLowerCase()">{{ r.priority }} Priority</span>
+            </div>
+
+            <!-- Condition Logic Tree -->
+            <div class="condition-tree-box">
+              <span class="ct-label">DECLARATIVE LOGIC CONDITION TREE</span>
+
+              <div class="node-when">
+                <span class="node-label">WHEN</span>
+                <span class="node-content font-mono">
+                  <strong>{{ r.whenField }}</strong> [{{ r.whenOperator }}] <mark>{{ r.whenValue }}</mark>
+                </span>
+              </div>
+
+              <div class="node-and" *ngIf="r.andField">
+                <span class="node-label">AND</span>
+                <span class="node-content font-mono">
+                  <strong>{{ r.andField }}</strong> [{{ r.andOperator }}] <mark>{{ r.andValue }}</mark>
+                </span>
+              </div>
+
+              <div class="node-then">
+                <span class="node-label">THEN</span>
+                <span class="node-content font-mono">
+                  <strong>Action:</strong> {{ r.thenAction }}
+                </span>
+              </div>
+
+              <div class="node-failure">
+                <span class="node-label">FAILURE ACTION</span>
+                <span class="node-content font-mono">
+                  {{ r.failureAction }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Version Audit Ledger -->
+            <div class="audit-info-block">
+              <div class="ai-row">
+                <span class="ai-lbl">Created By</span>
+                <span class="ai-val font-bold">{{ r.createdBy }}</span>
+              </div>
+              <div class="ai-row">
+                <span class="ai-lbl">Creation Date</span>
+                <span class="ai-val">{{ r.createdAt }}</span>
+              </div>
+              <div class="ai-row">
+                <span class="ai-lbl">Effective From</span>
+                <span class="ai-val">{{ r.effectiveFrom }}</span>
+              </div>
+              <div class="ai-row" *ngIf="r.changeReason">
+                <span class="ai-lbl">Version Change Log</span>
+                <span class="ai-val text-muted">{{ r.changeReason }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="drawer-foot">
+            <button *ngIf="r.status === 'DRAFT'" type="button" class="btn-publish" (click)="publishSelectedRule(r.id)">
+              Publish Version to Production
+            </button>
+            <button type="button" class="btn-sec" (click)="closeDrawer()">Dismiss</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CREATE RULE BUILDER MODAL (A5 SPEC) -->
+      <div class="modal-overlay" *ngIf="showCreateModal()" (click)="closeCreateModal()">
+        <div class="modal-panel modal-lg" (click)="$event.stopPropagation()">
+          <div class="modal-head">
+            <div>
+              <span class="modal-tag">RULE BUILDER ENGINE</span>
+              <h2 class="modal-title">Create Verification Rule</h2>
+            </div>
+            <button type="button" class="close-btn" (click)="closeCreateModal()">✕</button>
+          </div>
+
+          <div class="modal-body">
+            <div class="form-row">
+              <div class="form-group flex-2">
+                <label class="form-label required">Rule Name *</label>
+                <input type="text" [(ngModel)]="newRule.name" placeholder="e.g. GST Registration Required" class="form-input">
+              </div>
+              <div class="form-group flex-1">
+                <label class="form-label">Category</label>
+                <select [(ngModel)]="newRule.type" class="form-select">
+                  <option value="Identity">Identity</option>
+                  <option value="Compliance">Compliance</option>
+                  <option value="Risk">Risk</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Applies To *</label>
+              <input type="text" [(ngModel)]="newRule.appliesTo" placeholder="e.g. Business Identity, Tax Dossier, Bank Account" class="form-input">
+            </div>
+
+            <!-- WHEN Condition -->
+            <div class="condition-builder-box">
+              <div class="cond-title">WHEN TRIGGER CONDITION</div>
+              <div class="cond-row">
+                <input type="text" [(ngModel)]="newRule.whenField" placeholder="Field (e.g. Credential Type)" class="form-input">
+                <select [(ngModel)]="newRule.whenOperator" class="form-select">
+                  <option value="equals">equals</option>
+                  <option value="not equals">not equals</option>
+                  <option value="greater than">greater than</option>
+                  <option value="less than">less than</option>
+                  <option value="contains">contains</option>
+                </select>
+                <input type="text" [(ngModel)]="newRule.whenValue" placeholder="Value (e.g. GST)" class="form-input">
+              </div>
+            </div>
+
+            <!-- AND Condition -->
+            <div class="condition-builder-box">
+              <div class="cond-title">AND SECONDARY CONDITION (OPTIONAL)</div>
+              <div class="cond-row">
+                <input type="text" [(ngModel)]="newRule.andField" placeholder="Field (e.g. Business Type)" class="form-input">
+                <select [(ngModel)]="newRule.andOperator" class="form-select">
+                  <option value="equals">equals</option>
+                  <option value="not equals">not equals</option>
+                  <option value="contains">contains</option>
+                </select>
+                <input type="text" [(ngModel)]="newRule.andValue" placeholder="Value (e.g. Individual)" class="form-input">
+              </div>
+            </div>
+
+            <!-- THEN Action & Failure Action -->
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label class="form-label required">THEN Verification Action *</label>
+                <input type="text" [(ngModel)]="newRule.thenAction" placeholder="e.g. Require Verification" class="form-input">
+              </div>
+
+              <div class="form-group flex-1">
+                <label class="form-label required">Failure Action *</label>
+                <select [(ngModel)]="newRule.failureAction" class="form-select">
+                  <option value="Create Verification Case">Create Verification Case</option>
+                  <option value="Flag Identity Mismatch">Flag Identity Mismatch</option>
+                  <option value="Degrade Trust Index">Degrade Trust Index</option>
+                  <option value="Route to Senior Escalation Queue">Route to Senior Escalation Queue</option>
+                </select>
+              </div>
+
+              <div class="form-group flex-1">
+                <label class="form-label">Priority</label>
+                <select [(ngModel)]="newRule.priority" class="form-select">
+                  <option value="HIGH">HIGH</option>
+                  <option value="MEDIUM">MEDIUM</option>
+                  <option value="LOW">LOW</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-foot">
+            <button type="button" class="btn-sec" (click)="saveDraft()">Save as Draft</button>
+            <button type="button" class="btn-primary" (click)="publishDirectly()">Publish Rule</button>
+          </div>
+        </div>
+      </div>
+    </div>

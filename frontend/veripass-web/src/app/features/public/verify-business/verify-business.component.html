@@ -1,0 +1,167 @@
+    <div class="verify-page">
+      <div class="container">
+        <!-- 1. HERO -->
+        <div class="verify-header text-center">
+          <div class="badge-pill">PUBLIC AUTHENTICITY GATEWAY</div>
+          <h1 class="page-title">VERIFY A BUSINESS</h1>
+          <p class="page-subtitle">
+            Check whether a Veripass business identity and its credentials are currently verified.
+          </p>
+        </div>
+
+        <!-- 2. SEARCH / INPUT CARD (Shown when idle or invalid) -->
+        @if (currentState() === 'IDLE' || currentState() === 'SCANNING') {
+          <div class="lookup-card">
+            <div class="input-group">
+              <label class="input-label" for="passport-lookup">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                Enter Passport ID or GSTIN
+              </label>
+
+              <div class="input-row">
+                <input
+                  id="passport-lookup"
+                  type="text"
+                  [(ngModel)]="searchQuery"
+                  (keyup.enter)="executeLookup()"
+                  placeholder="e.g. VP-IN-2026-92644 or 27AABCU9603R1ZM"
+                  class="lookup-input"
+                  autofocus
+                />
+                <button
+                  type="button"
+                  (click)="executeLookup()"
+                  class="btn btn-primary"
+                  [disabled]="!searchQuery.trim()"
+                >
+                  Verify Business
+                </button>
+              </div>
+
+              <div class="quick-examples">
+                <span class="ex-lbl">Try verified example:</span>
+                <button type="button" (click)="searchQuery = 'VP-IN-2026-92644'; executeLookup()" class="ex-btn">
+                  VP-IN-2026-92644 (ABC INDUSTRIAL DYNAMICS)
+                </button>
+                <button type="button" (click)="searchQuery = 'VP-IN-2026-46190'; executeLookup()" class="ex-btn">
+                  VP-IN-2026-46190 (Axionis manufacturing pvt ltd)
+                </button>
+              </div>
+            </div>
+
+            <!-- Divider OR -->
+            <div class="or-divider">
+              <span class="or-line"></span>
+              <span class="or-text">OR</span>
+              <span class="or-line"></span>
+            </div>
+
+            <!-- Scan QR Code Option -->
+            <div class="qr-scan-section">
+              <button type="button" (click)="simulateQrScan()" class="btn btn-outline">
+                <svg class="btn-qr-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="7" height="7" rx="1"/>
+                  <rect x="14" y="3" width="7" height="7" rx="1"/>
+                  <rect x="3" y="14" width="7" height="7" rx="1"/>
+                  <rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+                Scan QR Code
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- 3. LOADING STATE -->
+        @if (currentState() === 'LOADING') {
+          <div class="state-card loading-card animate-fadeIn">
+            <div class="spinner-ring"></div>
+            <h3 class="state-title">Checking business identity...</h3>
+            <p class="state-desc">Cross-examining sovereign registries and active verification credentials.</p>
+
+            <div class="loading-steps-track">
+              <div class="load-step done">
+                <span class="step-dot">✓</span> Passport ID Located
+              </div>
+              <span class="load-arr">&rarr;</span>
+              <div class="load-step done">
+                <span class="step-dot">✓</span> Credentials Verified
+              </div>
+              <span class="load-arr">&rarr;</span>
+              <div class="load-step active">
+                <span class="step-dot pulse">●</span> Verification Status Check
+              </div>
+              <span class="load-arr">&rarr;</span>
+              <div class="load-step">
+                <span class="step-dot">○</span> Current Status
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- 4. VERIFIED RESULT STATE -->
+        @if (currentState() === 'VERIFIED' && result()) {
+          <div class="state-card verified-card animate-fadeIn">
+            <div class="result-icon-circle verified-circle">
+              <svg viewBox="0 0 24 24" fill="none" class="check-svg" stroke="currentColor" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+
+            <div class="result-badge">VERIFIED BUSINESS</div>
+            <h2 class="result-business-name">{{ result()?.businessName }}</h2>
+            <div class="result-passport-id">Passport: <strong>{{ result()?.passportId }}</strong></div>
+
+            <div class="result-metrics-grid">
+              <div class="metric-block">
+                <span class="metric-lbl">Verification Score</span>
+                <div class="metric-score">
+                  <span class="score-num">{{ result()?.verificationScore }}</span>
+                  <span class="score-den">/ 100</span>
+                </div>
+              </div>
+
+              <div class="metric-block">
+                <span class="metric-lbl">Last Verified</span>
+                <div class="metric-date">{{ result()?.lastVerifiedDate }}</div>
+              </div>
+            </div>
+
+            <div class="result-actions">
+              <a [routerLink]="['/business', result()?.passportId]" class="btn btn-primary btn-lg">
+                View Passport &rarr;
+              </a>
+              <button type="button" (click)="resetLookup()" class="btn btn-secondary">
+                Verify Another
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- 5. INVALID RESULT STATE -->
+        @if (currentState() === 'INVALID') {
+          <div class="state-card invalid-card animate-fadeIn">
+            <div class="result-icon-circle invalid-circle">
+              <span class="excl-mark">!</span>
+            </div>
+
+            <div class="result-badge invalid-badge">BUSINESS NOT VERIFIED</div>
+            <h2 class="result-business-name">Passport Not Found</h2>
+            <p class="invalid-explanation">
+              The provided Passport ID or GSTIN <strong>"{{ searchQuery }}"</strong> could not be verified on the active Veripass registry.
+            </p>
+
+            <div class="invalid-actions">
+              <button type="button" (click)="resetLookup()" class="btn btn-secondary btn-lg">
+                Try Again
+              </button>
+              <a routerLink="/help" class="btn btn-outline">
+                Contact Support
+              </a>
+            </div>
+          </div>
+        }
+      </div>
+    </div>

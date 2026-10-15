@@ -1,0 +1,120 @@
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  padding: 0 0.25rem;
+  flex-wrap: wrap;
+}
+
+.pagination-info {
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.count-bold {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.page-size-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.size-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.size-select {
+  height: 2rem;
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+  color: #1e293b;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+.size-select:focus {
+  outline: none;
+  border-color: #0284c7;
+}
+
+.page-buttons-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.page-nav-btn {
+  height: 2rem;
+  padding: 0 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #475569;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.page-nav-btn:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.page-nav-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.page-num-btn {
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #475569;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.page-num-btn:hover:not(:disabled):not(.active) {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.page-num-btn.active {
+  background-color: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .pagination-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .pagination-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

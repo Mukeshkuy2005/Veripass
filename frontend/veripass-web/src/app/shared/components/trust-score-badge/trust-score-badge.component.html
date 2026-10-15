@@ -1,0 +1,23 @@
+    <div class="score-container" [ngClass]="scoreClass()">
+      <div class="gauge-ring" [style.width.px]="size" [style.height.px]="size">
+        <svg viewBox="0 0 100 100" class="gauge-svg">
+          <circle cx="50" cy="50" r="42" class="gauge-bg" />
+          <circle
+            cx="50"
+            cy="50"
+            r="42"
+            class="gauge-progress"
+            [style.stroke-dasharray]="strokeDasharray()"
+            [style.stroke-dashoffset]="strokeDashoffset()"
+          />
+        </svg>
+        <div class="score-center">
+          <span class="score-number">{{ score }}</span>
+          <span class="score-total">/100</span>
+        </div>
+      </div>
+      <div class="score-meta" *ngIf="showLabel">
+        <span class="score-tier">{{ tierLabel() }}</span>
+        <span class="score-sub">VERIPASS TRUST SCORE</span>
+      </div>
+    </div>

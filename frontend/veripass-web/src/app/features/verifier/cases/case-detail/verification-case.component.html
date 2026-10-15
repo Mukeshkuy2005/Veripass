@@ -1,0 +1,902 @@
+<div class="case-workstation-container" *ngIf="currentCase() as c; else loadingStateTpl">
+
+  <!-- ========================================== -->
+  <!-- 1. COMPACT ENTERPRISE CASE HEADER          -->
+  <!-- ========================================== -->
+  <header class="case-header">
+    <div class="header-breadcrumb-row">
+      <a routerLink="/verifier/queue" class="btn-back-queue">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Verification Queue
+      </a>
+      <span class="nav-sep">/</span>
+      <span class="nav-current-case">{{ c.caseNumber || ('CASE ' + c.id) }}</span>
+    </div>
+
+    <div class="header-content-grid">
+      <div class="header-identity-col">
+        <!-- Level 1: Case ID & Copy -->
+        <div class="case-id-row">
+          <h1 class="case-id-text">{{ c.caseNumber || ('CASE ' + c.id) }}</h1>
+          <button class="btn-copy-id" (click)="copyCaseId(c.id)" title="Copy authoritative Case ID">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            {{ copiedCaseId() ? 'Copied ✓' : 'Copy ID' }}
+          </button>
+        </div>
+
+        <!-- Level 2: Business & Verification Type -->
+        <div class="case-title-row">
+          <span class="business-name">{{ c.businessSummary?.legalName || c.legalName }}</span>
+          <span class="title-sep">&bull;</span>
+          <span class="verification-type">{{ c.verificationType }} Registration Verification</span>
+        </div>
+
+        <!-- Level 3: Status, Priority, SLA, Assignment, Submission -->
+        <div class="case-chips-row">
+          <span class="status-chip"
+            [class.chip-in-review]="c.status === 'IN_REVIEW'"
+            [class.chip-approved]="c.status === 'APPROVED'"
+            [class.chip-rejected]="c.status === 'REJECTED'"
+            [class.chip-escalated]="c.status === 'ESCALATED'"
+            [class.chip-more-info]="c.status === 'MORE_INFO_REQUIRED'"
+            [class.chip-pending]="c.status === 'PENDING'">
+            ● {{ c.status }}
+          </span>
+
+          <span class="priority-chip"
+            [class.prio-high]="c.priority === 'HIGH'"
+            [class.prio-med]="c.priority === 'MEDIUM'"
+            [class.prio-low]="c.priority === 'LOW'">
+            {{ c.priority }} PRIORITY
+          </span>
+
+          <span class="meta-item">
+            <span class="meta-label">Assigned:</span>
+            <span class="meta-value">{{ c.assignedTo }}</span>
+          </span>
+
+          <span class="meta-item">
+            <span class="meta-label">Submitted:</span>
+            <span class="meta-value">{{ c.submittedAt }}</span>
+          </span>
+
+          <span class="meta-item sla-pill">
+            <span class="meta-label">SLA:</span>
+            <span class="meta-value font-semibold">{{ c.slaDeadline }}</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Header Utilities -->
+      <div class="header-actions-col">
+        <button class="btn-head-ghost" (click)="toggleDetailsDrawer()" title="View secondary case metadata">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          Case Details
+        </button>
+
+        <button class="btn-head-ghost" (click)="toggleHistoryDrawer()" title="View complete audit trail">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          History ({{ c.timeline?.length || 0 }})
+        </button>
+
+        <button class="btn-head-reverify" (click)="triggerVerifySource()" [disabled]="isVerifyingSource()" title="Execute live sovereign registry check">
+          <span *ngIf="!isVerifyingSource()">🌐 Re-verify Source</span>
+          <span *ngIf="isVerifyingSource()">Querying Gateway...</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ALERTS -->
+  <div class="alert-bar success-bar" *ngIf="actionSuccessMessage()">
+    <span>✓ {{ actionSuccessMessage() }}</span>
+  </div>
+  <div class="alert-bar error-bar" *ngIf="actionError()">
+    <span>⚠ {{ actionError() }}</span>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 2. EVIDENCE PROGRESS RAIL                  -->
+  <!-- ========================================== -->
+  <nav class="progress-rail" aria-label="Verification Progress">
+    <div class="rail-step" [class.step-complete]="c.evidenceDocuments && c.evidenceDocuments.length > 0">
+      <span class="rail-indicator">✓</span>
+      <div class="rail-step-text">
+        <span class="rail-step-title">EVIDENCE</span>
+        <span class="rail-step-sub">{{ c.evidenceDocuments?.length || 1 }} Document{{ (c.evidenceDocuments?.length || 1) > 1 ? 's' : '' }}</span>
+      </div>
+    </div>
+
+    <span class="rail-arrow">&rarr;</span>
+
+    <div class="rail-step" [class.step-complete]="c.trustedSource?.status === 'VERIFIED' || c.sovereignData.matched">
+      <span class="rail-indicator">✓</span>
+      <div class="rail-step-text">
+        <span class="rail-step-title">SOURCE</span>
+        <span class="rail-step-sub">{{ (c.trustedSource?.status === 'VERIFIED' || c.sovereignData.matched) ? 'Matched' : 'Attention' }}</span>
+      </div>
+    </div>
+
+    <span class="rail-arrow">&rarr;</span>
+
+    <div class="rail-step" [class.step-complete]="decisionReadiness().matchStatus === 'MATCHED'" [class.step-warn]="decisionReadiness().matchStatus === 'PARTIAL'">
+      <span class="rail-indicator">{{ decisionReadiness().matchStatus === 'MATCHED' ? '✓' : '!' }}</span>
+      <div class="rail-step-text">
+        <span class="rail-step-title">MATCH</span>
+        <span class="rail-step-sub">{{ decisionReadiness().matchRatio }} Evaluated</span>
+      </div>
+    </div>
+
+    <span class="rail-arrow">&rarr;</span>
+
+    <div class="rail-step" [class.step-complete]="c.riskRating === 'Low'" [class.step-warn]="c.riskRating === 'Medium'">
+      <span class="rail-indicator">✓</span>
+      <div class="rail-step-text">
+        <span class="rail-step-title">RISK</span>
+        <span class="rail-step-sub">{{ c.riskRating | uppercase }} ({{ c.riskScore }}/100)</span>
+      </div>
+    </div>
+
+    <span class="rail-arrow">&rarr;</span>
+
+    <div class="rail-step step-decision" [class.step-active]="c.status === 'IN_REVIEW'" [class.step-complete]="c.status === 'APPROVED' || c.status === 'REJECTED'">
+      <span class="rail-indicator">{{ c.status === 'APPROVED' ? '✓' : (c.status === 'REJECTED' ? '✕' : '●') }}</span>
+      <div class="rail-step-text">
+        <span class="rail-step-title">DECISION</span>
+        <span class="rail-step-sub">{{ c.status === 'APPROVED' ? 'Approved' : (c.status === 'REJECTED' ? 'Rejected' : 'Pending') }}</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ========================================== -->
+  <!-- 3. MAIN WORKSTATION: 65% / 35% GRID        -->
+  <!-- ========================================== -->
+  <main class="workstation-main-grid">
+
+    <!-- ---------------------------------------- -->
+    <!-- LEFT COLUMN: PRIMARY EVIDENCE WORKSPACE  -->
+    <!-- ---------------------------------------- -->
+    <section class="evidence-workspace" aria-label="Primary Evidence Workspace">
+
+      <!-- Evidence Documents Tabs / Selector -->
+      <div class="evidence-selector-card" *ngIf="c.evidenceDocuments && c.evidenceDocuments.length > 0">
+        <div class="evidence-selector-head">
+          <span class="sec-label">SUBMITTED EVIDENCE ({{ c.evidenceDocuments.length }})</span>
+          <span class="sec-sub">Select document to inspect</span>
+        </div>
+        <div class="evidence-chips-list">
+          <button *ngFor="let doc of c.evidenceDocuments"
+            type="button"
+            class="evidence-tab-btn"
+            [class.active]="selectedDoc()?.documentId === doc.documentId"
+            (click)="selectDocument(doc)">
+            <span class="doc-badge-pill" [class.primary]="doc.isPrimary">{{ doc.isPrimary ? 'PRIMARY' : 'SUPPORTING' }}</span>
+            <span class="doc-title-text">{{ doc.fileName || doc.documentType }}</span>
+            <span class="doc-size-tag">{{ (doc.fileSize ? (doc.fileSize / 1024).toFixed(0) : '180') + ' KB' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Document Preview & Inspection Card -->
+      <div class="document-preview-card">
+        <div class="preview-toolbar">
+          <div class="preview-doc-meta">
+            <h2 class="doc-heading">{{ selectedDoc()?.documentType || c.verificationType }} Certificate</h2>
+            <span class="version-badge">Version 1</span>
+            <span class="mime-badge">{{ selectedDoc()?.mimeType || c.document.fileType }}</span>
+          </div>
+
+          <div class="preview-actions">
+            <a [routerLink]="['/verifier/cases', c.id, 'document']"
+              [queryParams]="selectedDoc() ? { documentId: selectedDoc()?.documentId } : null"
+              class="btn-tool-v4"
+              title="Open full V4 Forensic Evidence Review">
+              🔍 Open Full Review (V4) &rarr;
+            </a>
+
+            <div class="viewer-controls-group">
+              <button class="btn-ctrl" (click)="zoomIn()" title="Zoom In">+</button>
+              <button class="btn-ctrl" (click)="zoomOut()" title="Zoom Out">&minus;</button>
+              <button class="btn-ctrl" (click)="resetZoom()" title="Reset Zoom">1:1</button>
+              <button class="btn-ctrl" (click)="rotateDoc()" title="Rotate">&#8635;</button>
+              <button class="btn-ctrl" (click)="downloadCurrentDoc()" title="Download authentic document">⤓</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Viewport Canvas -->
+        <div class="document-canvas-viewport">
+          <div class="document-canvas-stage" [style.transform]="'scale(' + zoomLevel() + ') rotate(' + rotation() + 'deg)'">
+            <!-- Authoritative Document Content Stream -->
+            <iframe *ngIf="documentContentUrl()"
+              [src]="documentContentUrl()"
+              class="document-iframe-stream"
+              title="Authoritative Evidence Document Stream">
+            </iframe>
+
+            <!-- Fallback Certificate View -->
+            <div class="fallback-cert-canvas" *ngIf="!documentContentUrl()">
+              <div class="cert-watermark">GOVERNMENT OF INDIA</div>
+              <div class="cert-crest">
+                <svg viewBox="0 0 24 24" fill="none" class="crest-svg">
+                  <path d="M12 2L4 6V11.5C4 16.5 7.4 21.1 12 22C16.6 21.1 20 16.5 20 11.5V6L12 2Z" fill="#1E3A8A"/>
+                </svg>
+              </div>
+              <h3 class="cert-form-title">FORM {{ c.verificationType === 'GST' ? 'GST REG-06' : (c.verificationType === 'PAN' ? 'FORM 49A' : 'STATUTORY REGISTRATION') }}</h3>
+              <h4 class="cert-form-sub">Authoritative Certificate of Business Registration</h4>
+              <div class="cert-fields-grid">
+                <div class="cert-field-line">
+                  <strong>Statutory Identifier:</strong> <span>{{ c.identifierValue }}</span>
+                </div>
+                <div class="cert-field-line">
+                  <strong>Legal Entity Name:</strong> <span>{{ c.businessSummary?.legalName || c.legalName }}</span>
+                </div>
+                <div class="cert-field-line">
+                  <strong>Trade Name:</strong> <span>{{ c.businessSummary?.tradeName || c.businessName }}</span>
+                </div>
+                <div class="cert-field-line">
+                  <strong>Principal Premises:</strong> <span>{{ c.businessSummary?.addressLine1 || c.ocrData.address.value }}, {{ c.businessSummary?.city || 'Ghaziabad' }}, {{ c.businessSummary?.state || 'Uttar Pradesh' }} {{ c.businessSummary?.postalCode || '201014' }}</span>
+                </div>
+                <div class="cert-field-line">
+                  <strong>Constitution:</strong> <span>Private Limited Company</span>
+                </div>
+              </div>
+              <div class="cert-bottom-stamp">
+                <span>Certified Sovereign Verification Stream</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Document Details & Integrity Footer -->
+        <div class="preview-footer-strip">
+          <div class="integrity-pill">
+            <span class="integrity-icon">✓</span>
+            <span class="integrity-text">No detected integrity anomalies &bull; 0 digital alterations</span>
+          </div>
+
+          <div class="hash-inspect-box">
+            <span class="hash-label">SHA-256:</span>
+            <code class="hash-code">{{ (selectedDoc()?.sha256Hash || c.document.sha256).substring(0, 16) }}...</code>
+            <button class="btn-copy-hash" (click)="copyHash(selectedDoc()?.sha256Hash || c.document.sha256)" title="Copy authoritative SHA-256 hash">
+              {{ copiedHash() ? '✓' : 'Copy' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Extracted Information Card (Dual-layer OCR vs Normalization) -->
+      <div class="extracted-data-card">
+        <div class="extracted-head">
+          <div>
+            <h3 class="extracted-title">Extracted Information</h3>
+            <p class="extracted-sub">Dual-layer extraction: Raw OCR output alongside normalized verification values</p>
+          </div>
+          <button class="btn-raw-ocr-toggle" (click)="toggleRawOcrModal()">
+            View Full OCR Text
+          </button>
+        </div>
+
+        <div class="extracted-fields-table">
+          <div class="field-row-header">
+            <span class="col-name">Field</span>
+            <span class="col-raw">Raw Extracted OCR</span>
+            <span class="col-norm">Normalized Value</span>
+            <span class="col-conf">Confidence</span>
+          </div>
+
+          <div class="field-row" *ngFor="let f of (c.extraction?.fields || defaultFields(c))">
+            <div class="col-name">
+              <span class="f-title">{{ f.fieldName }}</span>
+              <span class="f-ref">{{ f.sourceReference }}</span>
+            </div>
+            <div class="col-raw font-mono">{{ f.rawValue }}</div>
+            <div class="col-norm font-mono font-semibold">{{ f.normalizedValue }}</div>
+            <div class="col-conf">
+              <span class="conf-badge" [class.conf-high]="f.confidence >= 95" [class.conf-review]="f.confidence < 95">
+                {{ f.confidence >= 95 ? 'High confidence' : 'Review required' }} ({{ f.confidence }}%)
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="extracted-footer-bar">
+          <a [routerLink]="['/verifier/cases', c.id, 'document']" class="btn-open-v4-full">
+            Open Evidence Review (V4) for Bounding Boxes, Tampering Signals & Integrity Analysis &rarr;
+          </a>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ---------------------------------------- -->
+    <!-- RIGHT COLUMN: CASE ASSESSMENT & DECISION -->
+    <!-- ---------------------------------------- -->
+    <aside class="case-assessment-column" aria-label="Verification Assessment and Decision">
+
+      <div class="assessment-container">
+        <div class="assessment-header">
+          <h2 class="assessment-heading">VERIFICATION ASSESSMENT</h2>
+          <span class="assessment-tag">AUTHORITATIVE</span>
+        </div>
+
+        <!-- 1. Source Verification Card -->
+        <div class="assessment-card source-card">
+          <div class="card-title-row">
+            <h3 class="card-section-title">1. SOURCE VERIFICATION</h3>
+            <span class="status-badge"
+              [class.badge-pass]="c.trustedSource?.status === 'VERIFIED' || c.sovereignData.matched"
+              [class.badge-warn]="c.trustedSource?.status === 'REJECTED' || !c.sovereignData.matched">
+              {{ (c.trustedSource?.status === 'VERIFIED' || c.sovereignData.matched) ? '✓ MATCHED' : '⚠ DISCREPANCY' }}
+            </span>
+          </div>
+
+          <div class="card-data-grid">
+            <div class="data-row">
+              <span class="d-label">Authority:</span>
+              <span class="d-value font-semibold">{{ c.trustedSource?.provider || c.sovereignData.authority }}</span>
+            </div>
+            <div class="data-row">
+              <span class="d-label">Registry Status:</span>
+              <span class="d-value status-active">{{ c.trustedSource?.authorityStatus || c.sovereignData.registryStatus }}</span>
+            </div>
+            <div class="data-row">
+              <span class="d-label">Check Reference:</span>
+              <span class="d-value font-mono ref-text">{{ c.trustedSource?.requestReference || 'SOV-REG-AUTH-8912' }}</span>
+            </div>
+            <div class="data-row">
+              <span class="d-label">Performed At:</span>
+              <span class="d-value">{{ (c.trustedSource?.checkedAt | date:'medium') || c.sovereignData.lastVerifiedDate }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Match Analysis Card -->
+        <div class="assessment-card match-card">
+          <div class="card-title-row">
+            <h3 class="card-section-title">2. MATCH ANALYSIS</h3>
+            <span class="match-count-badge">{{ decisionReadiness().matchRatio }} Matched</span>
+          </div>
+
+          <div class="compact-match-table">
+            <div class="m-head-row">
+              <span>Field</span>
+              <span>Document</span>
+              <span>Trusted Source</span>
+              <span>Result</span>
+            </div>
+
+            <div class="m-data-row" *ngFor="let m of (c.matchAnalysis || defaultMatches(c))">
+              <span class="m-field font-semibold">{{ m.fieldName }}</span>
+              <span class="m-doc font-mono">{{ m.normalizedDocumentValue || m.documentValue }}</span>
+              <span class="m-source font-mono">{{ m.normalizedSourceValue || m.trustedSourceValue }}</span>
+              <span class="m-badge">
+                <span class="chip-match"
+                  [class.c-match]="m.matchStatus === 'MATCH'"
+                  [class.c-partial]="m.matchStatus === 'PARTIAL_MATCH'"
+                  [class.c-mismatch]="m.matchStatus === 'MISMATCH'">
+                  {{ m.matchStatus === 'MATCH' ? '✓ Match' : (m.matchStatus === 'PARTIAL_MATCH' ? '⚠ Partial' : '✕ Mismatch') }}
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Risk Assessment Card -->
+        <div class="assessment-card risk-card">
+          <div class="card-title-row">
+            <h3 class="card-section-title">3. RISK ASSESSMENT</h3>
+            <span class="risk-badge" [class.risk-low]="c.riskRating === 'Low'" [class.risk-med]="c.riskRating === 'Medium'" [class.risk-high]="c.riskRating === 'High'">
+              {{ c.riskRating | uppercase }} &bull; {{ c.riskScore }} / 100
+            </span>
+          </div>
+
+          <div class="risk-score-bar-track">
+            <div class="risk-score-bar-fill" [style.width.%]="c.riskScore" [class.bar-low]="c.riskScore < 30" [class.bar-med]="c.riskScore >= 30 && c.riskScore < 70" [class.bar-high]="c.riskScore >= 70"></div>
+          </div>
+
+          <div class="risk-factors-checklist">
+            <div class="risk-factor-row">
+              <span class="factor-icon factor-pass">✓</span>
+              <span class="factor-text">Statutory identifier verified against sovereign registry</span>
+            </div>
+            <div class="risk-factor-row">
+              <span class="factor-icon factor-pass">✓</span>
+              <span class="factor-text">Legal entity name reconciles across master database</span>
+            </div>
+            <div class="risk-factor-row">
+              <span class="factor-icon factor-pass">✓</span>
+              <span class="factor-text">Cryptographic SHA-256 file integrity intact</span>
+            </div>
+            <div class="risk-factor-row" *ngIf="c.riskRating !== 'Low'">
+              <span class="factor-icon factor-warn">⚠</span>
+              <span class="factor-text">Principal address partial match requires officer verification</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Decision Readiness Summary -->
+        <div class="assessment-card readiness-card">
+          <div class="card-title-row">
+            <h3 class="card-section-title">4. DECISION READINESS</h3>
+            <span class="readiness-status-badge" [class.ready-ok]="decisionReadiness().isReady" [class.ready-warn]="!decisionReadiness().isReady">
+              {{ decisionReadiness().isReady ? '✓ READY FOR DECISION' : '⚠ REQUIRES ADJUDICATION' }}
+            </span>
+          </div>
+
+          <div class="readiness-checklist">
+            <div class="readiness-item">
+              <span class="r-check">✓</span>
+              <span class="r-lbl">Evidence:</span>
+              <span class="r-val">Complete ({{ c.evidenceDocuments?.length || 1 }} file{{ (c.evidenceDocuments?.length || 1) > 1 ? 's' : '' }})</span>
+            </div>
+            <div class="readiness-item">
+              <span class="r-check">✓</span>
+              <span class="r-lbl">Source:</span>
+              <span class="r-val">Verified via {{ c.trustedSource?.provider || 'Sovereign Gateway' }}</span>
+            </div>
+            <div class="readiness-item">
+              <span class="r-check" [class.r-warn-icon]="decisionReadiness().matchStatus !== 'MATCHED'">
+                {{ decisionReadiness().matchStatus === 'MATCHED' ? '✓' : '⚠' }}
+              </span>
+              <span class="r-lbl">Match:</span>
+              <span class="r-val">{{ decisionReadiness().matchRatio }} evaluated fields</span>
+            </div>
+            <div class="readiness-item">
+              <span class="r-check">✓</span>
+              <span class="r-lbl">Risk:</span>
+              <span class="r-val">{{ decisionReadiness().riskLevel }} ({{ decisionReadiness().riskScore }}/100)</span>
+            </div>
+            <div class="readiness-item issues-item">
+              <span class="r-lbl font-semibold">Outstanding Issues:</span>
+              <span class="r-val" [class.has-issues]="decisionReadiness().issuesCount > 0">
+                {{ decisionReadiness().issuesCount === 0 ? 'None (Clear to proceed)' : decisionReadiness().issuesCount + ' review item(s)' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Decision Action Controls -->
+        <div class="assessment-card decision-action-card">
+          <!-- Sealed State if Already Decided -->
+          <div class="sealed-banner" *ngIf="c.status === 'APPROVED' || c.status === 'REJECTED'">
+            <div class="sealed-badge-circle" [class.approved-circle]="c.status === 'APPROVED'" [class.rejected-circle]="c.status === 'REJECTED'">
+              {{ c.status === 'APPROVED' ? '✓' : '✕' }}
+            </div>
+            <div class="sealed-info">
+              <h4 class="sealed-heading">Verification Finalized &bull; {{ c.status }}</h4>
+              <p class="sealed-reason">{{ c.decisionReason || 'Adjudicated by authorized compliance officer.' }}</p>
+            </div>
+          </div>
+
+          <!-- Pending State Action -->
+          <div class="start-session-box" *ngIf="c.status === 'PENDING'">
+            <button class="btn-start-session" (click)="startReview()" [disabled]="isSubmitting()">
+              {{ isSubmitting() ? 'Claiming Case...' : '▶ Claim & Start Review Session' }}
+            </button>
+            <p class="session-hint">Locks verification case ownership to your compliance session.</p>
+          </div>
+
+          <!-- Active Decision Buttons Grid -->
+          <div class="decision-actions-grid" *ngIf="c.status !== 'APPROVED' && c.status !== 'REJECTED'">
+            <button class="btn-dec btn-approve"
+              type="button"
+              (click)="openDecisionModal('APPROVE')"
+              [disabled]="!canPerform('APPROVE') || isSubmitting()">
+              ✓ Approve Verification
+            </button>
+
+            <button class="btn-dec btn-reject"
+              type="button"
+              (click)="openDecisionModal('REJECT')"
+              [disabled]="!canPerform('REJECT') || isSubmitting()">
+              ✕ Reject Case
+            </button>
+
+            <button class="btn-dec btn-more-info"
+              type="button"
+              (click)="openDecisionModal('MORE_INFO')"
+              [disabled]="!canPerform('REQUEST_MORE_INFO') || isSubmitting()">
+              ? Request More Info
+            </button>
+
+            <button class="btn-dec btn-escalate"
+              type="button"
+              (click)="openDecisionModal('ESCALATE')"
+              [disabled]="!canPerform('ESCALATE') || isSubmitting()">
+              ▲ Escalate Case
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- 4. RECENT CASE ACTIVITY FEED (BOTTOM)      -->
+  <!-- ========================================== -->
+  <section class="case-activity-section" aria-label="Recent Case Audit Activity">
+    <div class="activity-section-header">
+      <div class="activity-title-group">
+        <h3 class="activity-title">Recent Case Activity</h3>
+        <span class="activity-count-chip">{{ c.timeline?.length || 0 }} Events</span>
+      </div>
+      <button class="btn-view-full-history" (click)="toggleHistoryDrawer()">
+        View Full Audit History &rarr;
+      </button>
+    </div>
+
+    <div class="activity-events-feed" *ngIf="c.timeline && c.timeline.length > 0; else noActivityTpl">
+      <div class="activity-feed-card" *ngFor="let evt of c.timeline.slice(0, 4)">
+        <div class="activity-dot"></div>
+        <div class="activity-details">
+          <div class="act-top-line">
+            <span class="act-action-name">{{ evt.action.replace('_', ' ') }}</span>
+            <span class="act-timestamp">{{ evt.timestamp | date:'dd MMM yyyy, HH:mm' }}</span>
+          </div>
+          <div class="act-actor-line">
+            <span class="act-actor">By: <strong>{{ evt.actorName }}</strong></span>
+            <span class="act-sep">&bull;</span>
+            <span class="act-result">{{ evt.result }}</span>
+          </div>
+          <p class="act-reason" *ngIf="evt.reason">{{ evt.reason }}</p>
+        </div>
+      </div>
+    </div>
+    <ng-template #noActivityTpl>
+      <div class="activity-empty-state">No prior audit records available for this case.</div>
+    </ng-template>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 5. CASE DETAILS DRAWER                     -->
+  <!-- ========================================== -->
+  <div class="drawer-backdrop" *ngIf="detailsDrawerOpen()" (click)="toggleDetailsDrawer()"></div>
+  <aside class="side-drawer details-drawer" [class.open]="detailsDrawerOpen()">
+    <div class="drawer-header">
+      <h3 class="drawer-heading">CASE DETAILS &bull; {{ c.caseNumber || c.id }}</h3>
+      <button class="btn-drawer-close" (click)="toggleDetailsDrawer()">&times;</button>
+    </div>
+    <div class="drawer-scroll-body">
+      <div class="drawer-section">
+        <h4 class="drawer-sec-title">Business Identity</h4>
+        <div class="drawer-kv-row">
+          <span class="dkv-label">Legal Name:</span>
+          <span class="dkv-value font-semibold">{{ c.businessSummary?.legalName || c.legalName }}</span>
+        </div>
+        <div class="drawer-kv-row">
+          <span class="dkv-label">Trade Name:</span>
+          <span class="dkv-value">{{ c.businessSummary?.tradeName || c.businessName }}</span>
+        </div>
+        <div class="drawer-kv-row">
+          <span class="dkv-label">Statutory ID:</span>
+          <span class="dkv-value font-mono">{{ c.identifierValue }}</span>
+        </div>
+        <div class="drawer-kv-row">
+          <span class="dkv-label">PAN Number:</span>
+          <span class="dkv-value font-mono">{{ c.businessSummary?.pan || 'N/A' }}</span>
+        </div>
+        <div class="drawer-kv-row">
+          <span class="dkv-label">Passport Number:</span>
+          <span class="dkv-value font-mono font-bold">{{ c.businessSummary?.passportNumber || 'VP-PASS-PENDING' }}</span>
+        </div>
+      </div>
+
+      <div class="drawer-section">
+        <h4 class="drawer-sec-title">Principal Registered Address</h4>
+        <div class="drawer-kv-row">
+          <span class="dkv-label">Line 1:</span>
+          <span class="dkv-value">{{ c.businessSummary?.addressLine1 || c.ocrData.address.value }}</span>
+        </div>
+        <div class="drawer-kv-row">
+          <span class="dkv-label">City / State:</span>
+          <span class="dkv-value">{{ c.businessSummary?.city || 'Ghaziabad' }}, {{ c.businessSummary?.state || 'Uttar Pradesh' }}</span>
+        </div>
+        <div class="drawer-kv-row">
+          <span class="dkv-label">Postal Code:</span>
+          <span class="dkv-value font-mono">{{ c.businessSummary?.postalCode || '201014' }}</span>
+        </div>
+      </div>
+
+      <div class="drawer-section">
+        <h4 class="drawer-sec-title">Case Metadata</h4>
+        <div class="drawer-kv-row">
+          <span class="dkv-label">Case Identifier:</span>
+          <span class="dkv-value font-mono">{{ c.id }}</span>
+        </div>
+        <div class="drawer-kv-row">
+          <span class="dkv-label">Internal Guid:</span>
+          <span class="dkv-value font-mono text-xs">{{ c.guidId || c.id }}</span>
+        </div>
+        <div class="drawer-kv-row">
+          <span class="dkv-label">Verification Type:</span>
+          <span class="dkv-value">{{ c.verificationType }}</span>
+        </div>
+        <div class="drawer-kv-row">
+          <span class="dkv-label">Submission Date:</span>
+          <span class="dkv-value">{{ c.submittedAt }}</span>
+        </div>
+        <div class="drawer-kv-row">
+          <span class="dkv-label">Assigned Officer:</span>
+          <span class="dkv-value">{{ c.assignedTo }}</span>
+        </div>
+        <div class="drawer-kv-row">
+          <span class="dkv-label">Concurrency Token:</span>
+          <span class="dkv-value font-mono">{{ c.concurrencyToken || '1' }}</span>
+        </div>
+      </div>
+
+      <div class="drawer-section" *ngIf="c.businessSummary?.passportNumber">
+        <a [routerLink]="['/buyer/suppliers', c.businessSummary?.businessId, 'passport']" class="btn-view-passport-link" target="_blank">
+          Open Verified Supplier Passport &rarr;
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ========================================== -->
+  <!-- 6. AUDIT HISTORY DRAWER                    -->
+  <!-- ========================================== -->
+  <div class="drawer-backdrop" *ngIf="historyDrawerOpen()" (click)="toggleHistoryDrawer()"></div>
+  <aside class="side-drawer history-drawer" [class.open]="historyDrawerOpen()">
+    <div class="drawer-header">
+      <h3 class="drawer-heading">AUDIT TIMELINE &bull; {{ c.caseNumber || c.id }}</h3>
+      <button class="btn-drawer-close" (click)="toggleHistoryDrawer()">&times;</button>
+    </div>
+    <div class="drawer-scroll-body">
+      <div class="history-empty" *ngIf="!c.timeline || c.timeline.length === 0">
+        No audit events recorded for this case.
+      </div>
+      <div class="full-timeline-list" *ngIf="c.timeline && c.timeline.length > 0">
+        <div class="timeline-event-card" *ngFor="let evt of c.timeline">
+          <div class="te-dot"></div>
+          <div class="te-content">
+            <div class="te-top">
+              <span class="te-action">{{ evt.action.replace('_', ' ') }}</span>
+              <span class="te-time">{{ evt.timestamp | date:'medium' }}</span>
+            </div>
+            <div class="te-actor">Actor: <strong>{{ evt.actorName }}</strong> &bull; Result: <span class="te-res">{{ evt.result }}</span></div>
+            <p class="te-reason" *ngIf="evt.reason">{{ evt.reason }}</p>
+            <div class="te-code font-mono">{{ evt.eventId }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ========================================== -->
+  <!-- 7. RAW OCR INSPECTION MODAL                -->
+  <!-- ========================================== -->
+  <div class="modal-backdrop" *ngIf="rawOcrModalOpen()" (click)="toggleRawOcrModal()">
+    <div class="modal-card ocr-modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <h3 class="modal-heading">RAW OCR TEXT BUFFER &bull; {{ c.extraction?.engineName || 'Vision Engine' }}</h3>
+        <button class="btn-modal-close" (click)="toggleRawOcrModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="ocr-meta-line">
+          <span>Engine: {{ c.extraction?.engineName || 'VeriPass Sovereign OCR v2.4' }}</span>
+          <span>Overall Confidence: {{ c.extraction?.overallConfidence || 99.2 }}%</span>
+          <span>Status: {{ c.extraction?.status || 'COMPLETED' }}</span>
+        </div>
+        <pre class="raw-ocr-pre">{{ c.extraction?.rawOcrText || defaultRawOcr(c) }}</pre>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-dialog-cancel" (click)="toggleRawOcrModal()">Close Inspector</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 8. APPROVE CONFIRMATION MODAL              -->
+  <!-- ========================================== -->
+  <div class="modal-backdrop" *ngIf="activeModal() === 'APPROVE'" (click)="closeModal()">
+    <div class="modal-card approve-modal" (click)="$event.stopPropagation()">
+      <div class="modal-head head-approve">
+        <h3 class="modal-heading">Confirm Verification Approval</h3>
+        <button class="btn-modal-close" (click)="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-prompt">
+          You are about to authorize an official compliance approval for:
+        </p>
+        <div class="approval-summary-box">
+          <div class="asb-line"><strong>Legal Entity:</strong> {{ c.businessSummary?.legalName || c.legalName }}</div>
+          <div class="asb-line"><strong>Verification Type:</strong> {{ c.verificationType }} ({{ c.identifierValue }})</div>
+          <div class="asb-line"><strong>Evidence:</strong> {{ c.evidenceDocuments?.length || 1 }} document(s) reviewed</div>
+          <div class="asb-line"><strong>Sovereign Source:</strong> {{ c.trustedSource?.provider || 'Sovereign Gateway' }} &bull; MATCHED</div>
+          <div class="asb-line"><strong>Risk Level:</strong> {{ c.riskRating | uppercase }} ({{ c.riskScore }}/100)</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Compliance Decision Notes *:</label>
+          <textarea [(ngModel)]="decisionNotes" class="form-textarea" rows="3"></textarea>
+        </div>
+        <div class="modal-audit-note">
+          This approval executes a database transaction, updates the supplier's verified passport, and logs an immutable audit event.
+        </div>
+        <div class="error-msg" *ngIf="actionError()">{{ actionError() }}</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-dialog-cancel" (click)="closeModal()" [disabled]="isSubmitting()">Cancel</button>
+        <button class="btn-confirm-approve" (click)="confirmApprove(c.id)" [disabled]="isSubmitting()">
+          {{ isSubmitting() ? 'Committing Approval...' : 'Confirm Approval' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 9. REJECT CONFIRMATION MODAL               -->
+  <!-- ========================================== -->
+  <div class="modal-backdrop" *ngIf="activeModal() === 'REJECT'" (click)="closeModal()">
+    <div class="modal-card reject-modal" (click)="$event.stopPropagation()">
+      <div class="modal-head head-reject">
+        <h3 class="modal-heading">Reject Verification Case</h3>
+        <button class="btn-modal-close" (click)="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-prompt">
+          Rejecting verification for <strong>{{ c.businessSummary?.legalName || c.legalName }}</strong>. A valid regulatory justification is required.
+        </p>
+        <div class="form-group">
+          <label class="form-label">Primary Rejection Reason *:</label>
+          <select [(ngModel)]="rejectReason" class="form-select">
+            <option value="Identity mismatch">Identity / Legal Name Mismatch</option>
+            <option value="Document unreadable">Document Unreadable or Corrupt</option>
+            <option value="Expired statutory certificate">Expired Statutory Certificate</option>
+            <option value="Sovereign registry discrepancy">Sovereign Registry Discrepancy</option>
+            <option value="Fraudulent or altered evidence">Suspected Tampering / Alteration</option>
+            <option value="Jurisdiction mismatch">Jurisdiction / Address Discrepancy</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Detailed Explanation *:</label>
+          <textarea [(ngModel)]="rejectExplanation" class="form-textarea" rows="3" placeholder="Provide factual reasons for the rejection..."></textarea>
+        </div>
+        <div class="error-msg" *ngIf="actionError()">{{ actionError() }}</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-dialog-cancel" (click)="closeModal()" [disabled]="isSubmitting()">Cancel</button>
+        <button class="btn-confirm-reject" (click)="confirmReject(c.id)" [disabled]="isSubmitting()">
+          {{ isSubmitting() ? 'Committing Rejection...' : 'Reject Case' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 10. REQUEST MORE INFO MODAL                -->
+  <!-- ========================================== -->
+  <div class="modal-backdrop" *ngIf="activeModal() === 'MORE_INFO'" (click)="closeModal()">
+    <div class="modal-card more-info-modal" (click)="$event.stopPropagation()">
+      <div class="modal-head head-warn">
+        <h3 class="modal-heading">Request Additional Evidence</h3>
+        <button class="btn-modal-close" (click)="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-prompt">
+          Instruct the supplier to provide supplemental documentation. Case status will transition to <strong>MORE_INFO_REQUIRED</strong>.
+        </p>
+        <div class="form-group">
+          <label class="form-label">Required Evidence Items:</label>
+          <div class="checkboxes-stack">
+            <label class="chk-item"><input type="checkbox" [(ngModel)]="moreInfoItems.clearerDoc"> Clearer, unredacted certificate</label>
+            <label class="chk-item"><input type="checkbox" [(ngModel)]="moreInfoItems.updatedCert"> Updated amendment filing</label>
+            <label class="chk-item"><input type="checkbox" [(ngModel)]="moreInfoItems.supportingEvid"> Additional corporate identity proof</label>
+            <label class="chk-item"><input type="checkbox" [(ngModel)]="moreInfoItems.addressProof"> Utility bill confirming registered premises</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Message to Supplier *:</label>
+          <textarea [(ngModel)]="moreInfoMessage" class="form-textarea" rows="3"></textarea>
+        </div>
+        <div class="error-msg" *ngIf="actionError()">{{ actionError() }}</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-dialog-cancel" (click)="closeModal()" [disabled]="isSubmitting()">Cancel</button>
+        <button class="btn-confirm-warn" (click)="confirmMoreInfo(c.id)" [disabled]="isSubmitting()">
+          {{ isSubmitting() ? 'Sending Request...' : 'Send Request to Supplier' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 11. ESCALATE MODAL                         -->
+  <!-- ========================================== -->
+  <div class="modal-backdrop" *ngIf="activeModal() === 'ESCALATE'" (click)="closeModal()">
+    <div class="modal-card escalate-modal" (click)="$event.stopPropagation()">
+      <div class="modal-head head-esc">
+        <h3 class="modal-heading">Escalate Verification Case</h3>
+        <button class="btn-modal-close" (click)="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-prompt">
+          Route this case to a senior compliance supervisor or legal counsel. Case will transition to <strong>ESCALATED</strong>.
+        </p>
+        <div class="form-group">
+          <label class="form-label">Escalation Trigger Reason *:</label>
+          <select [(ngModel)]="escalateReason" class="form-select">
+            <option value="Conflicting evidence across registers">Conflicting Evidence Across Registers</option>
+            <option value="Complex ownership mismatch">Complex Ownership / Director Discrepancy</option>
+            <option value="High risk threshold breached">High Risk Threshold Breached</option>
+            <option value="Senior legal review required">Senior Legal / Compliance Review Required</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Assigned Senior Officer:</label>
+          <input type="text" [(ngModel)]="escalateOfficer" class="form-input" readonly>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Escalation Rationale &amp; Notes:</label>
+          <textarea [(ngModel)]="escalateNote" class="form-textarea" rows="3" placeholder="Explain the rationale for escalation..."></textarea>
+        </div>
+        <div class="error-msg" *ngIf="actionError()">{{ actionError() }}</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-dialog-cancel" (click)="closeModal()" [disabled]="isSubmitting()">Cancel</button>
+        <button class="btn-confirm-esc" (click)="confirmEscalate(c.id)" [disabled]="isSubmitting()">
+          {{ isSubmitting() ? 'Escalating...' : 'Confirm Escalation' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ========================================== -->
+  <!-- 12. SKELETON LOADING & ERROR STATES        -->
+<!-- ========================================== -->
+<ng-template #loadingStateTpl>
+  <div class="loading-state-container" *ngIf="isLoading() && !loadError()">
+    <div class="skeleton-header-box">
+      <div class="skel-bar skel-h8 skel-w48"></div>
+      <div class="skel-bar skel-h6 skel-w96"></div>
+      <div class="skel-bar skel-h4 skel-w72"></div>
+    </div>
+    <div class="skeleton-workspace-grid">
+      <div class="skel-panel skel-panel-left">
+        <div class="skel-bar skel-h8 skel-w40 mb-4"></div>
+        <div class="skel-box skel-h120"></div>
+        <div class="skel-box skel-h48 mt-4"></div>
+      </div>
+      <div class="skel-panel skel-panel-right">
+        <div class="skel-box skel-h64 mb-4"></div>
+        <div class="skel-box skel-h64 mb-4"></div>
+        <div class="skel-box skel-h48"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="error-state-container" *ngIf="loadError()">
+    <div class="error-card">
+      <div class="error-icon">⚠</div>
+      <h2 class="error-title">Verification Case Unavailable</h2>
+      <p class="error-desc">{{ loadError() }}</p>
+      <div class="error-actions">
+        <button class="btn-retry" (click)="retryLoad()" [disabled]="isLoading()">
+          ↻ {{ isLoading() ? 'Retrying...' : 'Retry Loading' }}
+        </button>
+        <a routerLink="/verifier/queue" class="btn-return">
+          &larr; Return to Verification Queue
+        </a>
+      </div>
+    </div>
+  </div>
+</ng-template>

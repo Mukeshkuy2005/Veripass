@@ -1,0 +1,100 @@
+    <div class="help-page">
+      <!-- 1. HERO & SEARCH -->
+      <section class="help-hero">
+        <div class="container text-center">
+          <div class="badge-pill">KNOWLEDGE BASE & GUIDES</div>
+          <h1 class="hero-title">HOW CAN WE HELP?</h1>
+
+          <div class="search-wrap">
+            <div class="search-box">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input
+                type="text"
+                [(ngModel)]="searchQuery"
+                placeholder="Search help articles, compliance questions, or passport rules..."
+                class="search-input"
+              />
+              @if (searchQuery) {
+                <button type="button" class="clear-btn" (click)="searchQuery = ''">&times;</button>
+              }
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. CATEGORIES (8 Pills) -->
+      <section class="categories-section">
+        <div class="container">
+          <div class="categories-grid">
+            @for (cat of categories; track cat) {
+              <button
+                type="button"
+                (click)="selectedCategory.set(selectedCategory() === cat ? null : cat)"
+                class="category-pill-btn"
+                [class.active]="selectedCategory() === cat"
+              >
+                {{ cat }}
+              </button>
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. FAQ ACCORDION -->
+      <section class="faq-section">
+        <div class="container faq-container">
+          <div class="section-badge text-center">FREQUENTLY ASKED QUESTIONS</div>
+          <h2 class="section-title text-center">Common Questions & Guidance</h2>
+
+          <div class="accordion-list">
+            @for (faq of filteredFaqs(); track faq.id) {
+              <div class="accordion-item" [class.open]="openFaqId() === faq.id">
+                <button
+                  type="button"
+                  class="accordion-header"
+                  (click)="toggleFaq(faq.id)"
+                  [attr.aria-expanded]="openFaqId() === faq.id"
+                >
+                  <span class="faq-question">{{ faq.question }}</span>
+                  <span class="faq-icon">{{ openFaqId() === faq.id ? '−' : '＋' }}</span>
+                </button>
+
+                @if (openFaqId() === faq.id) {
+                  <div class="accordion-body animate-fadeIn">
+                    <p class="faq-answer">{{ faq.answer }}</p>
+                    <span class="faq-cat-tag">Topic: {{ faq.category }}</span>
+                  </div>
+                }
+              </div>
+            }
+
+            @if (filteredFaqs().length === 0) {
+              <div class="no-results text-center">
+                <p>No questions matched your search query "{{ searchQuery }}".</p>
+                <button type="button" (click)="searchQuery = ''; selectedCategory.set(null)" class="btn btn-secondary btn-sm">
+                  Clear Filters
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. SUPPORT CTA -->
+      <section class="support-cta-section">
+        <div class="container">
+          <div class="cta-box text-center">
+            <h3 class="cta-title">CAN'T FIND YOUR ANSWER?</h3>
+            <p class="cta-desc">
+              Our enterprise support and compliance desk is available Monday through Saturday.
+            </p>
+            <a routerLink="/contact" class="btn btn-primary btn-lg">
+              Contact Support &rarr;
+            </a>
+          </div>
+        </div>
+      </section>
+    </div>

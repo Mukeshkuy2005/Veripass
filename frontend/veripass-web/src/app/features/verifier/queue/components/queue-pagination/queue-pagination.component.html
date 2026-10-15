@@ -1,0 +1,59 @@
+<div *ngIf="totalCount > 0" class="pagination-container">
+  <div class="pagination-info">
+    Showing
+    <strong class="count-bold">{{ startItemIndex }}–{{ endItemIndex }}</strong>
+    of
+    <strong class="count-bold">{{ totalCount }}</strong>
+    cases
+  </div>
+
+  <div class="pagination-controls">
+    <div class="page-size-selector">
+      <label for="select-page-size" class="size-label">Per page:</label>
+      <select
+        id="select-page-size"
+        class="size-select"
+        [value]="pageSize"
+        (change)="onPageSizeSelect($event)"
+        [disabled]="loading">
+        <option [value]="10">10</option>
+        <option [value]="25">25</option>
+        <option [value]="50">50</option>
+      </select>
+    </div>
+
+    <div class="page-buttons-group" role="navigation" aria-label="Pagination Navigation">
+      <button
+        type="button"
+        id="btn-page-prev"
+        class="page-nav-btn"
+        [disabled]="page <= 1 || loading"
+        (click)="onPageSelect(page - 1)"
+        aria-label="Previous Page">
+        &lsaquo; Previous
+      </button>
+
+      <ng-container *ngFor="let p of visiblePages">
+        <button
+          type="button"
+          class="page-num-btn"
+          [class.active]="p === page"
+          (click)="onPageSelect(p)"
+          [disabled]="loading"
+          [attr.aria-current]="p === page ? 'page' : null">
+          {{ p }}
+        </button>
+      </ng-container>
+
+      <button
+        type="button"
+        id="btn-page-next"
+        class="page-nav-btn"
+        [disabled]="page >= totalPages || loading"
+        (click)="onPageSelect(page + 1)"
+        aria-label="Next Page">
+        Next &rsaquo;
+      </button>
+    </div>
+  </div>
+</div>

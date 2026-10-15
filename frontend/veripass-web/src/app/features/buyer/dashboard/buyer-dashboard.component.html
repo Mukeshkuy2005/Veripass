@@ -1,0 +1,351 @@
+<div class="buyer-dashboard">
+  <!-- 1. DASHBOARD HEADER -->
+  <header class="dashboard-header">
+    <div class="header-titles">
+      <div class="title-with-badge">
+        <h1 class="page-title">Good morning, {{ companyName() }}</h1>
+        <span class="badge-role-pill">Procurement Portal</span>
+      </div>
+      <p class="page-subtitle">Supplier network overview &bull; {{ todayDateStr() }}</p>
+    </div>
+    <div class="header-actions">
+      <button 
+        type="button" 
+        class="btn-action-refresh" 
+        (click)="refreshTelemetry()" 
+        [disabled]="isLoading()"
+        title="Refresh live telemetry">
+        <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon-svg" [class.spin-svg]="isLoading()">
+          <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.047a1 1 0 011.885-.666A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566z" clip-rule="evenodd"/>
+        </svg>
+        <span>{{ isLoading() ? 'Syncing...' : 'Sync Telemetry' }}</span>
+      </button>
+
+      <a routerLink="/buyer/suppliers" class="btn-action-primary">
+        <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon-svg">
+          <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+        </svg>
+        <span>Discover Suppliers</span>
+      </a>
+
+      <a routerLink="/buyer/onboarding" [queryParams]="{ start: 'true' }" class="btn-action-secondary">
+        <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon-svg">
+          <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+        </svg>
+        <span>New Onboarding</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- 2. KPI CARDS ROW (5 items) -->
+  <div class="kpi-row">
+    <!-- Card 1: Total Suppliers -->
+    <div class="kpi-card" (click)="filterSuppliers('ALL')" role="button" tabindex="0">
+      <div class="kpi-top">
+        <span class="kpi-title">TOTAL SUPPLIERS</span>
+        <svg viewBox="0 0 20 20" fill="currentColor" class="kpi-corner-icon">
+          <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+        </svg>
+      </div>
+      <div class="kpi-metric-wrap">
+        <span class="kpi-number">{{ data()?.totalSuppliers ?? 0 }}</span>
+      </div>
+      <span class="kpi-note">Active in procurement register</span>
+    </div>
+
+    <!-- Card 2: Verified -->
+    <div class="kpi-card card-verified" (click)="filterSuppliers('VERIFIED')" role="button" tabindex="0">
+      <div class="kpi-top">
+        <span class="kpi-title text-green">VERIFIED</span>
+        <svg viewBox="0 0 20 20" fill="currentColor" class="kpi-corner-icon text-green">
+          <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+      </div>
+      <div class="kpi-metric-wrap">
+        <span class="kpi-number text-green">{{ data()?.verifiedSuppliers ?? 0 }}</span>
+      </div>
+      <span class="kpi-note text-green">{{ data()?.verifiedPercentage ?? 0 }}% of total network</span>
+    </div>
+
+    <!-- Card 3: Pending -->
+    <div class="kpi-card card-pending" (click)="filterSuppliers('PENDING')" role="button" tabindex="0">
+      <div class="kpi-top">
+        <span class="kpi-title text-amber">PENDING</span>
+        <svg viewBox="0 0 20 20" fill="currentColor" class="kpi-corner-icon text-amber">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+        </svg>
+      </div>
+      <div class="kpi-metric-wrap">
+        <span class="kpi-number text-amber">{{ data()?.pendingSuppliers ?? 0 }}</span>
+      </div>
+      <span class="kpi-note text-amber">{{ data()?.pendingPercentage ?? 0 }}% awaiting verification</span>
+    </div>
+
+    <!-- Card 4: Expired -->
+    <div class="kpi-card card-expired" (click)="filterSuppliers('EXPIRED')" role="button" tabindex="0">
+      <div class="kpi-top">
+        <span class="kpi-title text-orange">EXPIRED</span>
+        <svg viewBox="0 0 20 20" fill="currentColor" class="kpi-corner-icon text-orange">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+        </svg>
+      </div>
+      <div class="kpi-metric-wrap">
+        <span class="kpi-number text-orange">{{ data()?.expiredSuppliers ?? 0 }}</span>
+      </div>
+      <span class="kpi-note text-orange">Requires document renewal</span>
+    </div>
+
+    <!-- Card 5: High Risk -->
+    <div class="kpi-card card-risk" (click)="filterSuppliers('HIGH_RISK')" role="button" tabindex="0">
+      <div class="kpi-top">
+        <span class="kpi-title text-red">HIGH RISK</span>
+        <svg viewBox="0 0 20 20" fill="currentColor" class="kpi-corner-icon text-red">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+        </svg>
+      </div>
+      <div class="kpi-metric-wrap">
+        <span class="kpi-number text-red">{{ data()?.highRiskSuppliers ?? 0 }}</span>
+      </div>
+      <span class="kpi-note text-red">{{ data()?.highRiskPercentage ?? 0 }}% flagged for review</span>
+    </div>
+  </div>
+
+  <!-- 3. MAIN GRID: HEALTH CHART + VERIFICATION OVERVIEW -->
+  <div class="dashboard-grid-2col">
+    <!-- SUPPLIER NETWORK HEALTH CHART -->
+    <div class="panel-card">
+      <div class="panel-header">
+        <div>
+          <h3 class="panel-title">SUPPLIER NETWORK HEALTH</h3>
+          <span class="panel-sub">Sovereign verification status across {{ data()?.totalSuppliers ?? 0 }} enterprise vendors</span>
+        </div>
+        <a routerLink="/buyer/suppliers" class="panel-link">View All &rarr;</a>
+      </div>
+
+      <div class="health-breakdown-list">
+        <!-- Verified -->
+        <div class="health-bar-row">
+          <div class="bar-label-group">
+            <span class="status-indicator status-green"></span>
+            <span class="bar-name">Verified</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill bg-green" [style.width.%]="data()?.verifiedPercentage ?? 0"></div>
+          </div>
+          <span class="bar-count">{{ data()?.verifiedSuppliers ?? 0 }}</span>
+        </div>
+
+        <!-- Pending -->
+        <div class="health-bar-row">
+          <div class="bar-label-group">
+            <span class="status-indicator status-amber"></span>
+            <span class="bar-name">Pending</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill bg-amber" [style.width.%]="data()?.pendingPercentage ?? 0"></div>
+          </div>
+          <span class="bar-count">{{ data()?.pendingSuppliers ?? 0 }}</span>
+        </div>
+
+        <!-- Expired -->
+        <div class="health-bar-row">
+          <div class="bar-label-group">
+            <span class="status-indicator status-orange"></span>
+            <span class="bar-name">Expired</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill bg-orange" [style.width.%]="data()?.expiredPercentage ?? 0"></div>
+          </div>
+          <span class="bar-count">{{ data()?.expiredSuppliers ?? 0 }}</span>
+        </div>
+
+        <!-- High Risk -->
+        <div class="health-bar-row">
+          <div class="bar-label-group">
+            <span class="status-indicator status-red"></span>
+            <span class="bar-name">High Risk</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill bg-red" [style.width.%]="data()?.highRiskPercentage ?? 0"></div>
+          </div>
+          <span class="bar-count">{{ data()?.highRiskSuppliers ?? 0 }}</span>
+        </div>
+      </div>
+
+      <!-- Network Summary Footer -->
+      <div class="health-footer-summary">
+        <div class="summary-pill pill-green">
+          <span class="pill-label">ITC Protection:</span>
+          <strong class="pill-value text-green">{{ data()?.itcSafeguarded || '₹0 Safeguarded' }}</strong>
+        </div>
+        <div class="summary-pill pill-blue">
+          <span class="pill-label">Average Trust Score:</span>
+          <strong class="pill-value text-blue">{{ data()?.averageTrustScore ?? 0 }} / 100</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- VERIFICATION STATUS BY PILLAR -->
+    <div class="panel-card">
+      <div class="panel-header">
+        <div>
+          <h3 class="panel-title">VERIFICATION STATUS</h3>
+          <span class="panel-sub">Pillar-level credential compliance across active vendor base</span>
+        </div>
+        <span class="badge-telemetry">Live Telemetry</span>
+      </div>
+
+      <div class="pillar-status-list">
+        <!-- Identity -->
+        <div class="pillar-item">
+          <div class="pillar-header">
+            <span class="pillar-name">Identity (MCA / CIN / PAN)</span>
+            <span class="pillar-percent text-blue">{{ data()?.pillarCompliance?.identityPercent ?? 0 }}%</span>
+          </div>
+          <div class="pillar-track">
+            <div class="pillar-fill bg-blue" [style.width.%]="data()?.pillarCompliance?.identityPercent ?? 0"></div>
+          </div>
+        </div>
+
+        <!-- Tax -->
+        <div class="pillar-item">
+          <div class="pillar-header">
+            <span class="pillar-name">Tax (GSTIN &amp; Return Filings)</span>
+            <span class="pillar-percent text-green">{{ data()?.pillarCompliance?.taxPercent ?? 0 }}%</span>
+          </div>
+          <div class="pillar-track">
+            <div class="pillar-fill bg-green" [style.width.%]="data()?.pillarCompliance?.taxPercent ?? 0"></div>
+          </div>
+        </div>
+
+        <!-- Address -->
+        <div class="pillar-item">
+          <div class="pillar-header">
+            <span class="pillar-name">Address (Electricity Board &amp; Geo-match)</span>
+            <span class="pillar-percent text-blue">{{ data()?.pillarCompliance?.addressPercent ?? 0 }}%</span>
+          </div>
+          <div class="pillar-track">
+            <div class="pillar-fill bg-blue" [style.width.%]="data()?.pillarCompliance?.addressPercent ?? 0"></div>
+          </div>
+        </div>
+
+        <!-- Bank -->
+        <div class="pillar-item">
+          <div class="pillar-header">
+            <span class="pillar-name">Bank (Penny-drop &amp; Escrow Mandates)</span>
+            <span class="pillar-percent text-amber">{{ data()?.pillarCompliance?.bankPercent ?? 0 }}%</span>
+          </div>
+          <div class="pillar-track">
+            <div class="pillar-fill bg-amber" [style.width.%]="data()?.pillarCompliance?.bankPercent ?? 0"></div>
+          </div>
+        </div>
+
+        <!-- Certifications -->
+        <div class="pillar-item">
+          <div class="pillar-header">
+            <span class="pillar-name">Certifications (ISO / BIS / MSME)</span>
+            <span class="pillar-percent text-blue">{{ data()?.pillarCompliance?.certificationsPercent ?? 0 }}%</span>
+          </div>
+          <div class="pillar-track">
+            <div class="pillar-fill bg-blue" [style.width.%]="data()?.pillarCompliance?.certificationsPercent ?? 0"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. LOWER GRID: ACTION REQUIRED + RECENT ACTIVITY -->
+  <div class="dashboard-grid-2col">
+    <!-- ACTION REQUIRED -->
+    <div class="panel-card action-panel">
+      <div class="panel-header">
+        <div>
+          <h3 class="panel-title">ACTION REQUIRED</h3>
+          <span class="panel-sub">Urgent alerts requiring procurement supervisor action</span>
+        </div>
+      </div>
+
+      <div class="action-items-list">
+        @if ((data()?.actionRequired || []).length === 0) {
+          <div style="padding: 28px 16px; text-align: center; color: #64748b;">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="28" height="28" style="margin: 0 auto 8px; color: #10b981; display: block;">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            <p style="margin: 0; font-size: 13px; font-weight: 500; color: #94a3b8;">All clear &bull; No statutory alerts or actions pending</p>
+          </div>
+        } @else {
+          @for (item of data()?.actionRequired || []; track item.id) {
+            <div class="action-item-box" [ngClass]="{
+              'item-risk': item.severity === 'danger',
+              'item-amber': item.severity === 'amber',
+              'item-blue': item.severity === 'blue'
+            }">
+              <div class="action-item-icon" [ngClass]="{
+                'icon-danger': item.severity === 'danger',
+                'icon-amber': item.severity === 'amber',
+                'icon-blue': item.severity === 'blue'
+              }">
+                @if (item.severity === 'danger') {
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                  </svg>
+                } @else if (item.severity === 'amber') {
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                  </svg>
+                } @else {
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                    <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+                  </svg>
+                }
+              </div>
+              <div class="action-item-content">
+                <span class="action-item-title">{{ item.title }}</span>
+                <p class="action-item-desc">{{ item.description }}</p>
+              </div>
+              <a [routerLink]="item.actionUrl" class="btn-action-item">{{ item.actionLabel }}</a>
+            </div>
+          }
+        }
+      </div>
+    </div>
+
+    <!-- RECENT ACTIVITY -->
+    <div class="panel-card">
+      <div class="panel-header">
+        <div>
+          <h3 class="panel-title">RECENT ACTIVITY</h3>
+          <span class="panel-sub">Real-time audit log across your procurement organization</span>
+        </div>
+        <a routerLink="/buyer/activity" class="panel-link">Full Audit &rarr;</a>
+      </div>
+
+      <div class="activity-feed-list">
+        @if ((data()?.recentActivities || []).length === 0) {
+          <div style="padding: 28px 16px; text-align: center; color: #64748b;">
+            <p style="margin: 0; font-size: 13px; font-weight: 500; color: #94a3b8;">No recent activity recorded yet.</p>
+            <span style="font-size: 12px; color: #64748b;">Events will appear here as your team interacts with vendors.</span>
+          </div>
+        } @else {
+          @for (act of data()?.recentActivities || []; track $index) {
+            <div class="activity-feed-item">
+              <div class="feed-time">{{ act.time }}</div>
+              <div class="feed-bullet" [ngClass]="{
+                'bullet-green': act.statusColor === 'green',
+                'bullet-blue': act.statusColor === 'blue',
+                'bullet-amber': act.statusColor === 'amber',
+                'bullet-red': act.statusColor === 'red'
+              }"></div>
+              <div class="feed-body">
+                <span class="feed-text">{{ act.title }}</span>
+                <span class="feed-sub">{{ act.description }}</span>
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  </div>
+</div>
+

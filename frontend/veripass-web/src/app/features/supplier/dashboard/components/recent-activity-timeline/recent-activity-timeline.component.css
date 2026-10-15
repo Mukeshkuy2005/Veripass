@@ -1,0 +1,193 @@
+.activity-card {
+  background: #FFFFFF;
+  border: 1px solid #E4E7EC;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  border-bottom: 1px solid #F2F4F7;
+}
+
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.sub-label {
+  font-size: 12.5px;
+  color: #667085;
+}
+
+.view-history-link {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1D4ED8;
+  text-decoration: none;
+}
+
+.view-history-link:hover {
+  text-decoration: underline;
+}
+
+.timeline-container {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 16px;
+  position: relative;
+}
+
+.marker-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 14px;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+
+.marker-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: #94A3B8;
+  z-index: 1;
+}
+
+.marker-dot.verified {
+  background-color: #15803D;
+  box-shadow: 0 0 0 3px #DCFCE7;
+}
+
+.marker-dot.in_review {
+  background-color: #1D4ED8;
+  box-shadow: 0 0 0 3px #DBEAFE;
+}
+
+.marker-dot.pending {
+  background-color: #64748B;
+  box-shadow: 0 0 0 3px #F1F5F9;
+}
+
+.marker-dot.action {
+  background-color: #B45309;
+  box-shadow: 0 0 0 3px #FEF3C7;
+}
+
+.marker-line {
+  width: 1.5px;
+  flex: 1;
+  background-color: #E4E7EC;
+  margin: 4px 0;
+  min-height: 42px;
+}
+
+.item-body {
+  flex: 1;
+  padding-bottom: 20px;
+}
+
+.item-top-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.activity-date {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #667085;
+}
+
+.activity-tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: #475569;
+  background-color: #F1F5F9;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+
+.activity-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.activity-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.status-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.status-pill.verified {
+  color: #15803D;
+  background-color: #ECFDF3;
+  border: 1px solid #BBF7D0;
+}
+
+.status-pill.in_review {
+  color: #1D4ED8;
+  background-color: #EFF8FF;
+  border: 1px solid #BFDBFE;
+}
+
+.status-pill.pending {
+  color: #475569;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+}
+
+.status-pill.action {
+  color: #B45309;
+  background-color: #FFFAEB;
+  border: 1px solid #FEDF89;
+}
+
+.activity-subtitle {
+  font-size: 12.5px;
+  color: #667085;
+  margin: 3px 0 0;
+  line-height: 1.4;
+}
+
+.empty-activity {
+  padding: 36px 24px;
+  text-align: center;
+}
+
+.empty-msg {
+  font-size: 13.5px;
+  color: #667085;
+  margin: 0;
+}

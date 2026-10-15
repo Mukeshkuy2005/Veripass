@@ -1,0 +1,374 @@
+    <div class="decision-container" *ngIf="activeCase() as c; else notFoundTpl">
+      <!-- Breadcrumb & Top Bar -->
+      <div class="top-nav">
+        <a [routerLink]="['/verifier/cases', c.id]" class="back-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Back to Evidence Workstation
+        </a>
+        <div class="case-badge-pill">
+          <span class="case-id">{{ c.id }}</span>
+          <span class="dot-sep">•</span>
+          <span class="biz-name">{{ c.businessName }}</span>
+          <span class="badge" [ngClass]="c.priority.toLowerCase()">{{ c.priority }} PRIORITY</span>
+          <span class="status-badge" [ngClass]="c.status.toLowerCase()">{{ c.status }}</span>
+        </div>
+      </div>
+
+      <div class="header-card">
+        <div>
+          <h1 class="page-title">Verification Decision & Sign-Off</h1>
+          <p class="page-subtitle">
+            Formal compliance adjudication for <strong>{{ c.verificationType }} Credential</strong>. 
+            All actions generate an immutable audit log entry.
+          </p>
+        </div>
+        <div class="sla-clock">
+          <span class="sla-label">SLA Window</span>
+          <span class="sla-val">{{ c.slaDeadline }}</span>
+        </div>
+      </div>
+
+      <!-- Main Layout Grid: Evidence Summary + Adjudication Engine -->
+      <div class="decision-grid">
+        <!-- Left: Case Evidence Checklist -->
+        <div class="evidence-panel">
+          <div class="section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+            Evidence Review Checklist
+          </div>
+
+          <div class="checklist">
+            <div class="check-item" [class.pass]="!c.document.tamperingDetected">
+              <div class="check-icon">
+                <span *ngIf="!c.document.tamperingDetected">✓</span>
+                <span *ngIf="c.document.tamperingDetected">✕</span>
+              </div>
+              <div class="check-content">
+                <span class="check-label">Document Structure & Tampering Integrity</span>
+                <span class="check-sub">{{ c.document.tamperingSummary }}</span>
+              </div>
+            </div>
+
+            <div class="check-item" [class.pass]="c.sovereignData.matched">
+              <div class="check-icon">
+                <span *ngIf="c.sovereignData.matched">✓</span>
+                <span *ngIf="!c.sovereignData.matched">✕</span>
+              </div>
+              <div class="check-content">
+                <span class="check-label">Sovereign Authority Match</span>
+                <span class="check-sub">{{ c.sovereignData.authority }} ({{ c.sovereignData.registryStatus }})</span>
+              </div>
+            </div>
+
+            <div class="check-item" [class.pass]="c.ocrData.businessName.confidence > 90">
+              <div class="check-icon">✓</div>
+              <div class="check-content">
+                <span class="check-label">Legal Entity Name Consistency</span>
+                <span class="check-sub">OCR Conf: {{ c.ocrData.businessName.confidence }}% vs Sovereign Registry Match</span>
+              </div>
+            </div>
+
+            <div class="check-item" [class.pass]="c.ocrData.identifier.confidence > 95">
+              <div class="check-icon">✓</div>
+              <div class="check-content">
+                <span class="check-label">Statutory ID Matching ({{ c.ocrData.identifier.label }})</span>
+                <span class="check-sub font-mono">{{ c.ocrData.identifier.value }}</span>
+              </div>
+            </div>
+
+            <div class="check-item" [class.warning]="c.anomalies.length > 0">
+              <div class="check-icon">
+                <span *ngIf="c.anomalies.length === 0">✓</span>
+                <span *ngIf="c.anomalies.length > 0">⚠</span>
+              </div>
+              <div class="check-content">
+                <span class="check-label">Address & Risk Discrepancy Checks</span>
+                <span class="check-sub" *ngIf="c.anomalies.length > 0">{{ c.anomalies[0] }}</span>
+                <span class="check-sub" *ngIf="c.anomalies.length === 0">No anomalies flagged</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Metadata card -->
+          <div class="meta-box">
+            <div class="meta-row">
+              <span class="lbl">Primary Document</span>
+              <span class="val">{{ c.document.fileName }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="lbl">SHA-256 Checksum</span>
+              <span class="val font-mono">{{ c.document.sha256.substring(0, 16) }}...</span>
+            </div>
+            <div class="meta-row">
+              <span class="lbl">Calculated Risk Score</span>
+              <span class="val" [ngClass]="c.riskRating.toLowerCase()">{{ c.riskScore }} / 100 ({{ c.riskRating }})</span>
+            </div>
+            <div class="meta-row">
+              <span class="lbl">Assigned Reviewer</span>
+              <span class="val">{{ c.assignedTo }}</span>
+            </div>
+          </div>
+
+          <div class="view-doc-cta">
+            <a [routerLink]="['/verifier/cases', c.id, 'document']" class="sub-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              Inspect High-Res Document & Hashes
+            </a>
+          </div>
+        </div>
+
+        <!-- Right: Adjudication Engine Form -->
+        <div class="decision-form-panel">
+          <div class="mode-selector">
+            <button 
+              type="button" 
+              class="mode-tab approve" 
+              [class.active]="mode() === 'APPROVE'"
+              (click)="setMode('APPROVE')">
+              <span class="tab-indicator">✓</span>
+              <span>APPROVE</span>
+            </button>
+
+            <button 
+              type="button" 
+              class="mode-tab reject" 
+              [class.active]="mode() === 'REJECT'"
+              (click)="setMode('REJECT')">
+              <span class="tab-indicator">✕</span>
+              <span>REJECT</span>
+            </button>
+
+            <button 
+              type="button" 
+              class="mode-tab more-info" 
+              [class.active]="mode() === 'MORE_INFO'"
+              (click)="setMode('MORE_INFO')">
+              <span class="tab-indicator">?</span>
+              <span>REQUEST INFO</span>
+            </button>
+
+            <button 
+              type="button" 
+              class="mode-tab escalate" 
+              [class.active]="mode() === 'ESCALATE'"
+              (click)="setMode('ESCALATE')">
+              <span class="tab-indicator">↗</span>
+              <span>ESCALATE</span>
+            </button>
+          </div>
+
+          <!-- APPROVE SECTION -->
+          <div class="mode-body" *ngIf="mode() === 'APPROVE'">
+            <div class="mode-banner approve-banner">
+              <div class="banner-title">Confirm Verification Approval</div>
+              <div class="banner-desc">
+                Approving this case marks the <strong>{{ c.verificationType }} credential</strong> as fully verified, updates the supplier's VeriPass Trust Index, and generates a cryptographic verification stamp.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Compliance Sign-off Notes (Optional)</label>
+              <textarea 
+                [(ngModel)]="approveNotes"
+                placeholder="e.g. Verified against GSTN live registry. Address and GSTIN match business incorporation certificate."
+                rows="4" 
+                class="form-textarea"></textarea>
+              <span class="field-hint">Notes will be recorded in the immutable compliance audit ledger.</span>
+            </div>
+
+            <div class="action-footer">
+              <a [routerLink]="['/verifier/cases', c.id]" class="btn-secondary">Cancel</a>
+              <button 
+                type="button" 
+                class="btn-primary approve-btn" 
+                (click)="submitApproval(c.id)">
+                Confirm & Issue Verification
+              </button>
+            </div>
+          </div>
+
+          <!-- REJECT SECTION -->
+          <div class="mode-body" *ngIf="mode() === 'REJECT'">
+            <div class="mode-banner reject-banner">
+              <div class="banner-title">Mandatory Rejection Protocol</div>
+              <div class="banner-desc">
+                Rejections require a specific statutory taxonomy reason and detailed explanation to defend legal and procurement challenges.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Primary Rejection Reason Taxonomy *</label>
+              <div class="radio-grid">
+                <label *ngFor="let reason of rejectionReasons" class="radio-card" [class.selected]="selectedRejectionReason === reason">
+                  <input 
+                    type="radio" 
+                    name="rejectionReason" 
+                    [value]="reason" 
+                    [(ngModel)]="selectedRejectionReason">
+                  <span>{{ reason }}</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Specific Regulatory Explanation *</label>
+              <textarea 
+                [(ngModel)]="rejectionExplanation"
+                placeholder="Provide a precise and legally defensible explanation of why this credential was rejected..."
+                rows="4" 
+                class="form-textarea"></textarea>
+              <span class="field-hint" [class.err]="!rejectionExplanation && attemptedSubmit">Mandatory. Must provide clear rationale for supplier and audit records.</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Internal Compliance Notes (Confidential)</label>
+              <input 
+                type="text" 
+                [(ngModel)]="internalNotes" 
+                placeholder="Internal references, fraud flags, or corroborating dossier IDs"
+                class="form-input">
+            </div>
+
+            <div class="action-footer">
+              <a [routerLink]="['/verifier/cases', c.id]" class="btn-secondary">Cancel</a>
+              <button 
+                type="button" 
+                class="btn-primary reject-btn" 
+                (click)="submitRejection(c.id)">
+                Submit Rejection Decision
+              </button>
+            </div>
+          </div>
+
+          <!-- MORE INFO SECTION -->
+          <div class="mode-body" *ngIf="mode() === 'MORE_INFO'">
+            <div class="mode-banner moreinfo-banner">
+              <div class="banner-title">Request Additional Evidence</div>
+              <div class="banner-desc">
+                Suspends SLA clock and notifies supplier via Email & SMS to upload supplementary documents before the specified deadline.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">What items are missing or required? *</label>
+              <div class="checkbox-grid">
+                <label class="check-box-label">
+                  <input type="checkbox" [(ngModel)]="missingItems.clearerDoc">
+                  <span>Clearer / High-resolution document scan</span>
+                </label>
+                <label class="check-box-label">
+                  <input type="checkbox" [(ngModel)]="missingItems.updatedCert">
+                  <span>Updated / Current financial year certificate</span>
+                </label>
+                <label class="check-box-label">
+                  <input type="checkbox" [(ngModel)]="missingItems.supportingProof">
+                  <span>Supporting utility bill or lease agreement</span>
+                </label>
+                <label class="check-box-label">
+                  <input type="checkbox" [(ngModel)]="missingItems.signatoryProof">
+                  <span>Authorized Signatory Board Resolution / Letter</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Clarification Message to Supplier *</label>
+              <textarea 
+                [(ngModel)]="supplierMessage" 
+                rows="4" 
+                class="form-textarea"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Supplier Response Deadline</label>
+              <select [(ngModel)]="responseDeadline" class="form-select">
+                <option value="3 days">3 Business Days (Expedited)</option>
+                <option value="7 days">7 Business Days (Standard)</option>
+                <option value="14 days">14 Business Days (Extended)</option>
+              </select>
+            </div>
+
+            <div class="action-footer">
+              <a [routerLink]="['/verifier/cases', c.id]" class="btn-secondary">Cancel</a>
+              <button 
+                type="button" 
+                class="btn-primary moreinfo-btn" 
+                (click)="submitMoreInfo(c.id)">
+                Send Information Request
+              </button>
+            </div>
+          </div>
+
+          <!-- ESCALATE SECTION -->
+          <div class="mode-body" *ngIf="mode() === 'ESCALATE'">
+            <div class="mode-banner escalate-banner">
+              <div class="banner-title">Escalate to Senior Compliance Review</div>
+              <div class="banner-desc">
+                Transfers case custody to the senior escalation queue for fraud investigation, high-risk discrepancies, or policy exceptions.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Escalation Grounds *</label>
+              <div class="radio-grid">
+                <label *ngFor="let esc of escalationReasons" class="radio-card" [class.selected]="selectedEscalationReason === esc">
+                  <input 
+                    type="radio" 
+                    name="escReason" 
+                    [value]="esc" 
+                    [(ngModel)]="selectedEscalationReason">
+                  <span>{{ esc }}</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Target Authority / Officer</label>
+              <select [(ngModel)]="targetOfficer" class="form-select">
+                <option value="Senior Compliance Officer">Senior Compliance Officer (Special Investigations)</option>
+                <option value="Head of Risk & Fraud">Head of Risk & Fraud Operations</option>
+                <option value="Legal & Statutory Counsel">Legal & Statutory Regulatory Counsel</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Forensic Transfer Notes *</label>
+              <textarea 
+                [(ngModel)]="escalationNotes" 
+                placeholder="Explain the specific conflict, anomaly signature, or sovereign discrepancy requiring senior decision..."
+                rows="4" 
+                class="form-textarea"></textarea>
+            </div>
+
+            <div class="action-footer">
+              <a [routerLink]="['/verifier/cases', c.id]" class="btn-secondary">Cancel</a>
+              <button 
+                type="button" 
+                class="btn-primary escalate-btn" 
+                (click)="submitEscalation(c.id)">
+                Transfer & Escalate Case
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ng-template #notFoundTpl>
+      <div class="not-found-wrap">
+        <h2>Case Not Found</h2>
+        <p>The requested verification case could not be located in the current compliance queue.</p>
+        <a routerLink="/verifier/queue" class="btn-primary">Return to Verification Queue</a>
+      </div>
+    </ng-template>

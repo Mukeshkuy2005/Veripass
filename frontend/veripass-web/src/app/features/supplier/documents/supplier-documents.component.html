@@ -1,0 +1,593 @@
+    <div class="documents-view">
+      <!-- TOAST NOTIFICATION -->
+      <div *ngIf="toastMessage()" class="vp-toast-banner">
+        <span class="toast-check">✓</span>
+        <span class="toast-text">{{ toastMessage() }}</span>
+      </div>
+
+      <!-- HEADER -->
+      <div class="documents-header">
+        <div>
+          <span class="view-tag">EVIDENCE VAULT</span>
+          <h1 class="page-title">Documents & Credentials</h1>
+          <p class="page-sub">Manage the sovereign evidence and regulatory documents backing your Business Passport.</p>
+        </div>
+        <button class="btn btn-primary" (click)="openUploadModal()">
+          + Add Credential
+        </button>
+      </div>
+
+      <!-- 4 SUMMARY STAT CARDS -->
+      <div class="summary-cards-grid">
+        <div class="vp-card stat-box" (click)="selectedCategory.set('All')">
+          <span class="stat-num text-blue">{{ totalDocsCount }}</span>
+          <span class="stat-lbl">Total Documents</span>
+        </div>
+
+        <div class="vp-card stat-box" (click)="filterByStatus('VERIFIED')">
+          <span class="stat-num text-green">{{ verifiedDocsCount }}</span>
+          <span class="stat-lbl">Verified</span>
+        </div>
+
+        <div class="vp-card stat-box" (click)="filterByStatus('EXPIRING')">
+          <span class="stat-num text-amber">{{ expiringDocsCount }}</span>
+          <span class="stat-lbl">Expiring Soon</span>
+        </div>
+
+        <div class="vp-card stat-box" (click)="filterByStatus('ACTION_REQUIRED')">
+          <span class="stat-num text-red">{{ actionNeededDocsCount }}</span>
+          <span class="stat-lbl">Action Needed</span>
+        </div>
+      </div>
+
+      <!-- CATEGORY NAVIGATION PILLS -->
+      <div class="category-nav-bar">
+        <button
+          *ngFor="let cat of categories"
+          class="cat-pill"
+          [class.active]="selectedCategory() === cat"
+          (click)="selectedCategory.set(cat)">
+          {{ cat }}
+        </button>
+      </div>
+
+      <!-- CREDENTIALS TABLE -->
+      <div class="vp-card table-card">
+        <div class="table-responsive">
+          <table class="credentials-table">
+            <thead>
+              <tr>
+                <th>Credential</th>
+                <th>Status</th>
+                <th>Issued</th>
+                <th>Expires</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let cred of filteredCredentials()" (click)="selectCredential(cred)">
+                <td>
+                  <div class="cred-cell">
+                    <span class="file-glyph">📄</span>
+                    <div>
+                      <strong class="cred-title">{{ cred.name }}</strong>
+                      <span class="cred-id font-mono">{{ cred.identifier }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="vp-badge" [ngClass]="{
+                    'badge-verified': cred.status === 'VERIFIED',
+                    'badge-warning': cred.status === 'EXPIRING',
+                    'badge-danger': cred.status === 'ACTION_REQUIRED'
+                  }">
+                    {{ cred.status === 'VERIFIED' ? '✓ Verified' : (cred.status === 'EXPIRING' ? '⚠ Expiring' : '⚠ Action Needed') }}
+                  </span>
+                </td>
+                <td class="font-mono text-gray">{{ cred.issued }}</td>
+                <td class="font-mono" [class.text-amber]="cred.status === 'EXPIRING'">
+                  {{ cred.expires }}
+                </td>
+                <td class="text-right" (click)="$event.stopPropagation()">
+                  <button class="btn btn-secondary btn-sm btn-details" (click)="selectCredential(cred)">
+                    <span>Details</span>
+                    <svg viewBox="0 0 20 20" fill="currentColor" class="arrow-glyph"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="filteredCredentials().length === 0">
+                <td colspan="5" style="text-align: center; padding: 2.5rem 1rem; color: #64748b;">
+                  No documents found matching the selected category.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- REDESIGNED CREDENTIAL DETAIL WINDOW -->
+      <div class="modal-backdrop" *ngIf="selectedCred()" (click)="selectedCred.set(null)">
+        <div 
+          class="credential-modal" 
+          [class.status-verified]="selectedCred()?.status === 'VERIFIED'"
+          [class.status-expiring]="selectedCred()?.status === 'EXPIRING'"
+          [class.status-action]="selectedCred()?.status === 'ACTION_REQUIRED'"
+          (click)="$event.stopPropagation()">
+          
+          <!-- Top Accent Line -->
+          <div class="modal-top-accent"></div>
+
+          <!-- Modal Header -->
+          <div class="modal-header">
+            <div class="header-left-col">
+              <div class="badge-row">
+                <span class="category-tag">{{ selectedCred()?.category }} EVIDENCE</span>
+                <span class="status-badge" [ngClass]="{
+                  'badge-verified': selectedCred()?.status === 'VERIFIED',
+                  'badge-expiring': selectedCred()?.status === 'EXPIRING',
+                  'badge-action': selectedCred()?.status === 'ACTION_REQUIRED'
+                }">
+                  <span class="status-dot"></span>
+                  {{ selectedCred()?.status === 'VERIFIED' ? 'Verified on Sovereign Rails' : (selectedCred()?.status === 'EXPIRING' ? 'Expiring Soon (Renewal Required)' : 'Action Required / Incomplete') }}
+                </span>
+              </div>
+              <h2 class="modal-title">{{ selectedCred()?.name }}</h2>
+              <span class="modal-sub">Cryptographically signed registry credential registered on Veripass network</span>
+            </div>
+
+            <button class="close-btn" (click)="selectedCred.set(null)" title="Close Window (Esc)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Navigation Sub-tabs inside modal -->
+          <div class="modal-tab-bar">
+            <button 
+              class="modal-tab-btn" 
+              [class.active]="activeModalTab() === 'overview'" 
+              (click)="activeModalTab.set('overview')">
+              <svg viewBox="0 0 20 20" fill="currentColor" class="tab-icon"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+              <span>Overview & Metadata</span>
+            </button>
+            <button 
+              class="modal-tab-btn" 
+              [class.active]="activeModalTab() === 'audit'" 
+              (click)="activeModalTab.set('audit')">
+              <svg viewBox="0 0 20 20" fill="currentColor" class="tab-icon"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+              <span>Sovereign Audit Trail</span>
+            </button>
+          </div>
+
+          <!-- MODAL BODY -->
+          <div class="modal-body-scrollable">
+            <!-- TAB 1: OVERVIEW -->
+            <div *ngIf="activeModalTab() === 'overview'" class="tab-view-fade">
+              <!-- Registry Authority Info Card -->
+              <div class="authority-banner">
+                <div class="authority-left">
+                  <div class="authority-icon">🏛</div>
+                  <div>
+                    <span class="auth-label">ISSUING AUTHORITY / REGISTRY</span>
+                    <strong class="auth-source">{{ selectedCred()?.source }}</strong>
+                  </div>
+                </div>
+                <div class="chain-badge">
+                  <span class="chain-dot"></span>
+                  <span>SHA-256 Validated</span>
+                </div>
+              </div>
+
+              <!-- 2x3 Grid of Clean Attribute Cards -->
+              <div class="attr-grid">
+                <!-- 1. Identifier with 1-click Copy -->
+                <div class="attr-card highlight">
+                  <div class="attr-top-row">
+                    <span class="attr-label">Credential Identifier</span>
+                    <button class="btn-copy" (click)="copyIdentifier(selectedCred()?.identifier || '')" [title]="copiedId() ? 'Copied!' : 'Copy to clipboard'">
+                      <span *ngIf="copiedId()" class="copied-indicator">✓ Copied</span>
+                      <svg *ngIf="!copiedId()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="copy-icon">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                      </svg>
+                    </button>
+                  </div>
+                  <strong class="attr-val font-mono">{{ selectedCred()?.identifier }}</strong>
+                </div>
+
+                <!-- 2. Legal Entity Name -->
+                <div class="attr-card">
+                  <span class="attr-label">Legal Entity Holder</span>
+                  <strong class="attr-val">{{ companyName }}</strong>
+                </div>
+
+                <!-- 3. Issue Date -->
+                <div class="attr-card">
+                  <span class="attr-label">Date of Issue</span>
+                  <div class="val-with-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="val-icon">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <strong class="attr-val">{{ selectedCred()?.issued }}</strong>
+                  </div>
+                </div>
+
+                <!-- 4. Expiration Date -->
+                <div class="attr-card" [class.expiring-card]="selectedCred()?.status === 'EXPIRING'">
+                  <span class="attr-label">Expiration Schedule</span>
+                  <div class="val-with-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="val-icon" [class.text-amber]="selectedCred()?.status === 'EXPIRING'">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <strong class="attr-val" [class.text-amber]="selectedCred()?.status === 'EXPIRING'">
+                      {{ selectedCred()?.expires === '—' ? 'Perpetual / Non-Expiring' : selectedCred()?.expires }}
+                    </strong>
+                  </div>
+                </div>
+
+                <!-- 5. Reconciliation Status -->
+                <div class="attr-card">
+                  <span class="attr-label">Reconciliation Check</span>
+                  <strong class="attr-val text-green">Real-time Verified</strong>
+                </div>
+
+                <!-- 6. Passport Inclusion -->
+                <div class="attr-card">
+                  <span class="attr-label">Business Passport Status</span>
+                  <strong class="attr-val text-blue">Publicly Disclosed</strong>
+                </div>
+              </div>
+
+              <!-- Evidence Attachment Card with Working Actions -->
+              <div class="evidence-box">
+                <div class="evidence-left">
+                  <div class="pdf-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="pdf-svg">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                      <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                  </div>
+                  <div class="pdf-meta">
+                    <strong class="pdf-name">{{ selectedCred()?.fileName }}</strong>
+                    <span class="pdf-info">Signed PDF Evidence • 1.4 MB • Tamper-proof digest validated</span>
+                  </div>
+                </div>
+                <div class="evidence-actions">
+                  <button class="btn btn-outline btn-sm btn-icon-label" (click)="viewDocument()" title="Preview Authenticated Document">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <span>View Document</span>
+                  </button>
+                  <button class="btn btn-secondary btn-sm btn-icon-label" (click)="downloadDocument()" title="Download Official Evidence File">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span>Download</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 2: AUDIT TRAIL -->
+            <div *ngIf="activeModalTab() === 'audit'" class="tab-view-fade">
+              <div class="audit-timeline">
+                <div class="audit-step done">
+                  <div class="step-dot">✓</div>
+                  <div class="step-info">
+                    <strong>Document Uploaded & Scanned</strong>
+                    <span>Uploaded by organization admin. SHA-256 integrity digest computed and virus scan passed.</span>
+                    <span class="audit-time">12 Apr 2018, 09:15 IST</span>
+                  </div>
+                </div>
+
+                <div class="audit-step done">
+                  <div class="step-dot">✓</div>
+                  <div class="step-info">
+                    <strong>Automated OCR Extraction & Normalization</strong>
+                    <span>Document intelligence identified statutory fields: entity name, registration number, state jurisdictional code.</span>
+                    <span class="audit-time">12 Apr 2018, 09:16 IST</span>
+                  </div>
+                </div>
+
+                <div class="audit-step done">
+                  <div class="step-dot">✓</div>
+                  <div class="step-info">
+                    <strong>Registry Reconciliation against {{ selectedCred()?.source }}</strong>
+                    <span>Matched 100% against sovereign official government database. Status confirmed ACTIVE.</span>
+                    <span class="audit-time">Latest reconciliation: 04 Sep 2026</span>
+                  </div>
+                </div>
+
+                <div class="audit-step done">
+                  <div class="step-dot">✓</div>
+                  <div class="step-info">
+                    <strong>Cryptographically Embedded into Business Passport</strong>
+                    <span>Tokenized on Veripass verification ledger for instant zero-knowledge sharing with buyers.</span>
+                    <span class="audit-time">Active & Verified</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- MODAL FOOTER -->
+          <div class="modal-footer">
+            <a routerLink="/supplier/history" class="footer-history-link" (click)="selectedCred.set(null)">
+              <span>View Full Organization Audit History &rarr;</span>
+            </a>
+
+            <div class="footer-btn-group">
+              <button class="btn btn-secondary btn-sm" (click)="exportSummary()" title="Export official compliance audit report (PDF)">Export Summary (PDF)</button>
+              <button class="btn btn-primary btn-sm" (click)="selectedCred.set(null)">Done</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FULL DOCUMENT PREVIEW VIEWER MODAL -->
+      <div class="preview-backdrop" *ngIf="docPreviewModal()" (click)="closeDocPreview()">
+        <div class="preview-modal-card" (click)="$event.stopPropagation()">
+          <!-- Preview Toolbar -->
+          <div class="preview-toolbar">
+            <div class="toolbar-left">
+              <span class="preview-glyph">📜</span>
+              <div class="preview-title-block">
+                <span class="p-filename">{{ selectedCred()?.fileName }}</span>
+                <span class="p-type">{{ selectedCred()?.name }} &bull; Authenticated Evidence</span>
+              </div>
+            </div>
+
+            <div class="toolbar-actions">
+              <div class="zoom-controls">
+                <button class="btn-zoom" (click)="zoomOut()" title="Zoom Out">-</button>
+                <span class="zoom-value">{{ (previewZoom() * 100).toFixed(0) }}%</span>
+                <button class="btn-zoom" (click)="zoomIn()" title="Zoom In">+</button>
+                <button class="btn-zoom reset" (click)="resetZoom()" title="Reset Zoom">↺</button>
+              </div>
+
+              <button class="btn btn-outline btn-sm btn-icon-label" (click)="openInNewTab()" title="Open PDF in a new tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+                <span>Open in Tab</span>
+              </button>
+
+              <button class="btn btn-outline btn-sm btn-icon-label" (click)="printCertificate()" title="Print Certificate">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                <span>Print</span>
+              </button>
+
+              <button class="btn btn-secondary btn-sm btn-icon-label" (click)="downloadDocument()" title="Download Official PDF Certificate">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>Download PDF</span>
+              </button>
+
+              <button class="btn-close-preview" (click)="closeDocPreview()" title="Close Viewer">✕</button>
+            </div>
+          </div>
+
+          <!-- Document Canvas Container -->
+          <div class="preview-scroll-viewport">
+            <div class="certificate-paper" [style.transform]="'scale(' + previewZoom() + ')'">
+              <!-- Watermark -->
+              <div class="cert-watermark">VERIPASS AUTHENTICATED</div>
+
+              <!-- Certificate Header -->
+              <div class="cert-header">
+                <div class="national-emblem">🏛️</div>
+                <div class="cert-govt-heading">
+                  <h3>GOVERNMENT OF INDIA</h3>
+                  <h4>{{ selectedCred()?.source?.toUpperCase() }}</h4>
+                  <div class="cert-form-title">{{ selectedCred()?.name }}</div>
+                  <span class="cert-form-subtitle">REGISTRATION & COMPLIANCE CERTIFICATE</span>
+                </div>
+                <div class="security-badge-seal">
+                  <span class="seal-icon">🛡️</span>
+                  <span>OFFICIAL RECORD</span>
+                </div>
+              </div>
+
+              <!-- Certificate Body Fields -->
+              <div class="cert-body">
+                <div class="cert-section-label">STATUTORY REGISTRATION PARTICULARS</div>
+
+                <div class="cert-table">
+                  <div class="cert-row">
+                    <span class="c-key">Registration / Credential ID</span>
+                    <span class="c-val font-mono highlight">{{ selectedCred()?.identifier }}</span>
+                  </div>
+
+                  <div class="cert-row">
+                    <span class="c-key">Legal Entity Name</span>
+                    <span class="c-val font-bold">{{ companyName }}</span>
+                  </div>
+
+                  <div class="cert-row">
+                    <span class="c-key">Classification / Category</span>
+                    <span class="c-val">{{ selectedCred()?.category }} Specification</span>
+                  </div>
+
+                  <div class="cert-row">
+                    <span class="c-key">Principal Operating Address</span>
+                    <span class="c-val">{{ principalAddress }}</span>
+                  </div>
+
+                  <div class="cert-row">
+                    <span class="c-key">Date of Issue / Liability</span>
+                    <span class="c-val">{{ selectedCred()?.issued }}</span>
+                  </div>
+
+                  <div class="cert-row">
+                    <span class="c-key">Period of Validity</span>
+                    <span class="c-val">{{ selectedCred()?.expires === '—' ? 'Continuous (Perpetual subject to regulatory maintenance)' : selectedCred()?.expires }}</span>
+                  </div>
+
+                  <div class="cert-row">
+                    <span class="c-key">Verification Authority</span>
+                    <span class="c-val">{{ selectedCred()?.source }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Security Signatures & Stamp -->
+              <div class="cert-footer-security">
+                <div class="qr-stamp-box">
+                  <div class="mock-qr-code">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="qr-svg">
+                      <rect x="2" y="2" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/>
+                      <rect x="15" y="2" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/>
+                      <rect x="2" y="15" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/>
+                      <rect x="4" y="4" width="3" height="3"/>
+                      <rect x="17" y="4" width="3" height="3"/>
+                      <rect x="4" y="17" width="3" height="3"/>
+                      <rect x="11" y="4" width="2" height="2"/>
+                      <rect x="11" y="8" width="2" height="2"/>
+                      <rect x="8" y="11" width="2" height="2"/>
+                      <rect x="14" y="11" width="2" height="2"/>
+                      <rect x="11" y="14" width="2" height="2"/>
+                      <rect x="14" y="17" width="4" height="2"/>
+                      <rect x="17" y="14" width="2" height="4"/>
+                    </svg>
+                  </div>
+                  <div class="qr-stamp-meta">
+                    <strong>Scan to Authenticate</strong>
+                    <span>Verified on veripass.in</span>
+                  </div>
+                </div>
+
+                <div class="signature-stamp-box">
+                  <span class="stamp-verified-label">✓ DIGITALLY SIGNED</span>
+                  <div class="stamp-cert-meta">
+                    <span>Authorized by Veripass India Compliance Gateway</span>
+                    <span class="font-mono text-muted">Digest: SHA-256 e3b0c44298fc1c14...</span>
+                    <span class="font-mono text-muted">Timestamp: 2026-09-26T10:30:00Z</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====================================================================
+           MODAL 3: ADD CREDENTIAL MODAL
+           ==================================================================== -->
+      <div class="drawer-backdrop" *ngIf="showAddCredentialModal()" (click)="closeAddCredentialModal()">
+        <div class="add-credential-modal vp-card" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <div>
+              <span class="view-tag">REGULATORY EVIDENCE</span>
+              <h2 class="modal-title">Add Business Credential</h2>
+              <p class="modal-sub">Upload statutory registrations, certificates, and compliance permits to your sovereign vault.</p>
+            </div>
+            <button class="btn-close-drawer" (click)="closeAddCredentialModal()" [disabled]="isSubmittingCredential()" title="Close" aria-label="Close modal">✕</button>
+          </div>
+
+          <div class="modal-body-scrollable">
+            <!-- Error Banner -->
+            <div class="error-alert-banner" *ngIf="addCredentialError()">
+              <span class="error-alert-icon">⚠</span>
+              <span>{{ addCredentialError() }}</span>
+            </div>
+
+            <div class="form-group mb-4">
+              <label class="form-label">Document / Credential Type *</label>
+              <select class="vp-select" [ngModel]="newCredType()" (ngModelChange)="newCredType.set($event)">
+                <option value="GST_REGISTRATION">Goods & Services Tax (GSTIN Registration Certificate)</option>
+                <option value="PAN_CARD">Corporate PAN Card Document</option>
+                <option value="MCA_INC_CERTIFICATE">MCA Certificate of Incorporation (Form INC-11)</option>
+                <option value="MSME_UDYAM">MSME Udyam Registration Certificate</option>
+                <option value="BANK_CHEQUE">Bank Cancelled Cheque / Account Verification Proof</option>
+                <option value="ISO_CERTIFICATE">ISO Quality Certification (e.g. ISO 9001:2015)</option>
+                <option value="FACTORY_LICENSE">Factory & Industrial Operating License</option>
+                <option value="POLLUTION_NOC">State Pollution Control Board NOC</option>
+                <option value="OTHER_COMPLIANCE">Other Regulatory Compliance Certificate</option>
+              </select>
+            </div>
+
+            <div class="form-group mb-4">
+              <label class="form-label">Credential Title / Name *</label>
+              <input
+                type="text"
+                class="vp-input"
+                placeholder="e.g. GST Registration Certificate — Haryana"
+                [ngModel]="newCredName()"
+                (ngModelChange)="newCredName.set($event)"
+                required />
+            </div>
+
+            <div class="form-row-2 mb-4">
+              <div class="form-group">
+                <label class="form-label">Credential / Identifier Number</label>
+                <input
+                  type="text"
+                  class="vp-input font-mono"
+                  placeholder="e.g. 06AAAAA0000A1Z5"
+                  [ngModel]="newCredNumber()"
+                  (ngModelChange)="newCredNumber.set($event)" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Issuing Authority</label>
+                <input
+                  type="text"
+                  class="vp-input"
+                  placeholder="e.g. Ministry of Corporate Affairs / CBIC"
+                  [ngModel]="newCredIssuer()"
+                  (ngModelChange)="newCredIssuer.set($event)" />
+              </div>
+            </div>
+
+            <!-- Drag & Drop File Zone -->
+            <div class="form-group mb-4">
+              <label class="form-label">Evidence Document File (PDF, PNG, JPG — Max 10MB) *</label>
+              <div class="file-dropzone" (dragover)="$event.preventDefault()" (drop)="onCredentialFileDropped($event)">
+                <div class="drop-icon">📁</div>
+                <strong class="drop-title" *ngIf="!newCredFileName()">Drag & drop your credential document here</strong>
+                <strong class="drop-title text-green" *ngIf="newCredFileName()">Selected: {{ newCredFileName() }}</strong>
+                <span class="drop-hint">Allowed file formats: PDF, PNG, JPEG &bull; Maximum file size: 10 MB</span>
+                <label class="btn btn-outline btn-sm btn-browse mt-2">
+                  Browse File
+                  <input type="file" id="credFileInput" (change)="onCredentialFileSelected($event)" accept=".pdf,image/png,image/jpeg,image/jpg" hidden />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-secondary btn-sm" (click)="closeAddCredentialModal()" [disabled]="isSubmittingCredential()">
+              Cancel
+            </button>
+            <button
+              class="btn btn-primary btn-sm"
+              (click)="submitNewCredential()"
+              [disabled]="isSubmittingCredential() || !newCredFile() || !newCredName().trim()">
+              <span *ngIf="isSubmittingCredential()" class="spinner-inline">⏳</span>
+              <span>{{ isSubmittingCredential() ? 'Uploading & Registering...' : 'Upload & Register Credential' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>

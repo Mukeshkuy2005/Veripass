@@ -1,0 +1,131 @@
+    <div class="register-page">
+      <div class="register-card">
+        <div class="form-header">
+          <div class="icon-badge">🏢</div>
+          <h2>Join as Enterprise Buyer</h2>
+          <p class="form-sub">Automate vendor compliance, eliminate PDF chasing, and protect input tax credits.</p>
+        </div>
+
+        <div *ngIf="errorMessage()" class="alert-banner alert-danger">
+          {{ errorMessage() }}
+        </div>
+
+        <form (ngSubmit)="onSubmit()" class="register-form">
+          <div class="form-group">
+            <label class="form-label">Enterprise / Company Name *</label>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="e.g. Mahindra & Mahindra Ltd"
+              [(ngModel)]="form.companyName"
+              name="companyName"
+              required />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="form-label">Corporate GSTIN *</label>
+              <input
+                type="text"
+                class="form-control uppercase"
+                maxlength="15"
+                placeholder="27AAACM1234F1Z9"
+                [(ngModel)]="form.gstin"
+                name="gstin"
+                required />
+            </div>
+            <div class="form-group flex-1">
+              <label class="form-label">Industry Sector *</label>
+              <select class="form-control" [(ngModel)]="form.industry" name="industry">
+                <option value="Automotive & Mobility">Automotive & Mobility</option>
+                <option value="Heavy Manufacturing">Heavy Manufacturing</option>
+                <option value="Pharmaceuticals & Healthcare">Pharmaceuticals & Healthcare</option>
+                <option value="FMCG & Retail">FMCG & Retail</option>
+                <option value="Infrastructure & EPC">Infrastructure & EPC</option>
+                <option value="Defense & Aerospace">Defense & Aerospace</option>
+                <option value="Banking & NBFC">Banking & NBFC</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="form-label">Annual Procurement Spend</label>
+              <select class="form-control" [(ngModel)]="form.spendTier" name="spendTier">
+                <option value="10-50cr">₹10 Cr - ₹50 Cr</option>
+                <option value="50-250cr">₹50 Cr - ₹250 Cr</option>
+                <option value="250-1000cr">₹250 Cr - ₹1,000 Cr</option>
+                <option value="1000cr+">₹1,000 Cr+ (Tier 1 Enterprise)</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label class="form-label">Active Vendor Count</label>
+              <select class="form-control" [(ngModel)]="form.vendorCount" name="vendorCount">
+                <option value="50-200">50 - 200 Vendors</option>
+                <option value="200-1000">200 - 1,000 Vendors</option>
+                <option value="1000+">1,000+ Vendors</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-section-title">Procurement Lead Credentials</div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="form-label">Lead Name *</label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="e.g. Ananya Deshmukh"
+                [(ngModel)]="form.fullName"
+                name="fullName"
+                required />
+            </div>
+            <div class="form-group flex-1">
+              <label class="form-label">Corporate Email *</label>
+              <input
+                type="email"
+                class="form-control"
+                placeholder="ananya.deshmukh@mahindra.com"
+                [(ngModel)]="form.email"
+                name="email"
+                required />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="form-label">Password *</label>
+              <input
+                type="password"
+                class="form-control"
+                placeholder="Minimum 8 characters"
+                [(ngModel)]="form.password"
+                name="password"
+                required />
+            </div>
+            <div class="form-group flex-1">
+              <label class="form-label">Work Phone *</label>
+              <input
+                type="tel"
+                maxlength="10"
+                class="form-control"
+                placeholder="9823011223"
+                [(ngModel)]="form.phone"
+                name="phone"
+                required />
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" [disabled]="submitting()">
+            <span *ngIf="!submitting()">Activate Buyer Procurement Portal &rarr;</span>
+            <span *ngIf="submitting()">Configuring Enterprise Space...</span>
+          </button>
+        </form>
+
+        <div class="form-footer">
+          <span>Already registered?</span>
+          <a routerLink="/auth/login">Sign in</a>
+        </div>
+      </div>
+    </div>

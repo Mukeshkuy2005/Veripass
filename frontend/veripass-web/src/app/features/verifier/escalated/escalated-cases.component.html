@@ -1,0 +1,571 @@
+<div class="escalated-queue-container" role="main">
+  <!-- 1. Header -->
+  <header class="queue-header">
+    <div class="header-titles">
+      <h1 class="page-title">Escalated Cases</h1>
+      <p class="page-subtitle">Cases that need additional review.</p>
+    </div>
+    <div class="header-actions">
+      <span class="last-updated" *ngIf="lastUpdatedIst() !== '—'">
+        Last updated {{ lastUpdatedIst() }}
+      </span>
+      <button 
+        type="button" 
+        class="btn-refresh" 
+        (click)="loadEscalatedCases()" 
+        [disabled]="loading()"
+        aria-label="Refresh escalated cases queue">
+        <svg class="icon-refresh" [class.spinning]="loading()" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+        <span>Refresh</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 2. Queue Summary -->
+  <section class="queue-summary-bar" aria-label="Queue summary counts">
+    <div class="summary-headline">
+      <span class="summary-count font-mono">{{ summary().totalCount }}</span>
+      <span class="summary-label">{{ summary().totalCount === 1 ? 'case needs review' : 'cases need review' }}</span>
+    </div>
+    <div class="summary-metrics">
+      <div class="metric-item">
+        <span class="metric-key">All</span>
+        <span class="metric-val font-mono">{{ summary().totalCount }}</span>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="metric-key">Assigned</span>
+        <span class="metric-val font-mono">{{ summary().assignedCount }}</span>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="metric-key">Unassigned</span>
+        <span class="metric-val font-mono">{{ summary().unassignedCount }}</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Main Tabs -->
+  <nav class="queue-tabs" aria-label="Escalated cases views">
+    <button 
+      type="button" 
+      class="tab-btn" 
+      [class.active]="selectedTab() === 'all'" 
+      (click)="setTab('all')"
+      aria-selected="true">
+      All ({{ summary().totalCount }})
+    </button>
+    <button 
+      type="button" 
+      class="tab-btn" 
+      [class.active]="selectedTab() === 'mine'" 
+      (click)="setTab('mine')">
+      Assigned to Me ({{ summary().assignedCount }})
+    </button>
+    <button 
+      type="button" 
+      class="tab-btn" 
+      [class.active]="selectedTab() === 'unassigned'" 
+      (click)="setTab('unassigned')">
+      Unassigned ({{ summary().unassignedCount }})
+    </button>
+  </nav>
+
+  <!-- 4. Filter Bar -->
+  <section class="filter-toolbar" aria-label="Queue filters">
+    <div class="filter-field filter-search">
+      <label for="queue-search" class="sr-only">Search</label>
+      <div class="search-input-wrap">
+        <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input 
+          id="queue-search"
+          type="text" 
+          placeholder="Search Case ID, business name, GSTIN..."
+          [ngModel]="searchQuery()" 
+          (ngModelChange)="searchQuery.set($event)"
+          (keydown.enter)="applyFilters()">
+      </div>
+    </div>
+
+    <div class="filter-field">
+      <label for="filter-priority" class="filter-lbl">Priority</label>
+      <select 
+        id="filter-priority" 
+        [ngModel]="priorityFilter()" 
+        (ngModelChange)="priorityFilter.set($event); applyFilters()">
+        <option value="ALL">All Priorities</option>
+        <option value="HIGH">High</option>
+        <option value="NORMAL">Normal / Medium</option>
+        <option value="LOW">Low</option>
+        <option value="URGENT">Urgent</option>
+      </select>
+    </div>
+
+    <div class="filter-field">
+      <label for="filter-reason" class="filter-lbl">Reason</label>
+      <select 
+        id="filter-reason" 
+        [ngModel]="reasonFilter()" 
+        (ngModelChange)="reasonFilter.set($event); applyFilters()">
+        <option value="ALL">All Reasons</option>
+        <option value="Conflicting">Conflicting Information</option>
+        <option value="Evidence">Evidence Unclear</option>
+        <option value="Risk">High Risk</option>
+        <option value="Mismatch">Data Mismatch</option>
+        <option value="Manual">Manual Review Required</option>
+      </select>
+    </div>
+
+    <div class="filter-field">
+      <label for="filter-date" class="filter-lbl">Date</label>
+      <select 
+        id="filter-date" 
+        [ngModel]="dateRangeFilter()" 
+        (ngModelChange)="dateRangeFilter.set($event); applyFilters()">
+        <option value="ALL">All Time</option>
+        <option value="TODAY">Today</option>
+        <option value="7DAYS">Last 7 days</option>
+        <option value="30DAYS">Last 30 days</option>
+      </select>
+    </div>
+
+    <div class="filter-actions">
+      <button type="button" class="btn-filter-apply" (click)="applyFilters()">Apply</button>
+      <button type="button" class="btn-filter-reset" (click)="resetFilters()">Reset</button>
+    </div>
+  </section>
+
+  <!-- 5. Error State -->
+  <div *ngIf="error()" class="error-banner" role="alert">
+    <div class="error-content">
+      <strong>Could not load escalated cases.</strong>
+      <p>{{ error() }}</p>
+    </div>
+    <button type="button" class="btn-retry" (click)="loadEscalatedCases()">Try Again</button>
+  </div>
+
+  <!-- 6. Main Enterprise Table -->
+  <div class="table-container">
+    <table class="enterprise-table" aria-label="Escalated cases queue table">
+      <thead>
+        <tr>
+          <th scope="col" class="th-case">CASE</th>
+          <th scope="col" class="th-biz">BUSINESS</th>
+          <th scope="col" class="th-reason">REASON</th>
+          <th scope="col" class="th-priority">PRIORITY</th>
+          <th scope="col" class="th-time">ESCALATED</th>
+          <th scope="col" class="th-assigned">ASSIGNED TO</th>
+          <th scope="col" class="th-status">STATUS</th>
+          <th scope="col" class="th-action text-right">ACTION</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Loading State Skeleton -->
+        <tr *ngIf="loading()">
+          <td colspan="8" class="loading-cell">
+            <div class="skeleton-row">
+              <span class="spinner"></span>
+              <span>Loading escalated cases from compliance registry...</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Empty State -->
+        <tr *ngIf="!loading() && items().length === 0">
+          <td colspan="8" class="empty-cell">
+            <div class="empty-state-wrap">
+              <div class="empty-title">
+                <ng-container *ngIf="selectedTab() === 'mine'">No cases assigned to you</ng-container>
+                <ng-container *ngIf="selectedTab() === 'unassigned'">No unassigned cases</ng-container>
+                <ng-container *ngIf="selectedTab() === 'all'">No escalated cases</ng-container>
+              </div>
+              <p class="empty-sub">There are no verification cases currently waiting for senior review in this view.</p>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Data Rows -->
+        <tr 
+          *ngFor="let item of items()" 
+          class="queue-row" 
+          [class.active-row]="selectedCaseId() === item.caseId"
+          (click)="openDrawer(item)">
+          <!-- CASE Column -->
+          <td class="td-case">
+            <a 
+              [routerLink]="['/verifier/cases', item.caseId]" 
+              class="case-link font-mono font-semibold"
+              (click)="$event.stopPropagation()"
+              title="Open authoritative workstation">
+              {{ item.caseId }}
+            </a>
+          </td>
+
+          <!-- BUSINESS Column -->
+          <td class="td-biz">
+            <div class="biz-legal-name">{{ item.businessName }}</div>
+            <div class="biz-identifier font-mono" *ngIf="item.gstin || item.pan || item.businessIdNumber">
+              {{ item.gstin || item.pan || item.businessIdNumber }}
+            </div>
+          </td>
+
+          <!-- REASON Column -->
+          <td class="td-reason">
+            <div class="reason-text" [title]="item.escalationReason">
+              {{ item.escalationReason }}
+            </div>
+          </td>
+
+          <!-- PRIORITY Column -->
+          <td class="td-priority">
+            <span class="priority-pill" [ngClass]="item.priority.toLowerCase()">
+              {{ item.priority }}
+            </span>
+          </td>
+
+          <!-- ESCALATED Column -->
+          <td class="td-time">
+            <div class="time-primary font-mono">{{ formatIst(item.escalatedAtUtc) }}</div>
+            <div class="time-relative">{{ formatRelative(item.escalatedAtUtc) }}</div>
+          </td>
+
+          <!-- ASSIGNED TO Column -->
+          <td class="td-assigned">
+            <span *ngIf="item.assignedVerifierName" class="assigned-user">
+              {{ item.assignedVerifierName }}
+            </span>
+            <span *ngIf="!item.assignedVerifierName" class="unassigned-badge">
+              Unassigned
+            </span>
+          </td>
+
+          <!-- STATUS Column -->
+          <td class="td-status">
+            <span class="status-badge-escalated">
+              Escalated
+            </span>
+          </td>
+
+          <!-- ACTION Column -->
+          <td class="td-action text-right" (click)="$event.stopPropagation()">
+            <div class="action-btn-group">
+              <button 
+                type="button" 
+                class="btn-row-open" 
+                (click)="openDrawer(item)"
+                title="View escalation details">
+                Review
+              </button>
+              <button 
+                *ngIf="!item.assignedVerifierId" 
+                type="button" 
+                class="btn-row-claim" 
+                (click)="claimCase(item)"
+                title="Claim custody of this case">
+                Claim
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 7. Pagination Footer -->
+  <footer class="pagination-footer" *ngIf="!loading() && items().length > 0">
+    <div class="pagination-info">
+      Showing <strong>{{ (page() - 1) * pageSize() + 1 }}</strong> to <strong>{{ (page() - 1) * pageSize() + items().length }}</strong> of <strong>{{ totalCount() }}</strong> escalated cases
+    </div>
+    <div class="pagination-controls" aria-label="Pagination">
+      <button 
+        type="button" 
+        class="btn-page-nav" 
+        [disabled]="page() <= 1"
+        (click)="onPageChange(page() - 1)">
+        Previous
+      </button>
+      <span class="page-current font-mono">
+        Page {{ page() }} of {{ totalPages() }}
+      </span>
+      <button 
+        type="button" 
+        class="btn-page-nav" 
+        [disabled]="page() >= totalPages()"
+        (click)="onPageChange(page() + 1)">
+        Next
+      </button>
+    </div>
+  </footer>
+
+  <!-- 8. Right-Side Detail Drawer -->
+  <aside 
+    class="detail-drawer" 
+    [class.open]="drawerOpen()" 
+    role="dialog" 
+    aria-modal="true" 
+    [attr.aria-hidden]="!drawerOpen()"
+    aria-label="Escalation detail inspection">
+    <div class="drawer-header">
+      <div class="drawer-title-wrap">
+        <span class="drawer-tag">Escalation Review</span>
+        <h2 class="drawer-case-id font-mono">{{ selectedCaseId() }}</h2>
+      </div>
+      <button 
+        type="button" 
+        class="btn-drawer-close" 
+        (click)="closeDrawer()" 
+        aria-label="Close drawer">
+        &times;
+      </button>
+    </div>
+
+    <!-- Drawer Feedback Banners -->
+    <div *ngIf="actionSuccessMessage()" class="drawer-banner-success">
+      {{ actionSuccessMessage() }}
+    </div>
+    <div *ngIf="actionErrorMessage()" class="drawer-banner-error">
+      {{ actionErrorMessage() }}
+    </div>
+
+    <!-- Drawer Body Loading -->
+    <div *ngIf="detailLoading()" class="drawer-loading">
+      <span class="spinner"></span>
+      <span>Loading case details...</span>
+    </div>
+
+    <!-- Drawer Body Error -->
+    <div *ngIf="detailError() && !detailLoading()" class="drawer-error">
+      <p>{{ detailError() }}</p>
+      <button type="button" class="btn-retry" (click)="retryDetail()">Retry</button>
+    </div>
+
+    <!-- Drawer Content -->
+    <div *ngIf="caseDetail() && !detailLoading()" class="drawer-content">
+      <!-- Section A: Overview Grid -->
+      <section class="drawer-section">
+        <div class="drawer-meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Business</span>
+            <span class="meta-value font-semibold">{{ caseDetail()?.businessName }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Identifier</span>
+            <span class="meta-value font-mono">{{ caseDetail()?.gstin || caseDetail()?.pan || caseDetail()?.businessIdNumber || '—' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Verification</span>
+            <span class="meta-value">{{ caseDetail()?.verificationType }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Priority</span>
+            <span class="meta-value">
+              <span class="priority-pill" [ngClass]="caseDetail()?.priority?.toLowerCase()">
+                {{ caseDetail()?.priority }}
+              </span>
+            </span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Escalated</span>
+            <span class="meta-value font-mono">{{ formatIst(caseDetail()?.escalatedAtUtc) }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Escalated by</span>
+            <span class="meta-value">{{ caseDetail()?.escalatedByName || 'Rahul Sharma' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Assigned to</span>
+            <span class="meta-value font-semibold">{{ caseDetail()?.assignedVerifierName || 'Unassigned' }}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section B: Why it was escalated -->
+      <section class="drawer-section">
+        <h3 class="section-title">Why it was escalated</h3>
+        <div class="escalation-reason-box">
+          <p class="reason-content">{{ caseDetail()?.escalationReason }}</p>
+        </div>
+      </section>
+
+      <!-- Section C: Evidence examined -->
+      <section class="drawer-section">
+        <div class="section-header-row">
+          <h3 class="section-title">Evidence</h3>
+          <span class="section-count font-mono">{{ caseDetail()?.evidences?.length || 0 }} documents</span>
+        </div>
+        <ul class="evidence-list" *ngIf="caseDetail()?.evidences && caseDetail()!.evidences.length > 0">
+          <li *ngFor="let ev of caseDetail()?.evidences" class="evidence-item">
+            <div class="evidence-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+            </div>
+            <div class="evidence-info">
+              <div class="evidence-name">{{ ev.fileName }}</div>
+              <div class="evidence-type font-mono">{{ ev.documentType }} · {{ ev.status }}</div>
+            </div>
+            <a 
+              [routerLink]="['/verifier/cases', caseDetail()?.caseId, 'document']" 
+              class="btn-inspect-doc" 
+              title="Inspect in V4 Document Review">
+              Inspect
+            </a>
+          </li>
+        </ul>
+        <div *ngIf="!caseDetail()?.evidences || caseDetail()!.evidences.length === 0" class="muted-note">
+          No attached evidence files recorded for this case.
+        </div>
+      </section>
+
+      <!-- Section D: Risk Assessment -->
+      <section class="drawer-section">
+        <h3 class="section-title">Risk Assessment</h3>
+        <div class="risk-card" *ngIf="caseDetail()?.riskScore !== null && caseDetail()?.riskScore !== undefined">
+          <div class="risk-score-display">
+            <div class="risk-score-num font-mono">{{ caseDetail()?.riskScore }} / 100</div>
+            <div class="risk-score-badge" [ngClass]="caseDetail()?.riskLevel?.toLowerCase()">
+              {{ caseDetail()?.riskLevel }}
+            </div>
+          </div>
+          <div class="risk-source-note">
+            Authoritative risk signal evaluated across sovereign records and document integrity checks.
+          </div>
+        </div>
+        <div *ngIf="caseDetail()?.riskScore === null || caseDetail()?.riskScore === undefined" class="muted-note">
+          Risk score: Not available
+        </div>
+      </section>
+
+      <!-- Section E: Previous Verification Review -->
+      <section class="drawer-section">
+        <h3 class="section-title">Previous Review</h3>
+        <div class="previous-review-grid">
+          <div class="meta-item">
+            <span class="meta-label">Verifier</span>
+            <span class="meta-value">{{ caseDetail()?.previousReview?.verifierName }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Previous Decision</span>
+            <span class="meta-value font-mono">{{ caseDetail()?.previousReview?.decision }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Attempts</span>
+            <span class="meta-value font-mono">{{ caseDetail()?.previousReview?.attemptCount }}</span>
+          </div>
+          <div class="meta-item" *ngIf="caseDetail()?.previousReview?.lastReviewedAtUtc">
+            <span class="meta-label">Last Reviewed</span>
+            <span class="meta-value font-mono">{{ formatIst(caseDetail()?.previousReview?.lastReviewedAtUtc) }}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section F: Senior Review Actions -->
+      <section class="drawer-section senior-actions-section" *ngIf="caseDetail()?.canSeniorReview">
+        <h3 class="section-title">Senior Review Decision</h3>
+        <p class="section-hint">Adjudicate this escalated case or return custody for another review round.</p>
+
+        <div class="senior-button-grid">
+          <button 
+            type="button" 
+            class="btn-act-approve" 
+            (click)="approveCase()"
+            [disabled]="actionSubmitting()">
+            Approve Case
+          </button>
+          <button 
+            type="button" 
+            class="btn-act-reject" 
+            (click)="openConfirmModal('REJECT')"
+            [disabled]="actionSubmitting()">
+            Reject Case
+          </button>
+          <button 
+            type="button" 
+            class="btn-act-return" 
+            (click)="openConfirmModal('RETURN')"
+            [disabled]="actionSubmitting()">
+            Return to Verifier
+          </button>
+          <button 
+            *ngIf="caseDetail()?.canClaim" 
+            type="button" 
+            class="btn-act-claim" 
+            (click)="claimCase()"
+            [disabled]="actionSubmitting()">
+            Claim Case
+          </button>
+        </div>
+      </section>
+    </div>
+  </aside>
+
+  <!-- 9. Backdrop overlay when drawer is open on mobile/tablet -->
+  <div 
+    class="drawer-backdrop" 
+    *ngIf="drawerOpen()" 
+    (click)="closeDrawer()" 
+    aria-hidden="true">
+  </div>
+
+  <!-- 10. Confirmation Modal for Destructive Actions (Reject & Return) -->
+  <div class="modal-backdrop" *ngIf="confirmModalType()" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <ng-container *ngIf="confirmModalType() === 'REJECT'">Reject Case?</ng-container>
+          <ng-container *ngIf="confirmModalType() === 'RETURN'">Return Case to Verifier?</ng-container>
+        </h3>
+        <button type="button" class="modal-close" (click)="closeConfirmModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-desc" *ngIf="confirmModalType() === 'REJECT'">
+          This will permanently mark the verification case as rejected. Please provide statutory grounds for the rejection.
+        </p>
+        <p class="modal-desc" *ngIf="confirmModalType() === 'RETURN'">
+          The case will be sent back to the active verifier queue for another review. Please provide clear instructions.
+        </p>
+
+        <div class="form-group">
+          <label for="modal-reason-input" class="form-label">
+            Reason <span class="required">*</span>
+          </label>
+          <textarea 
+            id="modal-reason-input"
+            rows="3" 
+            class="form-textarea" 
+            placeholder="Enter reason..."
+            [ngModel]="modalReason()" 
+            (ngModelChange)="modalReason.set($event)"></textarea>
+          <div *ngIf="modalReasonError()" class="form-error">
+            {{ modalReasonError() }}
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button 
+          type="button" 
+          class="btn-modal-cancel" 
+          (click)="closeConfirmModal()"
+          [disabled]="actionSubmitting()">
+          Cancel
+        </button>
+        <button 
+          type="button" 
+          [class]="confirmModalType() === 'REJECT' ? 'btn-modal-destructive' : 'btn-modal-return'"
+          (click)="submitModalDecision()"
+          [disabled]="actionSubmitting()">
+          <ng-container *ngIf="confirmModalType() === 'REJECT'">Reject Case</ng-container>
+          <ng-container *ngIf="confirmModalType() === 'RETURN'">Return Case</ng-container>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

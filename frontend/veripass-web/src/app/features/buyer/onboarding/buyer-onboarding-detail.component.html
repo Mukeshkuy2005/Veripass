@@ -1,0 +1,532 @@
+<div class="onboarding-detail-container">
+  <!-- TOP NAV & BREADCRUMBS -->
+  <div class="top-nav-bar">
+    <button class="back-link-btn" (click)="navigateBack()">
+      ← Back to Onboarding Workspace
+    </button>
+    <div class="breadcrumbs">
+      <span>Procurement</span>
+      <span>/</span>
+      <a routerLink="/buyer/onboarding">Vendor Onboarding</a>
+      <span>/</span>
+      <span class="breadcrumb-active">{{ detail()?.supplierBusinessName || 'Detail' }}</span>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state-container">
+      <div class="spinner"></div>
+      <p class="loading-text">Loading onboarding request & verification proofs...</p>
+    </div>
+  }
+
+  @if (errorMsg()) {
+    <div class="alert alert-danger" role="alert">
+      <span>{{ errorMsg() }}</span>
+      <button class="btn btn-sm btn-outline-danger" (click)="loadDetail(requestId())">Retry</button>
+    </div>
+  }
+
+  @if (successMsg()) {
+    <div class="alert alert-success" role="alert">
+      <span>{{ successMsg() }}</span>
+    </div>
+  }
+
+  @if (!loading() && detail(); as d) {
+    <!-- DETAIL HEADER -->
+    <header class="detail-header">
+      <div class="header-left">
+        <div class="header-badges-row">
+          @if (d.passportNumber) {
+            <span class="passport-badge">Passport: {{ d.passportNumber }}</span>
+          }
+          <span class="trust-badge">Trust Score: {{ d.trustScore || 0 }}/100</span>
+          <span class="status-pill" [class]="'badge-' + d.status.toLowerCase()">
+            {{ d.status.replace('_', ' ') }}
+          </span>
+        </div>
+        <h1 class="supplier-main-title">{{ d.supplierBusinessName }}</h1>
+        @if (d.tradeName && d.tradeName !== d.supplierBusinessName) {
+          <div class="trade-subtitle">Trading as: {{ d.tradeName }}</div>
+        }
+      </div>
+
+      <div class="header-actions">
+        <button class="btn btn-secondary" (click)="viewPassport()" id="btn-view-passport">
+          <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+            <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+          </svg>
+          <span>View Passport</span>
+        </button>
+
+        @if (d.status === 'REQUESTED' || d.status === 'ACTION_REQUIRED') {
+          <button class="btn btn-secondary" [disabled]="isReminding()" (click)="sendReminder()">
+            @if (isReminding()) {
+              <span>Sending...</span>
+            } @else {
+              <span>Message / Remind</span>
+            }
+          </button>
+        }
+
+        @if (d.status === 'NEW' || d.status === 'REQUESTED') {
+          <button class="btn btn-outline-danger" (click)="withdrawRequest()">
+            Withdraw Request
+          </button>
+        }
+      </div>
+    </header>
+
+    <!-- ENTERPRISE WORKFLOW PROGRESS STEPPER -->
+    <section class="stepper-card">
+      <div class="stepper-track">
+        <div class="step-item" [class.completed]="getStepperStep() > 1" [class.active]="getStepperStep() === 1">
+          <div class="step-circle">{{ getStepperStep() > 1 ? '✓' : '1' }}</div>
+          <div class="step-label">Request Created</div>
+        </div>
+        <div class="step-line" [class.active]="getStepperStep() > 1"></div>
+
+        <div class="step-item" [class.completed]="getStepperStep() > 2" [class.active]="getStepperStep() === 2">
+          <div class="step-circle">{{ getStepperStep() > 2 ? '✓' : '2' }}</div>
+          <div class="step-label">Supplier Accepted</div>
+        </div>
+        <div class="step-line" [class.active]="getStepperStep() > 2"></div>
+
+        <div class="step-item" [class.completed]="getStepperStep() > 3" [class.active]="getStepperStep() === 3">
+          <div class="step-circle">{{ getStepperStep() > 3 ? '✓' : '3' }}</div>
+          <div class="step-label">Info Submitted</div>
+        </div>
+        <div class="step-line" [class.active]="getStepperStep() > 3"></div>
+
+        <div class="step-item" [class.completed]="getStepperStep() > 4" [class.active]="getStepperStep() === 4">
+          <div class="step-circle">{{ getStepperStep() > 4 ? '✓' : '4' }}</div>
+          <div class="step-label">Verification</div>
+        </div>
+        <div class="step-line" [class.active]="getStepperStep() > 4"></div>
+
+        <div class="step-item" [class.completed]="getStepperStep() > 5" [class.active]="getStepperStep() === 5">
+          <div class="step-circle">{{ getStepperStep() > 5 ? '✓' : '5' }}</div>
+          <div class="step-label">Buyer Approval</div>
+        </div>
+        <div class="step-line" [class.active]="getStepperStep() > 5"></div>
+
+        <div class="step-item" [class.completed]="d.status === 'APPROVED'" [class.active]="d.status === 'APPROVED'">
+          <div class="step-circle">{{ d.status === 'APPROVED' ? '✓' : '6' }}</div>
+          <div class="step-label">Completed</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN 2-COLUMN ENTERPRISE WORKSPACE -->
+    <div class="workspace-grid">
+      <!-- LEFT COLUMN: SUPPLIER, PARAMETERS, REQUIREMENTS, DECISION -->
+      <div class="main-column">
+        <!-- 1. SUPPLIER IDENTITY SUMMARY -->
+        <div class="panel-card">
+          <div class="panel-head">
+            <h3 class="panel-title">Sovereign Business Identity</h3>
+            <span class="panel-tag">{{ d.industry || 'Registered Corporate' }}</span>
+          </div>
+          <div class="entity-info-grid">
+            <div class="info-group">
+              <span class="info-label">Legal Name</span>
+              <span class="info-val strong">{{ d.legalName }}</span>
+            </div>
+            <div class="info-group">
+              <span class="info-label">GSTIN</span>
+              <span class="info-val font-mono">{{ d.gstin || 'Not registered' }}</span>
+            </div>
+            <div class="info-group">
+              <span class="info-label">PAN</span>
+              <span class="info-val font-mono">{{ d.pan || 'Not registered' }}</span>
+            </div>
+            <div class="info-group">
+              <span class="info-label">MCA CIN</span>
+              <span class="info-val font-mono">{{ d.cin || 'N/A' }}</span>
+            </div>
+            <div class="info-group">
+              <span class="info-label">MSME Udyam</span>
+              <span class="info-val font-mono">{{ d.udyamNumber || 'Non-MSME' }}</span>
+            </div>
+            <div class="info-group">
+              <span class="info-label">Registered Location</span>
+              <span class="info-val">{{ d.location || 'India' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. PROCUREMENT PARAMETERS -->
+        <div class="panel-card">
+          <div class="panel-head">
+            <h3 class="panel-title">Procurement Scope & Parameters</h3>
+            <span class="panel-tag">{{ d.businessCategory }}</span>
+          </div>
+          <div class="entity-info-grid">
+            <div class="info-group full-width">
+              <span class="info-label">Purpose / SOW Rationale</span>
+              <span class="info-val strong">{{ d.purpose }}</span>
+            </div>
+            <div class="info-group">
+              <span class="info-label">Procurement Department</span>
+              <span class="info-val">{{ d.procurementDepartment }}</span>
+            </div>
+            <div class="info-group">
+              <span class="info-label">Expected Relationship</span>
+              <span class="info-val">{{ d.expectedRelationship }}</span>
+            </div>
+            <div class="info-group">
+              <span class="info-label">Target Plant / Site</span>
+              <span class="info-val">{{ d.targetPlant || 'Enterprise-wide' }}</span>
+            </div>
+            <div class="info-group">
+              <span class="info-label">Commercial Payment Terms</span>
+              <span class="info-val">{{ d.paymentTerms || 'Net 45 Days' }}</span>
+            </div>
+            <div class="info-group">
+              <span class="info-label">Request Created</span>
+              <span class="info-val">{{ formatDate(d.createdAt) }}</span>
+            </div>
+            <div class="info-group">
+              <span class="info-label">Invitation Expiry</span>
+              <span class="info-val">{{ formatDate(d.expiresAt) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. REQUIREMENTS & VERIFICATION PROOFS (Core Section) -->
+        <div class="panel-card">
+          <div class="panel-head">
+            <div>
+              <h3 class="panel-title">Verification Checklist & Audit Evidence</h3>
+              <p class="panel-subtitle">Independent validation against government registries and accredited issuing authorities.</p>
+            </div>
+            <div class="verif-summary-pill">
+              <span class="verif-metric-text">
+                <strong [class.text-green]="d.verifiedRequirements === d.totalRequirements">{{ d.verifiedRequirements }}</strong>
+                / {{ d.totalRequirements }} verified
+              </span>
+            </div>
+          </div>
+
+          <div class="requirements-checklist">
+            @for (req of d.requirements; track req.id) {
+              <div
+                class="req-detail-item"
+                [class.expanded]="expandedRequirementId() === req.id"
+                (click)="toggleRequirementExpand(req.id)">
+                <!-- Header Row -->
+                <div class="req-row-main">
+                  <div class="req-row-left">
+                    <span class="req-status-icon" [class]="'icon-' + req.status.toLowerCase()">
+                      @if (req.status === 'VERIFIED') { ✓ }
+                      @else if (req.status === 'VERIFYING') { ◉ }
+                      @else if (req.status === 'FAILED') { ✕ }
+                      @else { ○ }
+                    </span>
+                    <div class="req-titles">
+                      <div class="req-code-line">
+                        <span class="req-code-badge">{{ req.requirementCode }}</span>
+                        <strong class="req-main-name">{{ req.requirementName }}</strong>
+                        @if (req.isMandatory) {
+                          <span class="mandatory-flag">Mandatory</span>
+                        }
+                      </div>
+                      <span class="req-cat-sub">{{ req.category }}</span>
+                    </div>
+                  </div>
+
+                  <div class="req-row-right">
+                    <span class="req-status-pill" [class]="'status-' + req.status.toLowerCase()">
+                      {{ req.status }}
+                    </span>
+                    <span class="expand-caret">{{ expandedRequirementId() === req.id ? '▲' : '▼' }}</span>
+                  </div>
+                </div>
+
+                <!-- Expanded Proofs & Evidence -->
+                @if (expandedRequirementId() === req.id) {
+                  <div class="req-expanded-pane" (click)="$event.stopPropagation()">
+                    <div class="proof-grid">
+                      <div class="proof-item">
+                        <span class="proof-label">Verification Source:</span>
+                        <span class="proof-val">{{ req.verificationSource || 'Government Public Registry' }}</span>
+                      </div>
+                      <div class="proof-item">
+                        <span class="proof-label">Last Verified:</span>
+                        <span class="proof-val">{{ formatDate(req.verifiedAt) }}</span>
+                      </div>
+                      @if (req.failureReason) {
+                        <div class="proof-item full-width proof-failure">
+                          <span class="proof-label text-red">Failure / Blocker Reason:</span>
+                          <span class="proof-val text-red">{{ req.failureReason }}</span>
+                        </div>
+                      }
+                      @if (req.evidenceDocumentName) {
+                        <div class="proof-item">
+                          <span class="proof-label">Evidence Certificate:</span>
+                          <span class="proof-val font-mono">{{ req.evidenceDocumentName }}</span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- 4. PROCUREMENT DECISION PANEL (Sections 28 & 15) -->
+        <div class="panel-card decision-panel">
+          <div class="panel-head">
+            <h3 class="panel-title">Procurement Empanelment Decision</h3>
+            <span class="decision-rule-hint">Veripass verified data does NOT automatically imply procurement approval.</span>
+          </div>
+
+          <!-- APPROVED STATE -->
+          @if (d.status === 'APPROVED') {
+            <div class="decision-approved-box">
+              <div class="dec-status-banner banner-green">
+                <svg class="dec-icon" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <div>
+                  <h4 class="dec-banner-title">VENDOR APPROVED & EMPANELED</h4>
+                  <p class="dec-banner-desc">
+                    Approved by {{ d.approvedByName || 'Procurement Officer' }} on {{ formatDate(d.approvedAt) }}.
+                  </p>
+                </div>
+              </div>
+
+              <div class="erp-details-box">
+                <div class="erp-field">
+                  <span class="erp-label">SAP/ERP Vendor Master Code:</span>
+                  <span class="erp-value font-mono">{{ d.erpVendorCode || 'SAP-VND-88291' }}</span>
+                </div>
+                <div class="erp-field">
+                  <span class="erp-label">Payment Terms:</span>
+                  <span class="erp-value">{{ d.paymentTerms || 'Net 45 Days' }}</span>
+                </div>
+                <div class="erp-field">
+                  <span class="erp-label">Allocated Plant:</span>
+                  <span class="erp-value">{{ d.targetPlant || 'All Production Plants' }}</span>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- REJECTED STATE -->
+          @if (d.status === 'REJECTED') {
+            <div class="decision-rejected-box">
+              <div class="dec-status-banner banner-red">
+                <svg class="dec-icon" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
+                <div>
+                  <h4 class="dec-banner-title">ONBOARDING APPLICATION REJECTED</h4>
+                  <p class="dec-banner-desc">
+                    Rejected by {{ d.rejectedByName || 'Procurement Officer' }} on {{ formatDate(d.rejectedAt) }}.
+                  </p>
+                </div>
+              </div>
+              <div class="rejection-reason-display">
+                <strong>Justification:</strong> {{ d.rejectionReason }}
+              </div>
+            </div>
+          }
+
+          <!-- PENDING / IN-VERIFICATION DECISION ACTIONS -->
+          @if (d.status !== 'APPROVED' && d.status !== 'REJECTED' && d.status !== 'WITHDRAWN') {
+            <div class="decision-action-box">
+              <div class="decision-meta">
+                <span>Verification Status:</span>
+                <strong>{{ d.verifiedRequirements }} of {{ d.totalRequirements }} checks verified</strong>
+              </div>
+
+              @if (!d.canApprove) {
+                <div class="cannot-approve-hint">
+                  ℹ Mandatory requirements must be successfully verified before procurement approval can be finalized.
+                </div>
+              }
+
+              <div class="decision-btn-group">
+                <button
+                  class="btn btn-primary btn-approve"
+                  [disabled]="!d.canApprove"
+                  (click)="openApproveModal()"
+                  id="btn-approve-supplier">
+                  ✓ Approve Supplier for Empanelment
+                </button>
+                <button
+                  class="btn btn-secondary btn-reject"
+                  (click)="openRejectModal()"
+                  id="btn-reject-supplier">
+                  ✕ Reject Application
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: ACTION REQUIRED CALLOUT & ACTIVITY AUDIT TIMELINE -->
+      <div class="side-column">
+        <!-- ACTION REQUIRED CALLOUT (If Active) -->
+        @if (d.status === 'ACTION_REQUIRED' && d.actionRequiredReason) {
+          <div class="side-card alert-callout-card">
+            <div class="callout-header">
+              <svg class="alert-svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+              </svg>
+              <span>Onboarding Blocker</span>
+            </div>
+            <p class="callout-body">{{ d.actionRequiredReason }}</p>
+            <button class="btn btn-sm btn-amber" (click)="sendReminder()">
+              Request Vendor Clarification
+            </button>
+          </div>
+        }
+
+        <!-- REAL AUDIT ACTIVITY TIMELINE (Section 29) -->
+        <div class="side-card">
+          <div class="side-card-head">
+            <h4 class="side-card-title">Activity & Audit Timeline</h4>
+            <span class="audit-source-tag">Immutable Audit</span>
+          </div>
+          <div class="timeline-stream">
+            @for (act of d.activities; track act.id) {
+              <div class="timeline-event-item">
+                <div class="event-marker"></div>
+                <div class="event-content">
+                  <div class="event-title">{{ act.title }}</div>
+                  @if (act.description) {
+                    <div class="event-desc">{{ act.description }}</div>
+                  }
+                  <div class="event-meta">
+                    <span class="event-actor">{{ act.actorName || 'System Service' }}</span>
+                    <span class="event-time">{{ formatTimestamp(act.timestamp) }}</span>
+                  </div>
+                </div>
+              </div>
+            }
+
+            @if (d.activities.length === 0) {
+              <div class="timeline-empty">
+                No activity records logged yet.
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- QUICK SHORTCUTS -->
+        <div class="side-card">
+          <h4 class="side-card-title">Quick Actions</h4>
+          <div class="quick-links-list">
+            <button class="quick-link-btn" (click)="viewPassport()">
+              <span>Sovereign Business Passport</span>
+              <span>→</span>
+            </button>
+            <button class="quick-link-btn" (click)="navigateBack()">
+              <span>Return to Onboarding Queue</span>
+              <span>→</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- APPROVE SUPPLIER MODAL -->
+    @if (isApproveModalOpen()) {
+      <div class="modal-backdrop" (click)="closeApproveModal()">
+        <div class="modal-dialog-medium" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3 class="modal-title">Approve Supplier for Empanelment</h3>
+            <button class="modal-close-btn" (click)="closeApproveModal()">✕</button>
+          </div>
+          <div class="modal-body">
+            <p class="modal-lead">
+              You are approving <strong>{{ d.supplierBusinessName }}</strong> for direct production empanelment.
+              All mandatory statutory verification requirements have passed compliance checks.
+            </p>
+
+            <div class="form-group">
+              <label class="form-label">Assign SAP/ERP Vendor Master Code *</label>
+              <input
+                type="text"
+                [(ngModel)]="approveErpCode"
+                class="form-control font-mono"
+                placeholder="e.g. SAP-VND-88291" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Commercial Payment Terms</label>
+              <input
+                type="text"
+                [(ngModel)]="approvePaymentTerms"
+                class="form-control" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Allocated Production Plant / Receiving Site</label>
+              <input
+                type="text"
+                [(ngModel)]="approveTargetPlant"
+                class="form-control"
+                placeholder="e.g. Jamshedpur Works" />
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="closeApproveModal()">Cancel</button>
+            <button class="btn btn-primary" [disabled]="isApproving()" (click)="confirmApprove()">
+              @if (isApproving()) {
+                <span>Approving...</span>
+              } @else {
+                <span>Confirm Approval & Empanel</span>
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- REJECT SUPPLIER MODAL -->
+    @if (isRejectModalOpen()) {
+      <div class="modal-backdrop" (click)="closeRejectModal()">
+        <div class="modal-dialog-medium" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3 class="modal-title">Reject Onboarding Application</h3>
+            <button class="modal-close-btn" (click)="closeRejectModal()">✕</button>
+          </div>
+          <div class="modal-body">
+            <p class="modal-lead text-red">
+              Are you sure you want to decline the onboarding application for <strong>{{ d.supplierBusinessName }}</strong>?
+            </p>
+
+            <div class="form-group">
+              <label class="form-label">Rejection Rationale / Procurement Justification *</label>
+              <textarea
+                [(ngModel)]="rejectionReason"
+                rows="3"
+                class="form-control"
+                placeholder="State the specific compliance or commercial reason for rejection..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="closeRejectModal()">Cancel</button>
+            <button
+              class="btn btn-danger"
+              [disabled]="isRejecting() || !rejectionReason().trim()"
+              (click)="confirmReject()">
+              @if (isRejecting()) {
+                <span>Rejecting...</span>
+              } @else {
+                <span>Confirm Rejection</span>
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  }
+</div>

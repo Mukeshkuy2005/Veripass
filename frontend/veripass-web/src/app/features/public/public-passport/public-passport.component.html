@@ -1,0 +1,272 @@
+    <div class="passport-page">
+      <div class="container">
+        <!-- TOP AUTHENTICITY BAR -->
+        <div class="top-auth-banner">
+          <div class="auth-pill">
+            <span class="auth-check">✓</span>
+            <span>AUTHENTIC VERIPASS BUSINESS PASSPORT</span>
+          </div>
+          <div class="sovereign-tag">
+            <span>Sovereign Identity Network &bull; Republic of India</span>
+          </div>
+        </div>
+
+        <!-- 1. PASSPORT HEADER CARD -->
+        <div class="passport-header-card">
+          <div class="card-inner-top">
+            <div class="brand-line">
+              <span class="brand-lbl">VERIPASS</span>
+              <span class="verified-pill">✓ VERIFIED</span>
+            </div>
+
+            <h1 class="business-title">{{ businessData().legalName }}</h1>
+            <p class="business-sub">
+              {{ businessData().industry }} &bull; {{ businessData().location }}
+            </p>
+
+            <div class="passport-details-row">
+              <div class="detail-cell">
+                <span class="cell-lbl">Passport ID</span>
+                <span class="cell-val mono">{{ businessData().passportId }}</span>
+              </div>
+              <div class="detail-cell">
+                <span class="cell-lbl">Verification Score</span>
+                <div class="score-display">
+                  <span class="score-number">{{ businessData().score }}</span>
+                  <span class="score-denom">/ 100</span>
+                </div>
+              </div>
+              <div class="detail-cell qr-cell">
+                <div class="qr-box">
+                  <svg viewBox="0 0 24 24" fill="none" class="qr-svg">
+                    <rect x="2" y="2" width="8" height="8" rx="1.5" stroke="#0F172A" stroke-width="2"/>
+                    <rect x="4" y="4" width="4" height="4" fill="#2563EB"/>
+                    <rect x="14" y="2" width="8" height="8" rx="1.5" stroke="#0F172A" stroke-width="2"/>
+                    <rect x="16" y="4" width="4" height="4" fill="#2563EB"/>
+                    <rect x="2" y="14" width="8" height="8" rx="1.5" stroke="#0F172A" stroke-width="2"/>
+                    <rect x="4" y="16" width="4" height="4" fill="#2563EB"/>
+                    <circle cx="17" cy="17" r="2" fill="#0F172A"/>
+                    <circle cx="15" cy="13" r="1.5" fill="#2563EB"/>
+                    <circle cx="19" cy="13" r="1.5" fill="#0F172A"/>
+                  </svg>
+                </div>
+                <span class="qr-sub">Scan to Validate</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. VERIFICATION STATUS SUMMARY TABLE -->
+        <div class="section-card">
+          <div class="section-head">
+            <h2 class="section-title">VERIFICATION STATUS</h2>
+            <span class="live-pill"><span class="dot"></span> Active & Current</span>
+          </div>
+
+          <div class="verification-table-wrap">
+            <table class="verification-table">
+              <thead>
+                <tr>
+                  <th>Credential Domain</th>
+                  <th>Status</th>
+                  <th>Sovereign Evidence Authority</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="font-bold">Identity</td>
+                  <td><span class="status-badge verified">✓ VERIFIED</span></td>
+                  <td class="text-slate-500">Ministry of Corporate Affairs (MCA21 V3)</td>
+                </tr>
+                <tr>
+                  <td class="font-bold">GST</td>
+                  <td><span class="status-badge verified">✓ VERIFIED</span></td>
+                  <td class="text-slate-500">Goods and Services Tax Network (GSTN API)</td>
+                </tr>
+                <tr>
+                  <td class="font-bold">PAN</td>
+                  <td><span class="status-badge verified">✓ VERIFIED</span></td>
+                  <td class="text-slate-500">Income Tax Department (CBDT / NSDL)</td>
+                </tr>
+                <tr>
+                  <td class="font-bold">Address</td>
+                  <td><span class="status-badge verified">✓ VERIFIED</span></td>
+                  <td class="text-slate-500">Electricity Utility & Geocoded GST Premises</td>
+                </tr>
+                <tr>
+                  <td class="font-bold">Bank</td>
+                  <td><span class="status-badge verified">✓ VERIFIED</span></td>
+                  <td class="text-slate-500">NPCI IMPS Penny-Drop Verification</td>
+                </tr>
+                <tr>
+                  <td class="font-bold">ISO</td>
+                  <td><span class="status-badge verified">✓ VERIFIED</span></td>
+                  <td class="text-slate-500">IAF CertSearch Global Registry</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 3. BUSINESS INFORMATION & COMPLIANCE (2-COL) -->
+        <div class="two-col-grid">
+          <!-- Business Information -->
+          <div class="section-card">
+            <div class="section-head">
+              <h2 class="section-title">BUSINESS INFORMATION</h2>
+            </div>
+            <p class="section-privacy-note">
+              Only displaying information authorized by the business for public visibility.
+            </p>
+
+            <div class="info-list">
+              <div class="info-item">
+                <span class="info-lbl">Legal Name</span>
+                <span class="info-val">{{ businessData().legalName }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-lbl">Business Type</span>
+                <span class="info-val">{{ businessData().businessType }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-lbl">Industry</span>
+                <span class="info-val">{{ businessData().industry }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-lbl">Year Established</span>
+                <span class="info-val">{{ businessData().establishedYear }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-lbl">Location</span>
+                <span class="info-val">{{ businessData().location }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-lbl">Website</span>
+                <a [href]="'https://' + businessData().website" target="_blank" class="info-val link">
+                  {{ businessData().website }} &nearr;
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Compliance Checklist -->
+          <div class="section-card">
+            <div class="section-head">
+              <h2 class="section-title">COMPLIANCE</h2>
+            </div>
+            <p class="section-privacy-note">
+              Periodic statutory compliance & document currency status.
+            </p>
+
+            <div class="compliance-list">
+              <div class="comp-row">
+                <div class="comp-meta">
+                  <span class="comp-name">GST 3B Filings</span>
+                  <span class="comp-sub">Tax currency verified</span>
+                </div>
+                <span class="status-badge verified">✓ Verified</span>
+              </div>
+
+              <div class="comp-row">
+                <div class="comp-meta">
+                  <span class="comp-name">PAN Linking</span>
+                  <span class="comp-sub">Active & operational</span>
+                </div>
+                <span class="status-badge verified">✓ Verified</span>
+              </div>
+
+              <div class="comp-row">
+                <div class="comp-meta">
+                  <span class="comp-name">Udyam MSME Registration</span>
+                  <span class="comp-sub">Medium Enterprise Class</span>
+                </div>
+                <span class="status-badge verified">✓ Verified</span>
+              </div>
+
+              <div class="comp-row warning-comp">
+                <div class="comp-meta">
+                  <span class="comp-name">ISO 9001:2015 Quality</span>
+                  <span class="comp-sub">Renewal window active (30d)</span>
+                </div>
+                <span class="status-badge warning">⚠ Expires soon</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. VERIFICATION TIMELINE -->
+        <div class="section-card">
+          <div class="section-head">
+            <h2 class="section-title">VERIFICATION TIMELINE</h2>
+          </div>
+
+          <div class="timeline-trail">
+            <div class="timeline-event">
+              <div class="tl-bullet verified"></div>
+              <div class="tl-content">
+                <div class="tl-title">GST verified</div>
+                <div class="tl-date">04 Sep 2026 &bull; Verified via GSTN API Gateway</div>
+              </div>
+            </div>
+
+            <div class="timeline-event">
+              <div class="tl-bullet verified"></div>
+              <div class="tl-content">
+                <div class="tl-title">PAN verified</div>
+                <div class="tl-date">04 Sep 2026 &bull; CBDT direct identity match confirmed</div>
+              </div>
+            </div>
+
+            <div class="timeline-event">
+              <div class="tl-bullet verified"></div>
+              <div class="tl-content">
+                <div class="tl-title">Address verified</div>
+                <div class="tl-date">03 Sep 2026 &bull; Electricity utility bills matched to registered premises</div>
+              </div>
+            </div>
+
+            <div class="timeline-event">
+              <div class="tl-bullet verified"></div>
+              <div class="tl-content">
+                <div class="tl-title">ISO certificate verified</div>
+                <div class="tl-date">01 Sep 2026 &bull; IAF CertSearch certification record cross-examined</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. PASSPORT FOOTER -->
+        <div class="passport-footer-box">
+          <p class="footer-disclaimer">
+            This passport displays information authorized by the business and verified through Veripass.
+            All verification claims are backed by sovereign registry checks and immutable audit logs.
+          </p>
+
+          <div class="footer-actions">
+            <a routerLink="/verify" class="btn btn-secondary">
+              Verify Again
+            </a>
+            <button type="button" (click)="sharePassport()" class="btn btn-primary">
+              <svg class="share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+              </svg>
+              Share Passport
+            </button>
+          </div>
+        </div>
+
+        <!-- Share Toast Feedback -->
+        @if (shareToast()) {
+          <div class="share-toast">
+            <svg class="toast-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>Passport URL copied to clipboard!</span>
+          </div>
+        }
+      </div>
+    </div>

@@ -1,0 +1,88 @@
+<div class="kpi-grid-5" *ngIf="loading()">
+  <div class="kpi-card skeleton-card" *ngFor="let i of [1, 2, 3, 4, 5]">
+    <div class="skeleton-line sm"></div>
+    <div class="skeleton-num"></div>
+    <div class="skeleton-line md"></div>
+  </div>
+</div>
+
+<div class="kpi-grid-5" *ngIf="!loading() && summary() as s">
+  <!-- PENDING -->
+  <div class="kpi-card" id="kpi-card-pending">
+    <div class="kpi-top">
+      <span class="kpi-lbl">PENDING</span>
+      <span class="kpi-status-dot dot-amber" title="Awaiting action"></span>
+    </div>
+    <div class="kpi-val-row">
+      <span class="kpi-num">{{ s.pending }}</span>
+    </div>
+    <div class="kpi-sub positive" *ngIf="s.pendingTodayDelta > 0">
+      +{{ s.pendingTodayDelta }} today
+    </div>
+    <div class="kpi-sub text-muted" *ngIf="s.pendingTodayDelta === 0">
+      0 new today
+    </div>
+  </div>
+
+  <!-- IN REVIEW -->
+  <div class="kpi-card card-active" id="kpi-card-in-review">
+    <div class="kpi-top">
+      <span class="kpi-lbl">IN REVIEW</span>
+      <span class="kpi-status-dot dot-blue" title="Active investigation"></span>
+    </div>
+    <div class="kpi-val-row">
+      <span class="kpi-num text-blue">{{ s.inReview }}</span>
+    </div>
+    <div class="kpi-sub text-blue-muted">
+      <strong class="font-medium text-blue">{{ s.assignedToCurrentVerifier }}</strong> assigned
+    </div>
+  </div>
+
+  <!-- APPROVED -->
+  <div class="kpi-card" id="kpi-card-approved">
+    <div class="kpi-top">
+      <span class="kpi-lbl">APPROVED</span>
+      <span class="kpi-status-dot dot-green" title="Verified credentials"></span>
+    </div>
+    <div class="kpi-val-row">
+      <span class="kpi-num text-green">{{ s.approved }}</span>
+    </div>
+    <div class="kpi-sub positive" *ngIf="s.approvedTodayDelta > 0">
+      +{{ s.approvedTodayDelta }} today
+    </div>
+    <div class="kpi-sub text-muted" *ngIf="s.approvedTodayDelta === 0">
+      0 today
+    </div>
+  </div>
+
+  <!-- REJECTED -->
+  <div class="kpi-card" id="kpi-card-rejected">
+    <div class="kpi-top">
+      <span class="kpi-lbl">REJECTED</span>
+      <span class="kpi-status-dot dot-red" title="Failed compliance standards"></span>
+    </div>
+    <div class="kpi-val-row">
+      <span class="kpi-num text-red">{{ s.rejected }}</span>
+    </div>
+    <div class="kpi-sub text-muted">
+      Audit trail logged
+    </div>
+  </div>
+
+  <!-- ESCALATED -->
+  <div class="kpi-card card-escalated" id="kpi-card-escalated">
+    <div class="kpi-top">
+      <span class="kpi-lbl">ESCALATED</span>
+      <span class="kpi-status-dot dot-purple" title="Senior escalation required"></span>
+    </div>
+    <div class="kpi-val-row">
+      <span class="kpi-num text-purple">{{ s.escalated }}</span>
+    </div>
+    <div class="kpi-sub text-amber font-bold" *ngIf="s.escalated > 0">
+      ⚠ Attention
+    </div>
+    <div class="kpi-sub text-muted" *ngIf="s.escalated === 0">
+      Queue clear
+    </div>
+  </div>
+</div>

@@ -1,0 +1,529 @@
+<div class="identity-view" [class.embedded-identity]="isEmbedded">
+  <!-- EMBEDDED PANE HEADER (When inside Settings) -->
+  <div class="embedded-pane-header" *ngIf="isEmbedded">
+    <div class="header-titles">
+      <div class="pane-tag-row">
+        <span class="section-badge">SECTION 2 OF 9</span>
+        <span class="sovereign-live-badge" [class.badge-complete]="completionPercentage() === 100">
+          {{ completionPercentage() === 100 ? '● 100% Fully Verified' : '● 1 Action Required' }}
+        </span>
+      </div>
+      <h2 class="pane-title">Statutory Identity &amp; Registry KYC</h2>
+      <p class="pane-sub">
+        Establish and verify your corporate identity across official sovereign registries (GSTN, NSDL, MCA21, MSME).
+      </p>
+    </div>
+    <button
+      *ngIf="!hasCin()"
+      class="btn btn-primary btn-sm"
+      (click)="openCompleteModal('CIN')">
+      + Verify Incorporation (CIN)
+    </button>
+    <div *ngIf="hasCin()" class="all-verified-pill">
+      ✓ All Registries Verified
+    </div>
+  </div>
+
+  <!-- STANDALONE HEADER (When outside Settings) -->
+  <div class="identity-header" *ngIf="!isEmbedded">
+    <div>
+      <span class="view-tag">SOVEREIGN KYC GATEWAY</span>
+      <h1 class="page-title">Business Identity</h1>
+      <p class="page-sub">Establish and verify your legal business identity across India's statutory registries.</p>
+    </div>
+    <button
+      *ngIf="!hasCin()"
+      class="btn btn-primary btn-sm"
+      (click)="openCompleteModal('CIN')">
+      + Complete CIN Verification
+    </button>
+  </div>
+
+  <!-- SUCCESS TOAST NOTIFICATION -->
+  <div *ngIf="savedSuccess()" class="saved-toast animate-fade-in">
+    <span class="toast-icon">✓</span>
+    <div class="toast-text">
+      <strong>Corporate Identification Number (CIN) Verified</strong>
+      <span>MCA21 master record synchronized and anchored to your Business Passport. Identity completion is now 100%.</span>
+    </div>
+  </div>
+
+  <!-- IDENTITY COMPLETION PROGRESS CARD -->
+  <div class="identity-progress-banner vp-card">
+    <div class="progress-top-row">
+      <div class="progress-info-block">
+        <div class="progress-title-row">
+          <span class="progress-icon">🛡️</span>
+          <span class="progress-title">Identity Completion</span>
+          <span class="status-pill-small" [class.pill-success]="completionPercentage() === 100" [class.pill-warning]="completionPercentage() < 100">
+            {{ completionPercentage() === 100 ? '✓ Sovereign Verified' : '⚠ 1 Attribute Pending' }}
+          </span>
+        </div>
+        <p class="progress-sub">
+          <strong>{{ verifiedCount() }} of {{ totalAttributes }}</strong> statutory identity attributes verified against official sovereign sources.
+        </p>
+      </div>
+      <div class="progress-score-badge">
+        <span class="score-num font-mono">{{ completionPercentage() }}%</span>
+        <span class="score-lbl">VERIFIED</span>
+      </div>
+    </div>
+
+    <div class="progress-bar-container">
+      <div class="progress-bar-track">
+        <div
+          class="progress-bar-fill"
+          [style.width.%]="completionPercentage()"
+          [class.fill-complete]="completionPercentage() === 100">
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive Attribute Badges -->
+    <div class="progress-indicators">
+      <div class="ind-pill" [class.checked]="hasPan()" [class.pending]="!hasPan()" (click)="hasPan() && viewCredentialDetails('PAN')" title="PAN identity attribute">
+        <span class="ind-icon">{{ hasPan() ? '✓' : '⚠' }}</span>
+        <span>PAN (Corporate)</span>
+      </div>
+      <div class="ind-pill" [class.checked]="hasGstin()" [class.pending]="!hasGstin()" (click)="hasGstin() && viewCredentialDetails('GSTIN')" title="GSTIN identity attribute">
+        <span class="ind-icon">{{ hasGstin() ? '✓' : '⚠' }}</span>
+        <span>GSTIN (Regular)</span>
+      </div>
+      <div
+        class="ind-pill"
+        [class.checked]="hasCin()"
+        [class.pending]="!hasCin()"
+        (click)="hasCin() ? viewCredentialDetails('CIN') : openCompleteModal('CIN')"
+        [title]="hasCin() ? 'Click to view MCA21 registry proof' : 'Click to complete CIN verification'">
+        <span class="ind-icon">{{ hasCin() ? '✓' : '⚠' }}</span>
+        <span>{{ hasCin() ? 'CIN (MCA21)' : 'CIN / MCA Certificate Needed →' }}</span>
+      </div>
+      <div class="ind-pill" [class.checked]="hasUdyam()" [class.pending]="!hasUdyam()" (click)="hasUdyam() && viewCredentialDetails('UDYAM')" title="MSME Udyam identity attribute">
+        <span class="ind-icon">{{ hasUdyam() ? '✓' : '⚠' }}</span>
+        <span>MSME Udyam</span>
+      </div>
+      <div class="ind-pill" [class.checked]="hasAddress()" [class.pending]="!hasAddress()" title="Principal address">
+        <span class="ind-icon">{{ hasAddress() ? '✓' : '⚠' }}</span>
+        <span>Principal Address</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- IDENTITY CREDENTIALS LIST -->
+  <div class="identity-credentials-panel vp-card">
+    <div class="panel-header-line">
+      <div class="panel-title-block">
+        <h3 class="panel-title">STATUTORY IDENTITY CREDENTIALS</h3>
+        <span class="panel-sub-count">{{ verifiedCount() }} Active Registry Links</span>
+      </div>
+      <span class="realtime-tag">&#8635; Real-time Verification Engine</span>
+    </div>
+
+    <div class="credentials-list">
+      <!-- Item 1: PAN -->
+      <div class="credential-row" [class.verified]="hasPan()" [class.action-required]="!hasPan()">
+        <div class="cred-left">
+          <div class="status-indicator-icon" [class.verified]="hasPan()" [class.warning]="!hasPan()">
+            {{ hasPan() ? '✓' : '⚠' }}
+          </div>
+          <div class="cred-info">
+            <div class="cred-name-row">
+              <span class="cred-name">Permanent Account Number (PAN)</span>
+              <span class="vp-badge" [class.badge-verified]="hasPan()" [class.badge-warning]="!hasPan()">
+                {{ hasPan() ? '✓ VERIFIED' : 'PENDING' }}
+              </span>
+            </div>
+            <div class="cred-sub-row">
+              <span class="cred-val font-mono">{{ panValue() || 'Pending Submission' }}</span>
+              <span class="bullet" *ngIf="hasPan()">&bull;</span>
+              <span class="cred-meta text-green" *ngIf="hasPan()">NSDL Registry Reconciled</span>
+              <span class="cred-meta text-amber" *ngIf="!hasPan()">Not recorded</span>
+            </div>
+          </div>
+        </div>
+        <button *ngIf="hasPan()" class="btn btn-secondary btn-sm" (click)="viewCredentialDetails('PAN')">
+          View Details
+        </button>
+      </div>
+
+      <!-- Item 2: GSTIN -->
+      <div class="credential-row" [class.verified]="hasGstin()" [class.action-required]="!hasGstin()">
+        <div class="cred-left">
+          <div class="status-indicator-icon" [class.verified]="hasGstin()" [class.warning]="!hasGstin()">
+            {{ hasGstin() ? '✓' : '⚠' }}
+          </div>
+          <div class="cred-info">
+            <div class="cred-name-row">
+              <span class="cred-name">Goods &amp; Services Tax ID (GSTIN)</span>
+              <span class="vp-badge" [class.badge-verified]="hasGstin()" [class.badge-warning]="!hasGstin()">
+                {{ hasGstin() ? '✓ VERIFIED' : 'PENDING' }}
+              </span>
+            </div>
+            <div class="cred-sub-row">
+              <span class="cred-val font-mono">{{ gstinValue() || 'Pending Submission' }}</span>
+              <span class="bullet" *ngIf="hasGstin()">&bull;</span>
+              <span class="cred-meta text-green" *ngIf="hasGstin()">GSTN Active &bull; Form REG-06 Verified</span>
+              <span class="cred-meta text-amber" *ngIf="!hasGstin()">Not recorded</span>
+            </div>
+          </div>
+        </div>
+        <button *ngIf="hasGstin()" class="btn btn-secondary btn-sm" (click)="viewCredentialDetails('GSTIN')">
+          View Details
+        </button>
+      </div>
+
+      <!-- Item 3: CIN (Dynamic Action Required vs Verified) -->
+      <div class="credential-row" [class.verified]="hasCin()" [class.action-required]="!hasCin()">
+        <div class="cred-left">
+          <div class="status-indicator-icon" [class.verified]="hasCin()" [class.warning]="!hasCin()">
+            {{ hasCin() ? '✓' : '⚠' }}
+          </div>
+          <div class="cred-info">
+            <div class="cred-name-row">
+              <span class="cred-name">Corporate Identification Number (CIN)</span>
+              <span class="vp-badge" [class.badge-verified]="hasCin()" [class.badge-warning]="!hasCin()">
+                {{ hasCin() ? '✓ VERIFIED' : '⚠ ACTION REQUIRED' }}
+              </span>
+            </div>
+            <div class="cred-sub-row">
+              <span class="cred-val font-mono">{{ cinValue() || 'Pending Certificate Submission' }}</span>
+              <span class="bullet">&bull;</span>
+              <span class="cred-meta" [class.text-green]="hasCin()" [class.text-amber]="!hasCin()">
+                {{ hasCin() ? 'Ministry of Corporate Affairs (MCA21) Matched' : 'Certificate of Incorporation evidence missing' }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <button
+          *ngIf="!hasCin()"
+          class="btn btn-primary btn-sm btn-complete-action"
+          (click)="openCompleteModal('CIN')">
+          Complete Now &rarr;
+        </button>
+        <button
+          *ngIf="hasCin()"
+          class="btn btn-secondary btn-sm"
+          (click)="viewCredentialDetails('CIN')">
+          View Details
+        </button>
+      </div>
+
+      <!-- Item 4: UDYAM -->
+      <div class="credential-row" [class.verified]="hasUdyam()" [class.action-required]="!hasUdyam()">
+        <div class="cred-left">
+          <div class="status-indicator-icon" [class.verified]="hasUdyam()" [class.warning]="!hasUdyam()">
+            {{ hasUdyam() ? '✓' : '⚠' }}
+          </div>
+          <div class="cred-info">
+            <div class="cred-name-row">
+              <span class="cred-name">MSME Udyam Registration</span>
+              <span class="vp-badge" [class.badge-verified]="hasUdyam()" [class.badge-outline]="!hasUdyam()">
+                {{ hasUdyam() ? '✓ VERIFIED' : 'OPTIONAL' }}
+              </span>
+            </div>
+            <div class="cred-sub-row">
+              <span class="cred-val font-mono">{{ udyamValue() || 'Not Provided' }}</span>
+              <span class="bullet" *ngIf="hasUdyam()">&bull;</span>
+              <span class="cred-meta text-green" *ngIf="hasUdyam()">Ministry of MSME Registry Matched</span>
+              <span class="cred-meta text-muted" *ngIf="!hasUdyam()">Optional MSME Certificate</span>
+            </div>
+          </div>
+        </div>
+        <button *ngIf="hasUdyam()" class="btn btn-secondary btn-sm" (click)="viewCredentialDetails('UDYAM')">
+          View Details
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL 1: VIEW DETAILS MODAL (VERIFIED STATUTORY PROOF)   -->
+  <!-- ======================================================== -->
+  <div class="modal-backdrop-blur" *ngIf="detailsModalOpen()" (click)="closeDetailsModal()">
+    <div class="centered-kyc-modal" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-pretag">
+            <span class="pretag-dot">●</span>
+            <span>SOVEREIGN REGISTRY RECORD</span>
+            <span class="pretag-sep">&bull;</span>
+            <span class="pretag-auth">{{ activeDetails().authorityTag }}</span>
+          </div>
+          <h3 class="modal-title">{{ activeDetails().name }}</h3>
+          <p class="modal-sub">{{ activeDetails().description }}</p>
+        </div>
+        <button class="modal-close-btn" (click)="closeDetailsModal()" aria-label="Close modal">&times;</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <!-- Prominent ID Banner -->
+        <div class="credential-proof-banner">
+          <div class="proof-badge-icon">🏛️</div>
+          <div class="proof-id-block">
+            <span class="proof-id-label">OFFICIAL REGISTRATION IDENTIFIER</span>
+            <div class="proof-id-val-row">
+              <span class="proof-id-val font-mono">{{ activeDetails().value }}</span>
+              <button
+                class="copy-id-btn"
+                (click)="copyCredential(activeDetails().value)"
+                [title]="copiedValue() ? 'Copied to clipboard' : 'Copy to clipboard'">
+                {{ copiedValue() ? '✓ Copied' : 'Copy ID' }}
+              </button>
+            </div>
+          </div>
+          <span class="proof-status-pill">
+            <span class="status-pulse-dot"></span>
+            <span>{{ activeDetails().status }}</span>
+          </span>
+        </div>
+
+        <!-- Re-verify Flash Banner -->
+        <div *ngIf="reverifySuccess()" class="reverify-flash-alert animate-fade-in">
+          <span class="reverify-icon">✓</span>
+          <div>
+            <strong>Registry Handshake Re-verified Successfully</strong>
+            <p>Direct API query against {{ activeDetails().issuerShort }} confirmed zero discrepancy. Cryptographic anchor updated.</p>
+          </div>
+        </div>
+
+        <!-- Telemetry Details Grid -->
+        <div class="telemetry-grid">
+          <div class="telemetry-card">
+            <span class="t-label">Official Registry Issuer</span>
+            <strong class="t-val">{{ activeDetails().issuer }}</strong>
+          </div>
+
+          <div class="telemetry-card">
+            <span class="t-label">Entity Legal Name Matched</span>
+            <strong class="t-val text-blue">{{ activeDetails().entityMatched }}</strong>
+          </div>
+
+          <div class="telemetry-card">
+            <span class="t-label">Registry Match Result</span>
+            <strong class="t-val text-green">{{ activeDetails().confidence }}</strong>
+          </div>
+
+          <div class="telemetry-card">
+            <span class="t-label">Statutory Classification</span>
+            <strong class="t-val">{{ activeDetails().category }}</strong>
+          </div>
+
+          <div class="telemetry-card">
+            <span class="t-label">Registration / Effective Date</span>
+            <strong class="t-val font-mono">{{ activeDetails().issuedDate }}</strong>
+          </div>
+
+          <div class="telemetry-card">
+            <span class="t-label">Last Synchronization</span>
+            <strong class="t-val font-mono">{{ activeDetails().lastVerified }}</strong>
+          </div>
+
+          <div class="telemetry-card span-2">
+            <span class="t-label">Verification Pipeline</span>
+            <strong class="t-val">{{ activeDetails().method }}</strong>
+          </div>
+
+          <div class="telemetry-card span-2">
+            <span class="t-label">Cryptographic Proof Anchor</span>
+            <strong class="t-val font-mono text-muted text-break">{{ activeDetails().hash }}</strong>
+          </div>
+        </div>
+
+        <!-- Trust Assurance Callout -->
+        <div class="trust-assurance-box">
+          <div class="trust-icon">🛡️</div>
+          <div class="trust-text">
+            <strong>Sovereign Privacy &amp; Disclosure Controls</strong>
+            <p>This verification is permanently anchored to the sovereign compliance network. Connected enterprise buyers can cryptographically validate this evidence on your Business Passport without exposing internal filings.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-outline btn-sm reverify-btn"
+          (click)="triggerReverify()"
+          [disabled]="isReverifying()">
+          <span *ngIf="isReverifying()" class="btn-spinner"></span>
+          <span>{{ isReverifying() ? 'Connecting to Registry...' : '⟳ Re-verify against Registry' }}</span>
+        </button>
+        <button type="button" class="btn btn-primary btn-sm" (click)="closeDetailsModal()">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL 2: COMPLETE NOW (CIN ONBOARDING & VERIFICATION)    -->
+  <!-- ======================================================== -->
+  <div class="modal-backdrop-blur" *ngIf="completeModalOpen()" (click)="closeCompleteModal()">
+    <div class="centered-kyc-modal" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-pretag">
+            <span class="pretag-dot amber">●</span>
+            <span>STATUTORY COMPLIANCE ONBOARDING</span>
+            <span class="pretag-sep">&bull;</span>
+            <span class="pretag-auth">MCA21 &bull; ROC PUNE</span>
+          </div>
+          <h3 class="modal-title">Verify Corporate Identification Number (CIN)</h3>
+          <p class="modal-sub">
+            Verify your incorporation under the Companies Act, 2013 to achieve 100% Identity Completion and unlock verified supplier status.
+          </p>
+        </div>
+        <button class="modal-close-btn" (click)="closeCompleteModal()" aria-label="Close modal">&times;</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <!-- Verification Method Tabs -->
+        <div class="method-nav-tabs">
+          <button
+            type="button"
+            class="method-tab-btn"
+            [class.active]="verificationTab() === 'direct'"
+            (click)="verificationTab.set('direct'); cinVerifiedResult.set(null)">
+            <span>⚡ Instant MCA21 Lookup</span>
+          </button>
+          <button
+            type="button"
+            class="method-tab-btn"
+            [class.active]="verificationTab() === 'upload'"
+            (click)="verificationTab.set('upload'); cinVerifiedResult.set(null)">
+            <span>📄 Upload Certificate of Incorporation</span>
+          </button>
+        </div>
+
+        <!-- TAB 1: DIRECT MCA21 LOOKUP -->
+        <div *ngIf="verificationTab() === 'direct'" class="method-tab-pane">
+          <div class="form-group mb-3">
+            <div class="label-with-counter">
+              <label class="modal-input-label" for="cinInput">21-Character CIN Number</label>
+              <span class="char-count font-mono" [class.count-valid]="cinInput().length === 21">
+                {{ cinInput().length }}/21 characters
+              </span>
+            </div>
+            <div class="input-with-action">
+              <input
+                id="cinInput"
+                type="text"
+                maxlength="21"
+                [(ngModel)]="cinInput"
+                placeholder="e.g. U74999MH2018PTC123456"
+                class="vp-input modal-cin-input font-mono uppercase"
+                [disabled]="isVerifyingCin()"
+              />
+              <button
+                type="button"
+                class="btn btn-primary btn-lookup"
+                (click)="verifyCinNow()"
+                [disabled]="isVerifyingCin() || cinInput().length !== 21">
+                <span *ngIf="isVerifyingCin()" class="btn-spinner"></span>
+                <span>{{ isVerifyingCin() ? 'Verifying with MCA21...' : 'Verify Registry Data' }}</span>
+              </button>
+            </div>
+            <p class="input-help-text">
+              Format: <code>[U/L] + [5-digit industry] + [2-char state] + [4-digit year] + [3-char type] + [6-digit serial]</code>
+            </p>
+            <div *ngIf="cinError()" class="cin-error-msg animate-fade-in">
+              ⚠ {{ cinError() }}
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: CERTIFICATE UPLOAD -->
+        <div *ngIf="verificationTab() === 'upload'" class="method-tab-pane">
+          <div
+            class="document-dropzone"
+            (dragover)="$event.preventDefault()"
+            (drop)="onFileDropped($event)">
+            <input
+              type="file"
+              id="coiFileInput"
+              accept=".pdf,.png,.jpg,.jpeg"
+              (change)="onFileInputChange($event)"
+              class="hidden-file-input"
+            />
+            <label for="coiFileInput" class="dropzone-label">
+              <div class="drop-icon">📑</div>
+              <strong class="drop-primary-text">Click to select Certificate of Incorporation or drag &amp; drop</strong>
+              <span class="drop-sub-text">Official MCA21 Certificate of Incorporation (Form INC-11) &bull; PDF, JPG up to 10MB</span>
+            </label>
+          </div>
+
+          <div *ngIf="uploadedFile() as file" class="uploaded-file-banner animate-fade-in">
+            <span class="f-icon">📄</span>
+            <div class="f-meta">
+              <strong>{{ file.name }}</strong>
+              <span>{{ file.size }} &bull; OCR Document Intelligence extracted 21-digit CIN</span>
+            </div>
+            <span class="f-badge">✓ Analyzed</span>
+          </div>
+
+          <div *ngIf="isVerifyingCin()" class="ocr-scanning-pill animate-fade-in">
+            <span class="btn-spinner mr-2"></span>
+            <span>Extracting and verifying CIN with MCA21 Registry...</span>
+          </div>
+        </div>
+
+        <!-- VERIFICATION RESULT MASTER CARD -->
+        <div *ngIf="cinVerifiedResult() as res" class="verified-master-record animate-scale-up">
+          <div class="master-record-header">
+            <div class="mr-left">
+              <span class="mr-badge">✓ MCA21 MASTER RECORD MATCHED</span>
+              <h4 class="mr-company-name">{{ res.companyName }}</h4>
+            </div>
+            <span class="mr-status-tag">Active Sovereign Registration</span>
+          </div>
+
+          <div class="master-data-table">
+            <div class="md-row">
+              <span class="md-lbl">Corporate Identification No. (CIN)</span>
+              <span class="md-val font-mono">{{ res.cin }}</span>
+            </div>
+            <div class="md-row">
+              <span class="md-lbl">Registrar of Companies (RoC)</span>
+              <span class="md-val">{{ res.roc }}</span>
+            </div>
+            <div class="md-row">
+              <span class="md-lbl">Company Classification</span>
+              <span class="md-val">{{ res.classOfCompany }}</span>
+            </div>
+            <div class="md-row">
+              <span class="md-lbl">Date of Incorporation</span>
+              <span class="md-val font-mono">{{ res.dateOfIncorporation }}</span>
+            </div>
+            <div class="md-row">
+              <span class="md-lbl">Authorized Share Capital</span>
+              <span class="md-val font-mono">{{ res.authorizedCapital }}</span>
+            </div>
+            <div class="md-row">
+              <span class="md-lbl">Paid-up Capital</span>
+              <span class="md-val font-mono">{{ res.paidUpCapital }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeCompleteModal()">
+          Cancel
+        </button>
+        <button
+          *ngIf="cinVerifiedResult()"
+          type="button"
+          class="btn btn-primary btn-sm btn-confirm-anchor animate-fade-in"
+          (click)="confirmAndAnchorCin()">
+          ✓ Confirm &amp; Anchor to Business Passport
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

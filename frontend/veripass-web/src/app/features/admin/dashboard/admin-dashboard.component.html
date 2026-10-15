@@ -1,0 +1,224 @@
+    <div class="dashboard-page">
+      <!-- HEADER -->
+      <div class="header-card">
+        <div class="header-text">
+          <div class="header-tag">PLATFORM OPERATIONS &amp; GOVERNANCE</div>
+          <h1 class="page-title">Admin Dashboard</h1>
+          <p class="page-subtitle">
+            Platform-wide overview and operational health across verified businesses, buyers, sovereign APIs, and risk.
+          </p>
+        </div>
+        <div class="header-actions">
+          <span class="last-sync">Last updated: 06 Sep 2026 &bull; 13:30 IST</span>
+          <button type="button" class="btn-refresh" (click)="refreshMetrics()">Refresh ↻</button>
+        </div>
+      </div>
+
+      <!-- 6 PLATFORM KPI CARDS -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <span class="kpi-title">TOTAL BUSINESSES</span>
+          <div class="kpi-num">{{ kpis().totalBusinesses | number }}</div>
+          <span class="kpi-delta text-success">{{ kpis().businessesGrowth }} from last month</span>
+        </div>
+
+        <div class="kpi-card">
+          <span class="kpi-title">VERIFIED PASSPORTS</span>
+          <div class="kpi-num text-success">{{ kpis().verifiedBusinesses | number }}</div>
+          <span class="kpi-delta">{{ kpis().verifiedRate }} verified conversion rate</span>
+        </div>
+
+        <div class="kpi-card">
+          <span class="kpi-title">BUYER ORGANIZATIONS</span>
+          <div class="kpi-num">{{ kpis().totalBuyers | number }}</div>
+          <span class="kpi-delta text-success">{{ kpis().buyersGrowth }} onboarding pace</span>
+        </div>
+
+        <div class="kpi-card">
+          <span class="kpi-title">PENDING VERIFICATIONS</span>
+          <div class="kpi-num text-amber">{{ kpis().pendingCases | number }}</div>
+          <span class="kpi-delta">In active compliance queue</span>
+        </div>
+
+        <div class="kpi-card">
+          <span class="kpi-title">HIGH RISK ENTITIES</span>
+          <div class="kpi-num text-danger">{{ kpis().highRiskBusinesses }}</div>
+          <span class="kpi-delta text-danger">{{ kpis().highRiskChange }} active investigations</span>
+        </div>
+
+        <div class="kpi-card">
+          <span class="kpi-title">OPEN DISPUTES</span>
+          <div class="kpi-num text-purple">{{ kpis().totalDisputes }}</div>
+          <span class="kpi-delta text-purple">{{ kpis().unresolvedDisputes }} unresolved / requires review</span>
+        </div>
+      </div>
+
+      <!-- ROW 2: PLATFORM HEALTH + VERIFICATION TREND -->
+      <div class="two-col-grid">
+        <!-- PLATFORM HEALTH CARD -->
+        <div class="section-card">
+          <div class="card-head">
+            <div>
+              <h3 class="card-title">PLATFORM HEALTH &amp; CORE SERVICES</h3>
+              <span class="card-sub">Real-time gateway connectivity and latency monitors</span>
+            </div>
+            <span class="badge-status-all">All Systems Operational</span>
+          </div>
+
+          <div class="table-wrap">
+            <table class="dense-table">
+              <thead>
+                <tr>
+                  <th>SERVICE SUBSYSTEM</th>
+                  <th>STATUS</th>
+                  <th>LATENCY</th>
+                  <th class="text-right">UPTIME (30D)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let s of health()">
+                  <td class="font-bold">{{ s.service }}</td>
+                  <td>
+                    <span class="status-indicator">
+                      <span class="dot-green"></span>
+                      <span>{{ s.status }}</span>
+                    </span>
+                  </td>
+                  <td class="font-mono text-muted">{{ s.latency }}</td>
+                  <td class="text-right font-mono text-success">{{ s.uptime }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- VERIFICATION VOLUME TREND -->
+        <div class="section-card">
+          <div class="card-head">
+            <div>
+              <h3 class="card-title">VERIFICATION VOLUME TREND (7 DAYS)</h3>
+              <span class="card-sub">Daily throughput across sovereign verification pipelines</span>
+            </div>
+            <span class="vol-highlight">Peak: 5,840 / day</span>
+          </div>
+
+          <div class="chart-container">
+            <div class="trend-bars">
+              <div class="bar-col">
+                <div class="bar-stick" style="height: 60%"></div>
+                <span class="bar-val">3.2k</span>
+                <span class="bar-lbl">Mon</span>
+              </div>
+              <div class="bar-col">
+                <div class="bar-stick" style="height: 68%"></div>
+                <span class="bar-val">3.8k</span>
+                <span class="bar-lbl">Tue</span>
+              </div>
+              <div class="bar-col">
+                <div class="bar-stick" style="height: 82%"></div>
+                <span class="bar-val">4.6k</span>
+                <span class="bar-lbl">Wed</span>
+              </div>
+              <div class="bar-col">
+                <div class="bar-stick" style="height: 94%"></div>
+                <span class="bar-val">5.4k</span>
+                <span class="bar-lbl">Thu</span>
+              </div>
+              <div class="bar-col">
+                <div class="bar-stick" style="height: 75%"></div>
+                <span class="bar-val">4.2k</span>
+                <span class="bar-lbl">Fri</span>
+              </div>
+              <div class="bar-col">
+                <div class="bar-stick" style="height: 100%"></div>
+                <span class="bar-val">5.8k</span>
+                <span class="bar-lbl">Sat</span>
+              </div>
+              <div class="bar-col">
+                <div class="bar-stick" style="height: 88%"></div>
+                <span class="bar-val">4.9k</span>
+                <span class="bar-lbl">Sun</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 3: RISK OVERVIEW + ADMIN ALERTS -->
+      <div class="two-col-grid">
+        <!-- RISK OVERVIEW -->
+        <div class="section-card">
+          <div class="card-head">
+            <div>
+              <h3 class="card-title">RISK OVERVIEW &amp; ANOMALIES</h3>
+              <span class="card-sub">Neural fraud indicators across active business dossiers</span>
+            </div>
+            <a routerLink="/admin/risk" class="link-action">Inspect Risk &rarr;</a>
+          </div>
+
+          <div class="risk-breakdown-list">
+            <div class="risk-row">
+              <span class="r-label">High Risk Businesses Under Investigation</span>
+              <span class="r-val text-danger font-bold">421</span>
+            </div>
+            <div class="risk-row">
+              <span class="r-label">Suspicious Documents Quarantined</span>
+              <span class="r-val text-amber font-bold">183</span>
+            </div>
+            <div class="risk-row">
+              <span class="r-label">Duplicate Credentials Detected</span>
+              <span class="r-val text-amber font-bold">97</span>
+            </div>
+            <div class="risk-row">
+              <span class="r-label">Repeated Statutory Verification Failures</span>
+              <span class="r-val font-bold">142</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADMIN OPERATIONAL ALERTS -->
+        <div class="section-card">
+          <div class="card-head">
+            <div>
+              <h3 class="card-title">ADMIN OPERATIONAL ALERTS</h3>
+              <span class="card-sub">Critical telemetry signals and policy warnings</span>
+            </div>
+            <span class="alerts-count">4 Active Alerts</span>
+          </div>
+
+          <div class="alerts-list">
+            <div class="alert-item warn">
+              <span class="alert-icon">⚠</span>
+              <div class="alert-body">
+                <span class="alert-title">Trusted GST source response latency increased</span>
+                <span class="alert-sub">Average response time at 240ms (exceeding 200ms baseline). SLA monitor active.</span>
+              </div>
+            </div>
+
+            <div class="alert-item danger">
+              <span class="alert-icon">⚠</span>
+              <div class="alert-body">
+                <span class="alert-title">18 verification cases breached SLA window</span>
+                <span class="alert-sub">Cases automatically escalated to Senior Verifier priority triage.</span>
+              </div>
+            </div>
+
+            <div class="alert-item info">
+              <span class="alert-icon">ℹ</span>
+              <div class="alert-body">
+                <span class="alert-title">Credential rule "ISO 9001" expires tomorrow</span>
+                <span class="alert-sub">Rule version v1 scheduled for deprecation in favor of v2.</span>
+              </div>
+            </div>
+
+            <div class="alert-item success">
+              <span class="alert-icon">✓</span>
+              <div class="alert-body">
+                <span class="alert-title">Document processing service healthy</span>
+                <span class="alert-sub">241,821 documents indexed with zero unhandled OCR exceptions today.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>

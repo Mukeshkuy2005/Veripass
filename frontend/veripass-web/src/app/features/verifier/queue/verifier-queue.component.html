@@ -1,0 +1,87 @@
+<div class="verification-queue-page">
+  <!-- 1. Header (Dynamic Counters, Scope Tabs, Live State) -->
+  <app-queue-header
+    [scope]="filterParams().scope"
+    [totalCount]="queueService.queueResponse()?.totalCount ?? 0"
+    [summary]="queueService.queueResponse()?.summary ?? null"
+    [loading]="queueService.loading()"
+    (scopeChange)="onScopeChange($event)"
+    (refresh)="onRefresh()">
+  </app-queue-header>
+
+  <!-- 2. Enterprise Filter Panel (Search, Status, Priority, Type, Risk, Date) -->
+  <app-queue-filters
+    [initialFilters]="filterParams()"
+    [loading]="queueService.loading()"
+    (apply)="onFilterApply($event)"
+    (reset)="onFilterReset()">
+  </app-queue-filters>
+
+  <!-- 3. Error State with Retry Button -->
+  <div *ngIf="queueService.error() && !queueService.loading()" class="queue-error-card" role="alert">
+    <div class="error-icon">⚠️</div>
+    <div class="error-content">
+      <h3 class="error-title">Unable to load verification queue</h3>
+      <p class="error-desc">{{ queueService.error() }}</p>
+    </div>
+    <button type="button" class="btn-retry" (click)="onRefresh()">
+      ↻ Retry
+    </button>
+  </div>
+
+  <!-- 4. Loading Skeleton State -->
+  <div *ngIf="queueService.loading() && !queueService.queueResponse()" class="queue-skeleton-card">
+    <div class="skeleton-header">
+      <div class="skeleton-bar th-skeleton"></div>
+      <div class="skeleton-bar th-skeleton"></div>
+      <div class="skeleton-bar th-skeleton"></div>
+      <div class="skeleton-bar th-skeleton"></div>
+    </div>
+    <div class="skeleton-row" *ngFor="let _ of [1, 2, 3, 4, 5]">
+      <div class="skeleton-bar" style="width: 15%"></div>
+      <div class="skeleton-bar" style="width: 30%"></div>
+      <div class="skeleton-bar" style="width: 10%"></div>
+      <div class="skeleton-bar" style="width: 15%"></div>
+      <div class="skeleton-bar" style="width: 10%"></div>
+      <div class="skeleton-bar" style="width: 10%"></div>
+    </div>
+  </div>
+
+  <!-- 5. Empty State -->
+  <div
+    *ngIf="!queueService.loading() && !queueService.error() && queueService.queueResponse()?.items?.length === 0"
+    class="queue-empty-card">
+    <div class="empty-icon-wrap">📋</div>
+    <h3 class="empty-title">No verification cases found</h3>
+    <p class="empty-subtitle">
+      No statutory verification cases match your current filter criteria or queue scope.
+      Try resetting your filters or switching to another queue scope.
+    </p>
+    <button type="button" class="btn-empty-reset" (click)="onFilterReset()">
+      Reset All Filters
+    </button>
+  </div>
+
+  <!-- 6. Real Data Table -->
+  <ng-container *ngIf="queueService.queueResponse() as res">
+    <app-queue-table
+      *ngIf="res.items.length > 0"
+      [items]="res.items"
+      [sortBy]="filterParams().sortBy || 'submitted'"
+      [sortDirection]="filterParams().sortDirection || 'desc'"
+      (sort)="onSortChange($event)">
+    </app-queue-table>
+
+    <!-- 7. Real Server-Side Pagination -->
+    <app-queue-pagination
+      *ngIf="res.totalCount > 0"
+      [page]="res.page"
+      [pageSize]="res.pageSize"
+      [totalCount]="res.totalCount"
+      [totalPages]="res.totalPages"
+      [loading]="queueService.loading()"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)">
+    </app-queue-pagination>
+  </ng-container>
+</div>

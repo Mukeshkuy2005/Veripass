@@ -1,0 +1,52 @@
+<div class="panel-box" id="risk-distribution-panel">
+  <div class="panel-header">
+    <div>
+      <h3 class="panel-title">RISK DISTRIBUTION</h3>
+      <span class="panel-sub">Calculated across active verification portfolio</span>
+    </div>
+  </div>
+
+  <!-- Loading Skeletons -->
+  <div class="risk-bars-stack" *ngIf="loading()">
+    <div class="skeleton-bar-row" *ngFor="let i of [1, 2, 3]">
+      <div class="skeleton-bar-lbl"></div>
+      <div class="skeleton-track"></div>
+      <div class="skeleton-pct"></div>
+    </div>
+  </div>
+
+  <!-- Risk Distribution Bars -->
+  <div class="risk-bars-stack" *ngIf="!loading() && hasAnyCases(risk()) && risk() as r">
+    <!-- Low Risk -->
+    <div class="dist-row" id="risk-row-low">
+      <span class="dist-name">Low</span>
+      <div class="dist-track" role="progressbar" [attr.aria-valuenow]="r.low" aria-valuemin="0" aria-valuemax="100" aria-label="Low Risk Cases">
+        <div class="dist-fill bg-green" [style.width.%]="r.low"></div>
+      </div>
+      <span class="dist-pct font-bold text-green">{{ r.low | number:'1.0-1' }}%</span>
+    </div>
+
+    <!-- Medium Risk -->
+    <div class="dist-row" id="risk-row-medium">
+      <span class="dist-name">Medium</span>
+      <div class="dist-track" role="progressbar" [attr.aria-valuenow]="r.medium" aria-valuemin="0" aria-valuemax="100" aria-label="Medium Risk Cases">
+        <div class="dist-fill bg-amber" [style.width.%]="r.medium"></div>
+      </div>
+      <span class="dist-pct font-bold text-amber">{{ r.medium | number:'1.0-1' }}%</span>
+    </div>
+
+    <!-- High Risk -->
+    <div class="dist-row" id="risk-row-high">
+      <span class="dist-name">High</span>
+      <div class="dist-track" role="progressbar" [attr.aria-valuenow]="r.high" aria-valuemin="0" aria-valuemax="100" aria-label="High Risk Cases">
+        <div class="dist-fill bg-red" [style.width.%]="r.high"></div>
+      </div>
+      <span class="dist-pct font-bold text-red">{{ r.high | number:'1.0-1' }}%</span>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!loading() && !hasAnyCases(risk())" id="empty-risk-distribution">
+    <div class="empty-sub">No active verification cases to analyze.</div>
+  </div>
+</div>

@@ -1,0 +1,147 @@
+<div class="detail-page">
+  <!-- Toast -->
+  <div *ngIf="toastMessage()" class="toast-popup" [class.success]="toastMessage()?.type === 'success'" [class.error]="toastMessage()?.type === 'error'">
+    <span>{{ toastMessage()?.text }}</span>
+  </div>
+
+  <div class="breadcrumbs">
+    <a routerLink="/admin/verifiers" class="back-link">&larr; Back to Verifiers</a>
+    <span class="sep">/</span>
+    <span class="current">{{ verifier()?.fullName || 'Verifier Profile' }}</span>
+  </div>
+
+  <div *ngIf="loading()" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading verifier details...</p>
+  </div>
+
+  <div *ngIf="!loading() && verifier() as v">
+    <!-- Header Card -->
+    <div class="profile-card vp-card">
+      <div class="profile-left">
+        <div class="avatar-large">
+          {{ v.firstName.charAt(0) }}{{ v.lastName.charAt(0) }}
+        </div>
+        <div class="profile-info">
+          <div class="name-status-row">
+            <h1 class="verifier-name">{{ v.fullName }}</h1>
+            <span class="status-badge" [class.badge-active]="v.status === 'ACTIVE'" [class.badge-inactive]="v.status === 'INACTIVE'" [class.badge-suspended]="v.status === 'SUSPENDED'">
+              {{ v.status }}
+            </span>
+            <span *ngIf="v.mustChangePassword" class="must-change-badge">Must Change Password</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-item">📧 {{ v.email }}</span>
+            <span class="meta-item">📱 {{ v.phone || 'No phone recorded' }}</span>
+            <span class="meta-item">📅 Joined {{ v.createdAt | date:'mediumDate' }}</span>
+            <span class="meta-item">🕒 Last Login: {{ v.lastLoginAt ? (v.lastLoginAt | date:'medium') : 'Never' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-actions">
+        <button *ngIf="v.status === 'ACTIVE'" class="btn btn-outline" (click)="handleToggleStatus('deactivate')" [disabled]="actionLoading()">
+          ⏸️ Deactivate
+        </button>
+
+        <button *ngIf="v.status !== 'ACTIVE'" class="btn btn-outline text-green" (click)="handleToggleStatus('reactivate')" [disabled]="actionLoading()">
+          ▶️ Reactivate
+        </button>
+
+        <button *ngIf="v.status !== 'SUSPENDED'" class="btn btn-outline text-amber" (click)="handleToggleStatus('suspend')" [disabled]="actionLoading()">
+          ⛔ Suspend
+        </button>
+
+        <button class="btn btn-outline" (click)="handleResetPassword()" [disabled]="actionLoading()">
+          🔑 Reset Password
+        </button>
+      </div>
+    </div>
+
+    <!-- Metrics Strip -->
+    <div class="metrics-grid">
+      <div class="metric-card vp-card">
+        <span class="metric-label">Total Assigned Cases</span>
+        <span class="metric-value">{{ v.totalAssigned }}</span>
+      </div>
+      <div class="metric-card vp-card">
+        <span class="metric-label">Completed Verifications</span>
+        <span class="metric-value text-green">{{ v.completedCases }}</span>
+      </div>
+      <div class="metric-card vp-card">
+        <span class="metric-label">Active / In-Progress</span>
+        <span class="metric-value text-amber">{{ v.pendingCases }}</span>
+      </div>
+      <div class="metric-card vp-card">
+        <span class="metric-label">Completion Ratio</span>
+        <span class="metric-value">
+          {{ v.totalAssigned > 0 ? ((v.completedCases / v.totalAssigned) * 100 | number:'1.0-0') + '%' : '100%' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Tabbed Sections -->
+    <div class="tabs-card vp-card">
+      <div class="tabs-header">
+        <button class="tab-btn" [class.active]="activeTab() === 'cases'" (click)="activeTab.set('cases')">
+          Assigned Verification Cases ({{ v.recentCases.length }})
+        </button>
+        <button class="tab-btn" [class.active]="activeTab() === 'audit'" (click)="activeTab.set('audit')">
+          Audit &amp; Security Ledger ({{ v.auditHistory.length }})
+        </button>
+      </div>
+
+      <!-- Cases Tab -->
+      <div *ngIf="activeTab() === 'cases'" class="tab-content">
+        <div *ngIf="v.recentCases.length === 0" class="empty-tab">
+          <p>No verification cases assigned to this officer yet.</p>
+        </div>
+        <table *ngIf="v.recentCases.length > 0" class="vp-table">
+          <thead>
+            <tr>
+              <th>Business Entity</th>
+              <th>Verification Scope</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Assigned Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of v.recentCases">
+              <td class="font-bold">{{ c.businessName }}</td>
+              <td>{{ c.verificationType }}</td>
+              <td>
+                <span class="priority-badge" [class.high]="c.priority === 'HIGH' || c.priority === 'URGENT'">
+                  {{ c.priority }}
+                </span>
+              </td>
+              <td>
+                <span class="case-status-badge">{{ c.status }}</span>
+              </td>
+              <td class="text-gray">{{ c.createdAt | date:'mediumDate' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Audit Tab -->
+      <div *ngIf="activeTab() === 'audit'" class="tab-content">
+        <div *ngIf="v.auditHistory.length === 0" class="empty-tab">
+          <p>No security or audit events recorded for this user.</p>
+        </div>
+        <div *ngIf="v.auditHistory.length > 0" class="audit-timeline">
+          <div *ngFor="let a of v.auditHistory" class="audit-item">
+            <div class="audit-icon-wrap">🔒</div>
+            <div class="audit-body">
+              <div class="audit-top">
+                <span class="audit-action font-mono">{{ a.action }}</span>
+                <span class="audit-time">{{ a.timestamp | date:'medium' }}</span>
+              </div>
+              <p class="audit-details font-mono text-gray">{{ a.details }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

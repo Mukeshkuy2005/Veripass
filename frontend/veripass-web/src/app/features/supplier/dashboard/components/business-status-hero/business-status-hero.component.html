@@ -1,0 +1,62 @@
+<div class="business-hero-card">
+  <div class="hero-top-row">
+    <div class="hero-identity">
+      <div class="title-with-badge">
+        <h1 class="business-title">{{ businessName }}</h1>
+        <span class="status-badge" [ngClass]="verificationStatus.toLowerCase()">
+          <span class="status-dot"></span>
+          {{ verificationStatus }}
+        </span>
+      </div>
+      <div class="identifiers-row">
+        <span class="identifier-item" *ngIf="gstin">
+          <span class="id-label">GSTIN:</span>
+          <span class="id-val font-mono">{{ gstin }}</span>
+        </span>
+        <span class="identifier-sep" *ngIf="gstin && cin">•</span>
+        <span class="identifier-item" *ngIf="cin">
+          <span class="id-label">CIN:</span>
+          <span class="id-val font-mono">{{ cin }}</span>
+        </span>
+        <span class="identifier-item pending-setup" *ngIf="!gstin && !cin">
+          <span class="id-label">Profile Status:</span>
+          <span class="id-val">Pending Setup — Complete GSTIN &amp; KYC in Profile</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-summary-row">
+    <p class="verification-statement" *ngIf="verificationStatus === 'VERIFIED'">
+      Your business identity is verified across sovereign registries.
+      <span class="last-sync">Last verification: {{ lastVerifiedDate }}</span>
+    </p>
+    <p class="verification-statement" *ngIf="verificationStatus !== 'VERIFIED'">
+      Your business profile is created. Complete your statutory KYC and upload credentials to earn sovereign trust verification.
+      <span class="last-sync"><a routerLink="/supplier/settings" [queryParams]="{ tab: 'business-profile' }" class="setup-link">Set up profile &rarr;</a></span>
+    </p>
+  </div>
+
+  <div class="hero-health-container">
+    <div class="health-meta-row">
+      <span class="health-label">Verification Health</span>
+      <div class="health-score-pill">
+        <span class="score-num">{{ verificationScore }}</span>
+        <span class="score-denom">/ 100</span>
+        <span class="health-rating">{{ healthTier }}</span>
+      </div>
+    </div>
+    <div class="health-bar-track">
+      <div class="health-bar-fill" [style.width.%]="verificationScore"></div>
+    </div>
+  </div>
+
+  <div class="hero-actions-row">
+    <a routerLink="/supplier/verification" class="btn btn-secondary">
+      View Verification Details
+    </a>
+    <a routerLink="/supplier/passport" class="btn btn-secondary">
+      View Business Passport
+    </a>
+  </div>
+</div>

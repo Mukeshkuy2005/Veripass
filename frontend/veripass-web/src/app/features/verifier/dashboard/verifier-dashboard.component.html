@@ -1,0 +1,97 @@
+<div class="v-dashboard-page" id="verifier-dashboard-page">
+  <!-- HEADER -->
+  <header class="dashboard-header-card" id="dashboard-header">
+    <div class="header-text-block">
+      <div class="title-meta-line">
+        <span class="badge-station">COMPLIANCE WORKSTATION</span>
+        <span class="date-tag" id="header-current-date">Today &bull; {{ currentDate | date:'dd MMMM yyyy' }}</span>
+        <span class="updated-tag" *ngIf="lastRefreshedAt() as lra" id="header-last-updated">
+          &bull; Last updated {{ lra | date:'hh:mm a' }}
+        </span>
+      </div>
+      <h1 class="page-title">Verification Dashboard</h1>
+      <p class="page-sub">Review and resolve business verification cases across sovereign identity, tax, and banking registries.</p>
+    </div>
+    <div class="header-actions">
+      <button
+        class="btn-refresh"
+        (click)="onRefresh()"
+        [disabled]="isRefreshing()"
+        id="btn-dashboard-refresh"
+        title="Reload live verification metrics">
+        <span class="refresh-icon" [class.spinning]="isRefreshing()">↻</span>
+        <span>{{ isRefreshing() ? 'Refreshing...' : 'Refresh' }}</span>
+      </button>
+      <a routerLink="/verifier/queue" class="btn-open-queue" id="btn-open-queue">
+        Open Queue ({{ summary()?.pending ?? 0 }}) &rarr;
+      </a>
+    </div>
+  </header>
+
+  <!-- NON-BLOCKING REFRESH ERROR BANNER -->
+  <div class="banner-notice banner-warning" *ngIf="refreshError()" id="banner-refresh-error">
+    <div class="banner-content">
+      <span class="banner-icon">⚠</span>
+      <span class="banner-msg">{{ refreshError() }}</span>
+    </div>
+    <div class="banner-actions">
+      <button class="btn-banner-retry" (click)="onRetry()">Retry</button>
+      <button class="btn-banner-close" (click)="dismissRefreshError()">✕</button>
+    </div>
+  </div>
+
+  <!-- FATAL INITIAL LOAD ERROR STATE -->
+  <div class="error-container" *ngIf="error() && !hasData()" id="dashboard-error-state">
+    <div class="error-card">
+      <div class="error-icon">✕</div>
+      <h2 class="error-title">Unable to load verification dashboard.</h2>
+      <p class="error-desc">{{ error() }}</p>
+      <button class="btn-retry" (click)="onRetry()" id="btn-error-retry">
+        ↻ Retry
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN OPERATIONAL WORKSPACE -->
+  <main *ngIf="!error() || hasData()" class="dashboard-main-content">
+    <!-- 5 KPI CARDS -->
+    <section aria-label="Operational Key Metrics">
+      <app-verification-kpi-cards
+        [summary]="summary()"
+        [loading]="isLoading()">
+      </app-verification-kpi-cards>
+    </section>
+
+    <!-- TWO-COLUMN WORKSPACE: PRIORITY CASES + BENCHMARKS -->
+    <div class="dashboard-2col-grid">
+      <!-- LEFT: PRIORITY CASES QUEUE -->
+      <section aria-label="Priority Cases Queue" class="col-left">
+        <app-priority-cases
+          [cases]="priorityCases()"
+          [loading]="isLoading()">
+        </app-priority-cases>
+      </section>
+
+      <!-- RIGHT: OPERATIONAL PERFORMANCE + RISK DISTRIBUTION -->
+      <section aria-label="Performance and Risk Analytics" class="col-right">
+        <app-verification-performance
+          [performance]="performance()"
+          [loading]="isLoading()">
+        </app-verification-performance>
+
+        <app-risk-distribution
+          [risk]="riskDistribution()"
+          [loading]="isLoading()">
+        </app-risk-distribution>
+      </section>
+    </div>
+
+    <!-- FULL WIDTH: RECENT DECISIONS -->
+    <section aria-label="Recent Decisions Activity Feed">
+      <app-recent-decisions
+        [decisions]="recentDecisions()"
+        [loading]="isLoading()">
+      </app-recent-decisions>
+    </section>
+  </main>
+</div>

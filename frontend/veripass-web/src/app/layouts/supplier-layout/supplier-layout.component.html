@@ -1,0 +1,264 @@
+<div class="supplier-shell">
+  <!-- SIDEBAR (256px expanded / 72px collapsed, deep neutral #111827) -->
+  <aside class="supplier-sidebar" [class.mobile-open]="mobileDrawerOpen()" [class.collapsed]="isSidebarCollapsed()">
+    <div class="sidebar-header">
+      <a routerLink="/supplier/dashboard" class="brand-link" (click)="onNavClick()">
+        <div class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" class="brand-shield-svg">
+            <path d="M12 2L4 6V11.5C4 16.5 7.4 21.1 12 22C16.6 21.1 20 16.5 20 11.5V6L12 2Z" fill="#1D4ED8" stroke="#3B82F6" stroke-width="1.5"/>
+            <path d="M9 11.5L11 13.5L15.5 9" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="brand-info">
+          <span class="brand-title">VERIPASS</span>
+          <span class="brand-subtitle">BUSINESS PORTAL</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Navigation Groups -->
+    <nav class="sidebar-nav">
+      <!-- OVERVIEW -->
+      <div class="nav-section">
+        <span class="section-label">OVERVIEW</span>
+        <a routerLink="/supplier/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" (click)="onNavClick()" class="nav-item" title="Dashboard">
+          <span class="nav-icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 4.5A2.5 2.5 0 014.5 2h3A2.5 2.5 0 0110 4.5v3A2.5 2.5 0 017.5 10h-3A2.5 2.5 0 012 7.5v-3zM2 12.5A2.5 2.5 0 014.5 10h3a2.5 2.5 0 012.5 2.5v3A2.5 2.5 0 017.5 18h-3A2.5 2.5 0 012 15.5v-3zM10 4.5A2.5 2.5 0 0112.5 2h3A2.5 2.5 0 0118 4.5v3a2.5 2.5 0 01-2.5 2.5h-3A2.5 2.5 0 0110 7.5v-3zM10 12.5A2.5 2.5 0 0112.5 10h3a2.5 2.5 0 012.5 2.5v3a2.5 2.5 0 01-2.5 2.5h-3a2.5 2.5 0 01-2.5-2.5v-3z"/></svg>
+          </span>
+          <span class="nav-text">Dashboard</span>
+        </a>
+      </div>
+
+      <!-- BUSINESS -->
+      <div class="nav-section">
+        <span class="section-label">BUSINESS</span>
+        <a routerLink="/supplier/documents" routerLinkActive="active" (click)="onNavClick()" class="nav-item" title="Credentials & Documents">
+          <span class="nav-icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+          </span>
+          <span class="nav-text">Credentials & Documents</span>
+        </a>
+      </div>
+
+      <!-- COMPLIANCE -->
+      <div class="nav-section">
+        <span class="section-label">COMPLIANCE</span>
+        <a routerLink="/supplier/verification" routerLinkActive="active" (click)="onNavClick()" class="nav-item" title="Verification">
+          <span class="nav-icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+          </span>
+          <span class="nav-text">Verification</span>
+        </a>
+        <a routerLink="/supplier/compliance" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="onNavClick()" class="nav-item" title="Compliance">
+          <span class="nav-icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+          </span>
+          <span class="nav-text">Compliance</span>
+        </a>
+        <a routerLink="/supplier/compliance/calendar" routerLinkActive="active" (click)="onNavClick()" class="nav-item" title="Compliance Calendar">
+          <span class="nav-icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>
+          </span>
+          <span class="nav-text">Calendar</span>
+        </a>
+      </div>
+
+      <!-- PASSPORT -->
+      <div class="nav-section">
+        <span class="section-label">PASSPORT</span>
+        <a routerLink="/supplier/passport" routerLinkActive="active" (click)="onNavClick()" class="nav-item" title="Business Passport">
+          <span class="nav-icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 2a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h4a1 1 0 100-2H7z"/></svg>
+          </span>
+          <span class="nav-text">Business Passport</span>
+        </a>
+      </div>
+
+      <!-- WORKFLOW -->
+      <div class="nav-section">
+        <span class="section-label">WORKFLOW</span>
+        <a routerLink="/supplier/requests" routerLinkActive="active" (click)="onNavClick()" class="nav-item" title="Buyer Requests">
+          <span class="nav-icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+          </span>
+          <span class="nav-text">Buyer Requests</span>
+          <span class="nav-badge" *ngIf="pendingBuyerRequestsCount() > 0">{{ pendingBuyerRequestsCount() }}</span>
+        </a>
+        <a routerLink="/supplier/history" routerLinkActive="active" (click)="onNavClick()" class="nav-item" title="Verification History">
+          <span class="nav-icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+          </span>
+          <span class="nav-text">Verification History</span>
+        </a>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="nav-section nav-section-settings">
+        <a routerLink="/supplier/settings" routerLinkActive="active" (click)="onNavClick()" class="nav-item" title="Settings">
+          <span class="nav-icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+          </span>
+          <span class="nav-text">Settings</span>
+        </a>
+      </div>
+    </nav>
+
+    <!-- Bottom Profile Card -->
+    <div class="sidebar-user-footer">
+      <div class="user-card">
+        <div class="user-avatar-badge">{{ userInitials() }}</div>
+        <div class="user-details">
+          <span class="user-name">{{ userName() }}</span>
+          <span class="user-role-lbl">Business Admin</span>
+        </div>
+        <button class="user-action-btn" (click)="logout()" title="Sign Out">
+          <svg viewBox="0 0 20 20" fill="currentColor" class="logout-icon"><path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/></svg>
+        </button>
+      </div> 
+    </div>
+  </aside>
+
+  <!-- MAIN WRAPPER (Topbar + Content Area) -->
+  <div class="supplier-main-wrapper" [class.sidebar-collapsed]="isSidebarCollapsed()">
+    <!-- TOPBAR (White, 64px, calm border) -->
+    <header class="supplier-topbar">
+      <div class="topbar-left">
+        <!-- Sidebar Toggle Button (Explicit toggle on Desktop and Mobile) -->
+        <button
+          class="sidebar-toggle-btn"
+          (click)="toggleSidebar()"
+          [attr.aria-label]="isSidebarCollapsed() ? 'Expand navigation sidebar' : 'Collapse navigation sidebar'"
+          [title]="isSidebarCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
+        <!-- Context Breadcrumb -->
+        <div class="topbar-context">
+          <span class="context-root">Supplier Portal</span>
+          <span class="context-sep">/</span>
+          <span class="context-current">{{ currentPageTitle() }}</span>
+        </div>
+      </div>
+
+      <!-- Center: Search Input -->
+      <div class="topbar-search-container">
+        <div class="search-input-wrapper">
+          <!-- Consistent 24x24 outline stroke search icon -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            type="text"
+            placeholder="Search business data, credentials, requests..."
+            class="search-input"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            (keyup.enter)="onSearch()"
+            aria-label="Search business data, credentials, and requests"/>
+          <kbd class="search-shortcut">⌘K</kbd>
+        </div>
+      </div>
+
+      <!-- Right: Actions & User -->
+      <div class="topbar-right">
+        <!-- Notifications with derived unread indicator & dropdown panel -->
+        <div class="notifications-menu-container">
+          <button
+            type="button"
+            class="icon-btn notif-bell-btn"
+            (click)="toggleNotificationDropdown()"
+            [attr.aria-label]="unreadCount() > 0 ? (unreadCount() + ' unread notifications') : 'Notifications'"
+            [title]="unreadCount() > 0 ? (unreadCount() + ' unread notifications') : 'Notifications'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-svg" aria-hidden="true">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span class="alert-dot" *ngIf="unreadCount() > 0" aria-hidden="true"></span>
+          </button>
+
+          <!-- Notification Dropdown Panel -->
+          <div class="notif-dropdown-panel" *ngIf="notificationDropdownOpen()">
+            <div class="notif-dropdown-header">
+              <div class="notif-header-title">
+                <span>Notifications</span>
+                <span class="notif-unread-badge" *ngIf="unreadCount() > 0">{{ unreadCount() }} new</span>
+              </div>
+              <button class="notif-close-btn" (click)="closeNotificationDropdown()" title="Close notifications" aria-label="Close notifications">✕</button>
+            </div>
+
+            <div class="notif-dropdown-body">
+              <!-- Loading State -->
+              <div class="notif-dropdown-state notif-loading-state" *ngIf="notificationsLoading()">
+                <div class="notif-spinner"></div>
+                <span>Loading notifications...</span>
+              </div>
+
+              <!-- Error State -->
+              <div class="notif-dropdown-state notif-error-state" *ngIf="!notificationsLoading() && notificationsError()">
+                <span>Unable to load notifications.</span>
+                <button class="btn btn-outline btn-xs mt-2" (click)="loadUnreadNotifications()">Retry</button>
+              </div>
+
+              <!-- Empty State -->
+              <div class="notif-dropdown-state notif-empty-state" *ngIf="!notificationsLoading() && !notificationsError() && notificationsList().length === 0">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-bell-icon">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <p class="empty-title">No notifications</p>
+                <p class="empty-sub">You're all caught up with your compliance and verification alerts.</p>
+              </div>
+
+              <!-- List State -->
+              <div class="notif-dropdown-list" *ngIf="!notificationsLoading() && !notificationsError() && notificationsList().length > 0">
+                <div *ngFor="let item of notificationsList().slice(0, 5)" class="notif-dropdown-item" [class.unread]="!item.isRead && !item.read">
+                  <div class="item-icon-indicator" [class.unread]="!item.isRead && !item.read"></div>
+                  <div class="item-content">
+                    <strong class="item-title">{{ item.title || 'Notification' }}</strong>
+                    <p class="item-desc">{{ item.message || item.desc || '' }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="notif-dropdown-footer">
+              <a routerLink="/supplier/notifications" (click)="closeNotificationDropdown()" class="view-all-link">
+                View all notifications →
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Help -->
+        <a routerLink="/help" target="_blank" class="icon-btn help-btn" title="Help & Documentation" aria-label="Help & Documentation">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-svg" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </a>
+
+        <div class="topbar-divider"></div>
+
+        <!-- Company Pill -->
+        <div class="company-badge-pill" [title]="'Status: ' + verificationStatus()">
+          <span class="status-indicator-dot" [class.unverified]="verificationStatus() !== 'VERIFIED'"></span>
+          <span class="company-pill-text">{{ companyName() }}</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT CANVAS (#F7F8FA) -->
+    <main class="supplier-content-canvas">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+
+  <!-- Mobile Backdrop -->
+  <div class="mobile-drawer-backdrop" *ngIf="mobileDrawerOpen()" (click)="closeMobileDrawer()"></div>
+</div>

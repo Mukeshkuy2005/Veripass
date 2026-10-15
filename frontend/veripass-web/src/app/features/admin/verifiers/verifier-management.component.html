@@ -1,0 +1,374 @@
+<div class="verifier-page">
+  <!-- Toast Message -->
+  <div *ngIf="toastMessage()" class="toast-popup" [class.success]="toastMessage()?.type === 'success'" [class.error]="toastMessage()?.type === 'error'">
+    <span>{{ toastMessage()?.text }}</span>
+  </div>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="breadcrumbs">
+        <span>Admin Console</span>
+        <span class="sep">/</span>
+        <span class="current">Verification Operations</span>
+      </div>
+      <h1 class="page-title">Verifier Management</h1>
+      <p class="page-sub">Provision compliance officers, monitor review workloads, enforce credentials, and govern audit integrity.</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary create-btn" (click)="openCreateModal()">
+        <span class="btn-icon">+</span> Provision Verifier
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Strip -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon-wrap icon-blue">👥</div>
+      <div class="stat-data">
+        <span class="stat-label">Total Verifiers</span>
+        <span class="stat-value">{{ stats().totalVerifiers }}</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap icon-green">✅</div>
+      <div class="stat-data">
+        <span class="stat-label">Active Reviewers</span>
+        <span class="stat-value text-green">{{ stats().activeVerifiers }}</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap icon-gray">⏸️</div>
+      <div class="stat-data">
+        <span class="stat-label">Inactive Accounts</span>
+        <span class="stat-value text-gray">{{ stats().inactiveVerifiers }}</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap icon-red">⛔</div>
+      <div class="stat-data">
+        <span class="stat-label">Suspended</span>
+        <span class="stat-value text-red">{{ stats().suspendedVerifiers }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter & Controls Bar -->
+  <div class="controls-bar vp-card">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        placeholder="Search by verifier name, email, or phone..."
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event); onSearchChange()"
+        class="search-input"
+      />
+    </div>
+
+    <div class="filter-pills">
+      <button class="filter-pill" [class.active]="selectedStatus() === 'ALL'" (click)="setStatusFilter('ALL')">
+        All ({{ stats().totalVerifiers }})
+      </button>
+      <button class="filter-pill pill-active" [class.active]="selectedStatus() === 'ACTIVE'" (click)="setStatusFilter('ACTIVE')">
+        Active ({{ stats().activeVerifiers }})
+      </button>
+      <button class="filter-pill pill-inactive" [class.active]="selectedStatus() === 'INACTIVE'" (click)="setStatusFilter('INACTIVE')">
+        Inactive ({{ stats().inactiveVerifiers }})
+      </button>
+      <button class="filter-pill pill-suspended" [class.active]="selectedStatus() === 'SUSPENDED'" (click)="setStatusFilter('SUSPENDED')">
+        Suspended ({{ stats().suspendedVerifiers }})
+      </button>
+    </div>
+  </div>
+
+  <!-- Verifiers Table Card -->
+  <div class="table-card vp-card">
+    <div *ngIf="loading()" class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading verifiers...</p>
+    </div>
+
+    <div *ngIf="!loading() && verifiers().length === 0" class="empty-state">
+      <div class="empty-icon">🛡️</div>
+      <h3>No Verifiers Found</h3>
+      <p>No verifier accounts match the current filter or search criteria.</p>
+      <button class="btn btn-outline mt-3" (click)="searchQuery.set(''); setStatusFilter('ALL')">Clear Filters</button>
+    </div>
+
+    <div *ngIf="!loading() && verifiers().length > 0" class="table-responsive">
+      <table class="vp-table">
+        <thead>
+          <tr>
+            <th>Verifier Identity</th>
+            <th>Phone</th>
+            <th>Status</th>
+            <th>Workload (Cases)</th>
+            <th>Last Login</th>
+            <th>Security</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let v of verifiers()">
+            <td>
+              <div class="verifier-cell">
+                <div class="avatar-circle">
+                  {{ v.firstName.charAt(0) }}{{ v.lastName.charAt(0) }}
+                </div>
+                <div class="verifier-meta">
+                  <a [routerLink]="['/admin/verifiers', v.id]" class="verifier-name">
+                    {{ v.fullName }}
+                  </a>
+                  <span class="verifier-email">{{ v.email }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="phone-text">{{ v.phone || '—' }}</span>
+            </td>
+            <td>
+              <span class="status-badge" [class.badge-active]="v.status === 'ACTIVE'" [class.badge-inactive]="v.status === 'INACTIVE'" [class.badge-suspended]="v.status === 'SUSPENDED'">
+                {{ v.status }}
+              </span>
+            </td>
+            <td>
+              <div class="workload-stats">
+                <span class="workload-total" title="Total Assigned">{{ v.assignedCasesCount }} total</span>
+                <span class="workload-completed text-green" title="Completed">{{ v.completedCasesCount }} done</span>
+                <span *ngIf="v.pendingCasesCount > 0" class="workload-pending text-amber" title="Pending">{{ v.pendingCasesCount }} open</span>
+              </div>
+            </td>
+            <td>
+              <span class="date-text">{{ v.lastLoginAt ? (v.lastLoginAt | date:'mediumDate') : 'Never' }}</span>
+            </td>
+            <td>
+              <span *ngIf="v.mustChangePassword" class="must-change-badge" title="Forced password change on first sign in">
+                Must Change Pass
+              </span>
+              <span *ngIf="!v.mustChangePassword" class="verified-pass-badge">
+                Configured
+              </span>
+            </td>
+            <td class="text-right">
+              <div class="action-buttons-cell">
+                <a [routerLink]="['/admin/verifiers', v.id]" class="action-icon-btn" title="View Detail">
+                  👁️
+                </a>
+
+                <button *ngIf="v.status === 'ACTIVE'" class="action-icon-btn" (click)="openDeactivateModal(v)" title="Deactivate Account">
+                  ⏸️
+                </button>
+
+                <button *ngIf="v.status !== 'ACTIVE'" class="action-icon-btn text-green" (click)="submitReactivate(v)" title="Reactivate Account">
+                  ▶️
+                </button>
+
+                <button *ngIf="v.status !== 'SUSPENDED'" class="action-icon-btn text-amber" (click)="openSuspendModal(v)" title="Suspend Account">
+                  ⛔
+                </button>
+
+                <button class="action-icon-btn" (click)="openResetModal(v)" title="Reset Password">
+                  🔑
+                </button>
+
+                <button class="action-icon-btn text-red" (click)="openDeleteModal(v)" title="Soft Delete Verifier">
+                  🗑️
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MODAL: Create Verifier -->
+  <div *ngIf="showCreateModal()" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Provision New Verifier Account</h3>
+        <button class="close-btn" (click)="closeModals()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">
+          Created verifier accounts will have access to the sovereign verification workspace and dispute examination queues.
+        </p>
+
+        <form (ngSubmit)="submitCreateVerifier()" class="modal-form">
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>First Name <span class="req">*</span></label>
+              <input type="text" [(ngModel)]="createForm.firstName" name="firstName" required class="vp-input" placeholder="e.g. Vikram" />
+            </div>
+            <div class="form-group flex-1">
+              <label>Last Name <span class="req">*</span></label>
+              <input type="text" [(ngModel)]="createForm.lastName" name="lastName" required class="vp-input" placeholder="e.g. Iyer" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Work Email <span class="req">*</span></label>
+            <input type="email" [(ngModel)]="createForm.email" name="email" required class="vp-input" placeholder="e.g. vikram.iyer@veripass.in" />
+          </div>
+
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="tel" [(ngModel)]="createForm.phone" name="phone" class="vp-input font-mono" placeholder="+91 98112 34567" />
+          </div>
+
+          <div class="form-group">
+            <div class="pass-header-row">
+              <label>Initial Temporary Password <span class="req">*</span></label>
+              <button type="button" class="generate-btn" (click)="createForm.password = generateRandomPassword()">
+                ⚡ Regenerate
+              </button>
+            </div>
+            <input type="text" [(ngModel)]="createForm.password" name="password" required class="vp-input font-mono" />
+            <span class="field-hint">Share this initial credential securely with the compliance officer.</span>
+          </div>
+
+          <div class="checkbox-row">
+            <input type="checkbox" id="mcp" [(ngModel)]="createForm.mustChangePassword" name="mustChangePassword" />
+            <label for="mcp">Force verifier to change password on first sign-in (Recommended)</label>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-outline" (click)="closeModals()">Cancel</button>
+            <button type="submit" class="btn btn-primary" [disabled]="actionLoading()">
+              {{ actionLoading() ? 'Provisioning...' : 'Provision Verifier Account' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Deactivate Verifier -->
+  <div *ngIf="showDeactivateModal()" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Deactivate Verifier Account</h3>
+        <button class="close-btn" (click)="closeModals()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">
+          Are you sure you want to deactivate <strong>{{ selectedVerifier()?.fullName }}</strong>?
+          All active login sessions and refresh tokens will be immediately revoked.
+        </p>
+
+        <div class="form-group">
+          <label>Reason for deactivation (Optional)</label>
+          <input type="text" [(ngModel)]="deactivateReason" class="vp-input" placeholder="e.g. Sabbatical, department transfer" />
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" (click)="closeModals()">Cancel</button>
+          <button type="button" class="btn btn-warning" (click)="submitDeactivate()" [disabled]="actionLoading()">
+            {{ actionLoading() ? 'Deactivating...' : 'Confirm Deactivation' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Suspend Verifier -->
+  <div *ngIf="showSuspendModal()" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title text-red">Suspend Verifier Account</h3>
+        <button class="close-btn" (click)="closeModals()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert-banner alert-danger mb-3">
+          <span>⚠️ <strong>Security Action:</strong> Suspension immediately cuts off access to all registry data and open verification cases.</span>
+        </div>
+
+        <p class="modal-desc">
+          Please provide a formal policy or compliance reason for suspending <strong>{{ selectedVerifier()?.fullName }}</strong>.
+        </p>
+
+        <div class="form-group">
+          <label>Suspension Reason <span class="req">*</span></label>
+          <textarea [(ngModel)]="suspendReason" rows="3" class="vp-input" placeholder="e.g. Pending investigation of verification irregularity"></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" (click)="closeModals()">Cancel</button>
+          <button type="button" class="btn btn-danger" (click)="submitSuspend()" [disabled]="actionLoading() || !suspendReason.trim()">
+            {{ actionLoading() ? 'Suspending...' : 'Suspend Verifier' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Reset Password -->
+  <div *ngIf="showResetModal()" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Reset Verifier Password</h3>
+        <button class="close-btn" (click)="closeModals()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">
+          Generate a new temporary password for <strong>{{ selectedVerifier()?.fullName }}</strong>.
+          Existing active tokens will be revoked.
+        </p>
+
+        <div class="form-group">
+          <div class="pass-header-row">
+            <label>New Temporary Password <span class="req">*</span></label>
+            <button type="button" class="generate-btn" (click)="resetNewPassword = generateRandomPassword()">
+              ⚡ Regenerate
+            </button>
+          </div>
+          <input type="text" [(ngModel)]="resetNewPassword" class="vp-input font-mono" />
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="rmcp" [(ngModel)]="resetMustChangePassword" />
+          <label for="rmcp">Require user to change password on next sign-in</label>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" (click)="closeModals()">Cancel</button>
+          <button type="button" class="btn btn-primary" (click)="submitResetPassword()" [disabled]="actionLoading() || !resetNewPassword">
+            {{ actionLoading() ? 'Resetting...' : 'Reset Password' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Soft Delete Confirmation -->
+  <div *ngIf="showDeleteModal()" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title text-red">Delete Verifier Account</h3>
+        <button class="close-btn" (click)="closeModals()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert-banner alert-warning mb-3">
+          <span>🔒 <strong>Audit Safe Soft-Delete:</strong> Historical verification decisions, evidence audits, and case logs attributed to this verifier remain fully preserved for regulatory compliance.</span>
+        </div>
+
+        <p class="modal-desc">
+          Are you sure you want to delete <strong>{{ selectedVerifier()?.fullName }}</strong> ({{ selectedVerifier()?.email }})?
+          This account will be permanently deactivated and removed from the active verifier roster.
+        </p>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" (click)="closeModals()">Cancel</button>
+          <button type="button" class="btn btn-danger" (click)="submitDelete()" [disabled]="actionLoading()">
+            {{ actionLoading() ? 'Deleting...' : 'Confirm Soft Delete' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

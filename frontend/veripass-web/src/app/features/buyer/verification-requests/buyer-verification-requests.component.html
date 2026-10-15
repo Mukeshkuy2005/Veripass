@@ -1,0 +1,602 @@
+<div class="verification-requests-page">
+  <!-- 1. HEADER HERO (CLEAN & ELEGANT) -->
+  <div class="requests-header vp-card">
+    <div class="header-left">
+      <div class="breadcrumb-bar">
+        <span class="crumb-parent">Buyer Operations</span>
+        <span class="crumb-sep">/</span>
+        <span class="crumb-active">Verification Requests</span>
+      </div>
+      <h1 class="page-title">Verification &amp; Attestation Requests</h1>
+      <p class="page-subtitle">Track, dispatch, and review formal compliance proofs, statutory credentials, and facility audits from suppliers.</p>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-subtle" (click)="loadRequests()" title="Refresh telemetry">
+        <span class="btn-icon">🔄</span> Refresh
+      </button>
+      <button class="btn-subtle" (click)="exportLedgerCsv()" title="Export Ledger as CSV">
+        <span class="btn-icon">📥</span> Export CSV
+      </button>
+      <button class="btn-primary" (click)="openCreateModal()">
+        <span class="btn-icon">+</span> New Verification Request
+      </button>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div *ngIf="toastMessage()" class="toast-banner" [class.toast-info]="toastType() === 'info'" [class.toast-error]="toastType() === 'error'">
+    <div class="toast-icon">
+      <span *ngIf="toastType() === 'success'">✓</span>
+      <span *ngIf="toastType() === 'info'">ℹ</span>
+      <span *ngIf="toastType() === 'error'">⚠</span>
+    </div>
+    <div class="toast-text">{{ toastMessage() }}</div>
+  </div>
+
+  <!-- 2. INTERACTIVE METRIC FILTER STRIP (DOUBLES AS SMART TABS) -->
+  <div class="kpi-grid">
+    <!-- Card 1: All Requests -->
+    <div
+      class="kpi-card vp-card"
+      [class.active]="statusFilter() === 'ALL'"
+      (click)="statusFilter.set('ALL')">
+      <div class="kpi-top">
+        <span class="kpi-label">All Requests</span>
+        <span class="kpi-dot bg-blue-dot"></span>
+      </div>
+      <div class="kpi-val-row">
+        <strong class="kpi-value text-slate">{{ totalCount() }}</strong>
+        <span class="kpi-sub">Total Dispatched</span>
+      </div>
+      <div class="kpi-active-indicator" *ngIf="statusFilter() === 'ALL'"></div>
+    </div>
+
+    <!-- Card 2: Awaiting Supplier -->
+    <div
+      class="kpi-card vp-card"
+      [class.active]="statusFilter() === 'PENDING'"
+      (click)="statusFilter.set('PENDING')">
+      <div class="kpi-top">
+        <span class="kpi-label">Awaiting Supplier</span>
+        <span class="kpi-dot bg-amber-pulse"></span>
+      </div>
+      <div class="kpi-val-row">
+        <strong class="kpi-value text-amber">{{ pendingCount() }}</strong>
+        <span class="kpi-sub">Pending Response</span>
+      </div>
+      <div class="kpi-active-indicator" *ngIf="statusFilter() === 'PENDING'"></div>
+    </div>
+
+    <!-- Card 3: Verified & Approved -->
+    <div
+      class="kpi-card vp-card"
+      [class.active]="statusFilter() === 'APPROVED'"
+      (click)="statusFilter.set('APPROVED')">
+      <div class="kpi-top">
+        <span class="kpi-label">Verified &amp; Approved</span>
+        <span class="kpi-dot bg-green-dot"></span>
+      </div>
+      <div class="kpi-val-row">
+        <strong class="kpi-value text-green">{{ approvedCount() }}</strong>
+        <span class="kpi-sub">Attestations Confirmed</span>
+      </div>
+      <div class="kpi-active-indicator" *ngIf="statusFilter() === 'APPROVED'"></div>
+    </div>
+
+    <!-- Card 4: Declined & Cancelled -->
+    <div
+      class="kpi-card vp-card"
+      [class.active]="statusFilter() === 'REJECTED' || statusFilter() === 'CANCELLED'"
+      (click)="statusFilter.set('REJECTED')">
+      <div class="kpi-top">
+        <span class="kpi-label">Declined &amp; Void</span>
+        <span class="kpi-dot bg-rose-dot"></span>
+      </div>
+      <div class="kpi-val-row">
+        <strong class="kpi-value text-rose">{{ rejectedCount() }}</strong>
+        <span class="kpi-sub">Scope Revisions</span>
+      </div>
+      <div class="kpi-active-indicator" *ngIf="statusFilter() === 'REJECTED' || statusFilter() === 'CANCELLED'"></div>
+    </div>
+
+    <!-- Card 5: SLA Turnaround Time -->
+    <div class="kpi-card vp-card kpi-sla-card" aria-label="SLA Turnaround Time Metric">
+      <div class="kpi-top">
+        <span class="kpi-label">SLA Turnaround Time</span>
+        <span class="kpi-dot bg-indigo-dot"></span>
+      </div>
+
+      <!-- Loading skeleton -->
+      <div *ngIf="loading()" class="sla-skeleton-wrap">
+        <div class="skeleton-shimmer sla-skel-val"></div>
+        <div class="skeleton-shimmer sla-skel-sub"></div>
+      </div>
+
+      <!-- Metric Display -->
+      <div *ngIf="!loading()">
+        <div *ngIf="slaMetrics() as sla" class="kpi-val-row">
+          <div class="sla-metric-num-row">
+            <strong class="kpi-value text-indigo">{{ sla.value }}</strong>
+            <span class="kpi-metric-unit">{{ sla.unit }}</span>
+          </div>
+          <span class="kpi-sub">Target: {{ sla.target }} &bull; {{ sla.onTrackPercent }}% on-track</span>
+          <div class="sla-bar-track" [attr.aria-label]="sla.onTrackPercent + '% requests met within SLA target'">
+            <div class="sla-bar-fill" [style.width.%]="sla.onTrackPercent"></div>
+          </div>
+        </div>
+
+        <div *ngIf="!slaMetrics()" class="sla-empty-wrap">
+          <strong class="empty-sla-title">No SLA data yet</strong>
+          <span class="kpi-sub">Target: 7 days &bull; Awaiting verifications</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. MAIN LEDGER WORKSPACE -->
+  <div class="requests-card vp-card">
+    <!-- Filter & Search Toolbar -->
+    <div class="toolbar-row">
+      <!-- Search Input -->
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Search suppliers, GSTIN, request ID, city..."
+          [ngModel]="searchTerm()"
+          (ngModelChange)="searchTerm.set($event)"
+        />
+        <button *ngIf="searchTerm()" class="btn-clear-search" (click)="searchTerm.set('')" title="Clear search">&times;</button>
+      </div>
+
+      <!-- Category Filter Dropdown -->
+      <div class="filter-controls-group">
+        <select
+          class="select-control"
+          [ngModel]="typeFilter()"
+          (ngModelChange)="typeFilter.set($event)">
+          <option value="ALL">All Categories</option>
+          <option value="VENDOR_ONBOARDING">ERP Onboarding</option>
+          <option value="AUDIT">Tender / RFP Audit</option>
+          <option value="CREDENTIAL_UPDATE">Credential Renewal</option>
+          <option value="GEO_AUDIT">Plant Geo-Audit</option>
+          <option value="RE_VERIFY">Insurance &amp; Fleet Re-check</option>
+        </select>
+
+        <!-- Sort Controls -->
+        <select
+          class="select-control"
+          [ngModel]="sortBy()"
+          (ngModelChange)="sortBy.set($event)">
+          <option value="NEWEST">Sort: Newest First</option>
+          <option value="OLDEST">Sort: Oldest First</option>
+          <option value="SCORE_DESC">Sort: Trust Score</option>
+          <option value="SUPPLIER_ASC">Sort: Supplier (A-Z)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Active Query / Filter Status Bar -->
+    <div class="active-query-bar" *ngIf="searchTerm() || typeFilter() !== 'ALL' || statusFilter() !== 'ALL'">
+      <div class="active-chips">
+        <span class="active-count-text">Showing <strong>{{ filteredRequests().length }}</strong> of {{ totalCount() }} requests</span>
+        <span *ngIf="statusFilter() !== 'ALL'" class="query-pill">
+          Status: <strong>{{ statusFilter() }}</strong>
+          <button (click)="statusFilter.set('ALL')">&times;</button>
+        </span>
+        <span *ngIf="typeFilter() !== 'ALL'" class="query-pill">
+          Category: <strong>{{ formatType(typeFilter()) }}</strong>
+          <button (click)="typeFilter.set('ALL')">&times;</button>
+        </span>
+        <span *ngIf="searchTerm()" class="query-pill">
+          Search: <strong>"{{ searchTerm() }}"</strong>
+          <button (click)="searchTerm.set('')">&times;</button>
+        </span>
+      </div>
+      <button class="btn-reset-filters" (click)="searchTerm.set(''); statusFilter.set('ALL'); typeFilter.set('ALL')">
+        Reset All
+      </button>
+    </div>
+
+    <!-- Loading Skeleton -->
+    <div *ngIf="loading()" class="loading-state">
+      <div class="spinner"></div>
+      <p>Synchronizing verification requests from VeriPass ledger...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading() && filteredRequests().length === 0" class="empty-state">
+      <div class="empty-icon">📂</div>
+      <h3>No verification requests found</h3>
+      <p *ngIf="searchTerm() || statusFilter() !== 'ALL' || typeFilter() !== 'ALL'">
+        No requests match the selected filters. Try resetting search or filter options.
+      </p>
+      <p *ngIf="!searchTerm() && statusFilter() === 'ALL' && typeFilter() === 'ALL'">
+        No verification requests dispatched yet. Initiate your first compliance request.
+      </p>
+      <button class="btn-primary mt-12" (click)="openCreateModal()">
+        + New Verification Request
+      </button>
+    </div>
+
+    <!-- LEDGER TABLE (CLEAN & BREATHABLE) -->
+    <div class="table-wrap" *ngIf="!loading() && filteredRequests().length > 0">
+      <table class="requests-table">
+        <thead>
+          <tr>
+            <th class="th-supplier">SUPPLIER</th>
+            <th class="th-scope">VERIFICATION SCOPE</th>
+            <th class="th-trust">TRUST SCORE</th>
+            <th class="th-status">STATUS</th>
+            <th class="th-date">DISPATCHED</th>
+            <th class="th-actions text-right">ACTION</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of filteredRequests()" class="table-row" (click)="viewDetails(r)" title="Click to inspect request">
+            <!-- 1. Target Supplier -->
+            <td>
+              <div class="supplier-info-cell">
+                <div
+                  class="sup-avatar"
+                  [style.background-color]="getAvatarBg(r.supplierTradeName || r.supplierBusinessName).bg"
+                  [style.color]="getAvatarBg(r.supplierTradeName || r.supplierBusinessName).color">
+                  {{ (r.supplierTradeName || r.supplierBusinessName || 'S').charAt(0) }}
+                </div>
+                <div class="sup-details">
+                  <div class="sup-title-row">
+                    <strong class="sup-name">{{ r.supplierTradeName || r.supplierBusinessName }}</strong>
+                    <span class="req-id-tag">{{ shortId(r.id) }}</span>
+                  </div>
+                  <div class="sup-meta-row">
+                    <span *ngIf="r.supplierCity" class="sup-loc">{{ r.supplierCity }}, {{ r.supplierState }}</span>
+                    <span *ngIf="r.supplierCity && r.supplierGstin" class="meta-sep">&bull;</span>
+                    <span *ngIf="r.supplierGstin" class="sup-gstin font-mono">{{ r.supplierGstin }}</span>
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- 2. Scope & Purpose -->
+            <td>
+              <div class="scope-cell">
+                <span class="category-badge" [ngClass]="getCategoryBadgeClass(r.requestType)">
+                  {{ formatType(r.requestType) }}
+                </span>
+                <span class="artifacts-summary" [title]="(r.requestedItems || []).join(', ')">
+                  {{ formatArtifactsSummary(r.requestedItems) }}
+                </span>
+              </div>
+            </td>
+
+            <!-- 3. Trust Score -->
+            <td>
+              <div class="trust-cell">
+                <span class="trust-badge" [class.trust-high]="(r.supplierTrustScore || 0) >= 90" [class.trust-mid]="(r.supplierTrustScore || 0) < 90 && (r.supplierTrustScore || 0) >= 75">
+                  ★ {{ r.supplierTrustScore || 90 }}/100
+                </span>
+              </div>
+            </td>
+
+            <!-- 4. Status -->
+            <td>
+              <span class="status-chip"
+                [class.pending]="r.status === 'PENDING'"
+                [class.approved]="r.status === 'APPROVED'"
+                [class.rejected]="r.status === 'REJECTED'"
+                [class.cancelled]="r.status === 'CANCELLED'">
+                <span class="status-dot">●</span>
+                <span *ngIf="r.status === 'PENDING'">Pending</span>
+                <span *ngIf="r.status === 'APPROVED'">Verified</span>
+                <span *ngIf="r.status === 'REJECTED'">Declined</span>
+                <span *ngIf="r.status === 'CANCELLED'">Cancelled</span>
+              </span>
+            </td>
+
+            <!-- 5. Dispatched Date -->
+            <td>
+              <div class="date-cell">
+                <span class="date-main">{{ formatDate(r.createdAt) }}</span>
+                <span class="date-sub">{{ getRelativeTime(r.createdAt) }}</span>
+              </div>
+            </td>
+
+            <!-- 6. Actions -->
+            <td class="text-right" (click)="$event.stopPropagation()">
+              <button class="btn-inspect" (click)="viewDetails(r)" title="Inspect Request">
+                Inspect &rarr;
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ================= 4. CREATE VERIFICATION REQUEST MODAL ================= -->
+  <div class="modal-backdrop" *ngIf="showCreateModal()" (click)="closeCreateModal()">
+    <div class="modal-container vp-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-header-text">
+          <span class="modal-pill-tag">NEW REQUEST</span>
+          <h3 class="modal-title">New Verification Request</h3>
+          <p class="modal-desc">Request verified statutory proof, bank escrow validation, or quality certifications from a supplier.</p>
+        </div>
+        <button class="modal-close" (click)="closeCreateModal()">&times;</button>
+      </div>
+
+      <form (ngSubmit)="submitCreateRequest()" class="modal-form">
+        <!-- Target Supplier -->
+        <div class="form-group">
+          <label class="form-label" for="reqSupplier">Target Supplier <span class="req">*</span></label>
+          <select
+            id="reqSupplier"
+            class="form-control"
+            [(ngModel)]="createForm.supplierBusinessId"
+            name="supplierBusinessId"
+            required>
+            <option *ngFor="let s of availableSuppliers()" [value]="s.id">
+              {{ s.name }} (Trust: {{ s.trustScore }}/100 &bull; {{ s.location }}, {{ s.state }})
+            </option>
+          </select>
+        </div>
+
+        <!-- Request Purpose Category -->
+        <div class="form-group mt-14">
+          <label class="form-label">Verification Category <span class="req">*</span></label>
+          <div class="type-picker-grid">
+            <button
+              type="button"
+              class="type-opt-btn"
+              [class.active]="createForm.requestType === 'VENDOR_ONBOARDING'"
+              (click)="createForm.requestType = 'VENDOR_ONBOARDING'; onTypeChanged('VENDOR_ONBOARDING')">
+              <strong>ERP Onboarding</strong>
+              <small>Bank match &amp; Master empanelment</small>
+            </button>
+            <button
+              type="button"
+              class="type-opt-btn"
+              [class.active]="createForm.requestType === 'AUDIT'"
+              (click)="createForm.requestType = 'AUDIT'; onTypeChanged('AUDIT')">
+              <strong>Tender / RFP Audit</strong>
+              <small>MCA 3-Yr Financials &amp; Solvency</small>
+            </button>
+            <button
+              type="button"
+              class="type-opt-btn"
+              [class.active]="createForm.requestType === 'CREDENTIAL_UPDATE'"
+              (click)="createForm.requestType = 'CREDENTIAL_UPDATE'; onTypeChanged('CREDENTIAL_UPDATE')">
+              <strong>Annual Renewal</strong>
+              <small>ISO &amp; Statutory filing audit</small>
+            </button>
+            <button
+              type="button"
+              class="type-opt-btn"
+              [class.active]="createForm.requestType === 'GEO_AUDIT'"
+              (click)="createForm.requestType = 'GEO_AUDIT'; onTypeChanged('GEO_AUDIT')">
+              <strong>Plant Geo-Audit</strong>
+              <small>Physical facility boundary inspection</small>
+            </button>
+          </div>
+        </div>
+
+        <!-- Verification Artifacts Checklist -->
+        <div class="form-group mt-14">
+          <label class="form-label">Required Verification Documents</label>
+          <div class="checkbox-grid">
+            <label class="custom-cb">
+              <input type="checkbox" [(ngModel)]="createForm.artifacts.bank" name="cb_bank" />
+              <div class="cb-label">
+                <strong>Penny-Drop Bank Verification (NPCI)</strong>
+                <small>Automated account &amp; IFSC name reconciliation</small>
+              </div>
+            </label>
+
+            <label class="custom-cb">
+              <input type="checkbox" [(ngModel)]="createForm.artifacts.gst" name="cb_gst" />
+              <div class="cb-label">
+                <strong>GSTN Return Filing Telemetry</strong>
+                <small>2B ITC status &amp; return compliance proof</small>
+              </div>
+            </label>
+
+            <label class="custom-cb">
+              <input type="checkbox" [(ngModel)]="createForm.artifacts.iso" name="cb_iso" />
+              <div class="cb-label">
+                <strong>ISO 9001:2015 / BIS Accreditation</strong>
+                <small>Accredited registrar certificate with QR validation</small>
+              </div>
+            </label>
+
+            <label class="custom-cb">
+              <input type="checkbox" [(ngModel)]="createForm.artifacts.financials" name="cb_financials" />
+              <div class="cb-label">
+                <strong>3-Year Audited Balance Sheets (MCA)</strong>
+                <small>Audited financials and turnover solvency proof</small>
+              </div>
+            </label>
+
+            <label class="custom-cb">
+              <input type="checkbox" [(ngModel)]="createForm.artifacts.factory" name="cb_factory" />
+              <div class="cb-label">
+                <strong>Plant Geo-Location &amp; Premises Safety</strong>
+                <small>Plant boundary coordinates &amp; factory license</small>
+              </div>
+            </label>
+
+            <label class="custom-cb">
+              <input type="checkbox" [(ngModel)]="createForm.artifacts.insurance" name="cb_insurance" />
+              <div class="cb-label">
+                <strong>Transit &amp; Environmental Insurance</strong>
+                <small>Active comprehensive transit policy</small>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Operational Reason -->
+        <div class="form-group mt-14">
+          <label class="form-label" for="reqReason">Compliance Requirement Notes <span class="req">*</span></label>
+          <textarea
+            id="reqReason"
+            rows="2"
+            class="form-control"
+            [(ngModel)]="createForm.reason"
+            name="reason"
+            required></textarea>
+        </div>
+
+        <!-- SLA Preset -->
+        <div class="form-group mt-14">
+          <label class="form-label" id="sla-turnaround-label">SLA Turnaround Time</label>
+          <div class="sla-pill-row" role="radiogroup" aria-labelledby="sla-turnaround-label">
+            <label class="sla-opt" [class.selected]="createForm.slaDays === '3'">
+              <input type="radio" [(ngModel)]="createForm.slaDays" name="sla" value="3" aria-label="3 Days Fast-Track SLA turnaround" />
+              <span>3 Days (Fast-Track)</span>
+            </label>
+            <label class="sla-opt" [class.selected]="createForm.slaDays === '7'">
+              <input type="radio" [(ngModel)]="createForm.slaDays" name="sla" value="7" aria-label="7 Days Standard SLA turnaround" />
+              <span>7 Days (Standard)</span>
+            </label>
+            <label class="sla-opt" [class.selected]="createForm.slaDays === '14'">
+              <input type="radio" [(ngModel)]="createForm.slaDays" name="sla" value="14" aria-label="14 Days Extended SLA turnaround" />
+              <span>14 Days (Extended)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-subtle" (click)="closeCreateModal()">Cancel</button>
+          <button type="submit" class="btn-primary" [disabled]="submitting()">
+            <span *ngIf="submitting()">Dispatching...</span>
+            <span *ngIf="!submitting()">Dispatch Verification Request &rarr;</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= 5. AUDIT DETAIL MODAL / DRAWER ================= -->
+  <div class="modal-backdrop" *ngIf="selectedDetailRequest()" (click)="closeDetails()">
+    <div class="modal-container modal-detail vp-card" (click)="$event.stopPropagation()" *ngIf="selectedDetailRequest() as d">
+      <div class="modal-header">
+        <div class="modal-header-text">
+          <div class="modal-id-row">
+            <span class="modal-id-badge font-mono">{{ shortId(d.id) }}</span>
+            <span class="status-chip"
+              [class.pending]="d.status === 'PENDING'"
+              [class.approved]="d.status === 'APPROVED'"
+              [class.rejected]="d.status === 'REJECTED'"
+              [class.cancelled]="d.status === 'CANCELLED'">
+              <span class="status-dot">●</span>
+              <span *ngIf="d.status === 'PENDING'">Pending Response</span>
+              <span *ngIf="d.status === 'APPROVED'">Verified &amp; Approved</span>
+              <span *ngIf="d.status === 'REJECTED'">Scope Declined</span>
+              <span *ngIf="d.status === 'CANCELLED'">Cancelled</span>
+            </span>
+          </div>
+          <h3 class="modal-title">Verification Request Details</h3>
+          <p class="modal-desc">Sovereign cryptographic audit record registered on VeriPass trust network.</p>
+        </div>
+        <button class="modal-close" (click)="closeDetails()">&times;</button>
+      </div>
+
+      <div class="modal-body-detail">
+        <!-- Target Supplier Card Overview -->
+        <div class="detail-overview-box">
+          <div
+            class="detail-sup-avatar"
+            [style.background-color]="getAvatarBg(d.supplierTradeName || d.supplierBusinessName).bg"
+            [style.color]="getAvatarBg(d.supplierTradeName || d.supplierBusinessName).color">
+            {{ (d.supplierTradeName || d.supplierBusinessName || 'S').charAt(0) }}
+          </div>
+          <div class="detail-sup-content">
+            <h4 class="detail-sup-title">{{ d.supplierTradeName || d.supplierBusinessName }}</h4>
+            <span class="detail-sup-legal">{{ d.supplierBusinessName }}</span>
+            <div class="detail-sup-meta">
+              <span *ngIf="d.supplierCity">📍 {{ d.supplierCity }}, {{ d.supplierState }}</span>
+              <span *ngIf="d.supplierGstin">GSTIN: <strong class="font-mono">{{ d.supplierGstin }}</strong></span>
+              <span class="trust-badge" *ngIf="d.supplierTrustScore">★ Trust {{ d.supplierTrustScore }}/100</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Telemetry Grid -->
+        <div class="detail-specs-grid">
+          <div class="spec-item">
+            <span class="spec-label">Category</span>
+            <span class="category-badge" [ngClass]="getCategoryBadgeClass(d.requestType)">
+              {{ formatType(d.requestType) }}
+            </span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">Dispatched Date</span>
+            <span class="spec-value">{{ formatDate(d.createdAt) }} ({{ getRelativeTime(d.createdAt) }})</span>
+          </div>
+          <div class="spec-item spec-full">
+            <span class="spec-label">Request ID</span>
+            <div class="spec-uuid-row">
+              <code class="spec-uuid font-mono">{{ d.id }}</code>
+              <button class="btn-copy-chip" (click)="copyValue(d.id, 'Request ID')">
+                {{ copiedValue() === d.id ? '✓ Copied' : 'Copy UUID' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Requested Artifacts List -->
+        <div class="detail-section">
+          <span class="detail-section-title">REQUESTED DOCUMENTS &amp; PROOFS ({{ (d.requestedItems || []).length }})</span>
+          <div class="artifacts-detail-grid">
+            <div *ngFor="let item of d.requestedItems" class="artifact-detail-item">
+              <span class="check-icon">✓</span>
+              <span class="artifact-name">{{ formatArtifact(item) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reason -->
+        <div class="detail-section">
+          <span class="detail-section-title">COMPLIANCE JUSTIFICATION &amp; NOTES</span>
+          <p class="detail-reason-box">{{ d.reason || 'Standard statutory onboarding verification.' }}</p>
+        </div>
+
+        <!-- Supplier Response if any -->
+        <div class="detail-section">
+          <span class="detail-section-title">SUPPLIER ATTESTATION STATUS</span>
+          <div *ngIf="d.supplierResponse" class="response-box" [class.resp-approved]="d.status === 'APPROVED'" [class.resp-declined]="d.status === 'REJECTED'">
+            <div class="resp-header">
+              <strong>{{ d.status === 'APPROVED' ? '✓ Proof Verified & Submitted' : '✕ Request Declined' }}</strong>
+              <span *ngIf="d.respondedAt" class="resp-date">{{ formatDateTime(d.respondedAt) }}</span>
+            </div>
+            <p class="resp-text">{{ d.supplierResponse }}</p>
+          </div>
+          <div *ngIf="!d.supplierResponse" class="awaiting-response-box">
+            <span class="hourglass-icon">⏳</span>
+            <span>Awaiting supplier fulfillment in supplier portal. Estimated turnaround within 7 days SLA.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer detail-footer">
+        <button
+          *ngIf="d.status === 'PENDING'"
+          class="btn-danger-outline"
+          (click)="cancelRequest(d.id)">
+          Cancel Request
+        </button>
+
+        <a
+          class="btn-subtle"
+          [routerLink]="['/buyer/suppliers', d.supplierBusinessId, 'passport']"
+          (click)="closeDetails()">
+          View Sovereign Passport &rarr;
+        </a>
+
+        <button class="btn-primary" (click)="closeDetails()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

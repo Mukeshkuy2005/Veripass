@@ -1,0 +1,507 @@
+<div class="compliance-view">
+  <!-- TOAST NOTIFICATION -->
+  <div class="vp-toast-banner" *ngIf="toastMessage()">
+    <span class="toast-icon">✨</span>
+    <span class="toast-text">{{ toastMessage() }}</span>
+    <button class="toast-close" (click)="toastMessage.set(null)">✕</button>
+  </div>
+
+  <!-- HEADER -->
+  <div class="comp-header">
+    <div class="comp-header-info">
+      <div class="comp-tags-row">
+        <span class="view-tag">WATCHTOWER TELEMETRY</span>
+        <span class="sovereign-tag">🏛️ GSTN &bull; MCA21 &bull; CBDT &bull; EPFO</span>
+      </div>
+      <h1 class="page-title">Compliance Center</h1>
+      <p class="page-sub">
+        Continuous statutory, indirect tax, corporate governance, and licensing compliance monitoring for
+        <strong>{{ companyName }}</strong>.
+      </p>
+    </div>
+
+    <div class="comp-header-actions">
+      <button class="btn btn-secondary btn-sm" (click)="syncSovereignRails()" [disabled]="isSyncing()" title="Reconcile with Government APIs">
+        <span class="sync-icon" [class.rotating]="isSyncing()">🔄</span>
+        <span>{{ isSyncing() ? 'Syncing...' : 'Sync Sovereign Rails' }}</span>
+      </button>
+
+      <button class="btn btn-secondary btn-sm" (click)="downloadFullComplianceReport()" title="Export official compliance audit report (PDF)">
+        <span>📥</span>
+        <span>Download Audit Report (PDF)</span>
+      </button>
+
+      <a routerLink="/supplier/compliance/calendar" class="btn btn-primary btn-sm" title="View monthly statutory deadlines">
+        <span>📅</span>
+        <span>Compliance Calendar &rarr;</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- SOVEREIGN IDENTIFIER RIBBON (Matching Verification & Documents) -->
+  <div class="identifier-ribbon">
+    <div class="ribbon-item">
+      <span class="ribbon-label">ENTITY NAME</span>
+      <strong class="ribbon-val">{{ companyName }}</strong>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-item">
+      <span class="ribbon-label">GSTIN</span>
+      <code class="ribbon-val font-mono">{{ gstin }}</code>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-item">
+      <span class="ribbon-label">CORPORATE PAN</span>
+      <code class="ribbon-val font-mono">{{ pan }}</code>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-item">
+      <span class="ribbon-label">CIN</span>
+      <code class="ribbon-val font-mono">{{ cin }}</code>
+    </div>
+    <div class="ribbon-sep"></div>
+    <div class="ribbon-item flex-1">
+      <span class="ribbon-label">PRINCIPAL OPERATING ADDRESS</span>
+      <span class="ribbon-val text-truncate">{{ principalAddress }}</span>
+    </div>
+  </div>
+
+  <!-- HERO SCORE & METRICS CARD -->
+  <div class="vp-card comp-hero-card">
+    <div class="hero-score-col">
+      <span class="hero-lbl">OVERALL COMPLIANCE INDEX</span>
+      <div class="score-row">
+        <span class="big-score">{{ complianceScore() }}%</span>
+        <span class="denom">/ 100</span>
+      </div>
+      <div class="standing-pill">
+        <span class="dot green"></span>
+        <span>Tier-1 Sovereign Standing &bull; Zero Default Flags</span>
+      </div>
+      <div class="sync-meta">
+        <span>Last Reconciled: <strong>Today, 19:45 IST</strong></span>
+      </div>
+    </div>
+
+    <div class="hero-divider"></div>
+
+    <!-- 4 Status Metrics Cards -->
+    <div class="status-metrics-grid">
+      <div class="metric-box box-compliant">
+        <div class="m-top">
+          <span class="m-num text-green">{{ compliantCount() }}</span>
+          <span class="m-badge badge-green">PASS</span>
+        </div>
+        <span class="m-lbl">Compliant Filings</span>
+        <span class="m-sub">Reconciled with zero defaults</span>
+      </div>
+
+      <div class="metric-box box-expiring">
+        <div class="m-top">
+          <span class="m-num text-amber">{{ expiringCount() }}</span>
+          <span class="m-badge badge-amber">ATTENTION</span>
+        </div>
+        <span class="m-lbl">Expiring in 30 Days</span>
+        <span class="m-sub">ISO 9001 & Municipal Permit</span>
+      </div>
+
+      <div class="metric-box box-action">
+        <div class="m-top">
+          <span class="m-num text-amber">{{ actionCount() }}</span>
+          <span class="m-badge badge-amber">ACTION</span>
+        </div>
+        <span class="m-lbl">Pending Reconciliation</span>
+        <span class="m-sub">Trade license fee receipt</span>
+      </div>
+
+      <div class="metric-box box-defaults">
+        <div class="m-top">
+          <span class="m-num text-green">₹ 0.00</span>
+          <span class="m-badge badge-green">CLEAN</span>
+        </div>
+        <span class="m-lbl">Statutory Penalties</span>
+        <span class="m-sub">Zero Section 206AB/GST penalties</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2-COLUMN: CATEGORIES & IMPORTANT ALERTS -->
+  <div class="comp-grid">
+    <!-- LEFT: COMPLIANCE CATEGORIES BARS -->
+    <div class="vp-card categories-card">
+      <div class="card-header-row">
+        <div>
+          <h2 class="card-title">COMPLIANCE HEALTH BY REGULATORY PILLAR</h2>
+          <p class="card-sub">Dynamic scoring based on sovereign registry reconciliation</p>
+        </div>
+        <span class="health-tag">100% Sovereign Rails Linked</span>
+      </div>
+
+      <div class="cat-bars-list">
+        <div *ngFor="let cat of categoryScores()" class="cat-bar-item">
+          <div class="bar-header">
+            <div class="cat-header-left">
+              <span class="cat-glyph">{{ cat.icon }}</span>
+              <div>
+                <span class="cat-name">{{ cat.category }}</span>
+                <span class="cat-subtext">{{ cat.subtext }}</span>
+              </div>
+            </div>
+            <span class="bar-pct" [ngClass]="'text-' + cat.colorClass">{{ cat.score }}%</span>
+          </div>
+          <div class="bar-bg">
+            <div class="bar-fill" [ngClass]="cat.colorClass" [style.width.%]="cat.score"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: IMPORTANT COMPLIANCE ALERTS -->
+    <div class="vp-card alerts-card">
+      <div class="card-header-row">
+        <div>
+          <h2 class="card-title">WATCHTOWER EXPIRATIONS & ALERTS</h2>
+          <p class="card-sub">Synchronized with Dashboard & Documents</p>
+        </div>
+        <span class="vp-badge badge-warning">{{ expiringCount() }} Action Items</span>
+      </div>
+
+      <div class="alerts-stack">
+        <div *ngFor="let alert of watchtowerAlerts()" class="alert-box-item" [ngClass]="alert.urgency + '-box'">
+          <div class="alert-header">
+            <div class="alert-title-col">
+              <div class="alert-top">
+                <span class="warn-glyph" *ngIf="alert.urgency === 'warning'">⚠️</span>
+                <span class="info-glyph" *ngIf="alert.urgency === 'info'">ℹ️</span>
+                <strong>{{ alert.title }}</strong>
+              </div>
+              <span class="alert-cat-pill">{{ alert.category }}</span>
+            </div>
+            <span class="days-badge" [class.urgent]="alert.daysRemaining <= 30 && alert.urgency === 'warning'">
+              {{ alert.daysRemaining === 0 ? 'Due Now' : alert.daysRemaining + ' Days Remaining' }}
+            </span>
+          </div>
+
+          <p class="alert-desc">{{ alert.description }}</p>
+
+          <div class="alert-footer">
+            <div class="renew-date-row">
+              <span class="meta-label">Authority:</span>
+              <strong>{{ alert.authority }}</strong>
+              <span class="meta-sep">&bull;</span>
+              <span class="meta-label">Expiry / Due:</span>
+              <strong>{{ alert.expiryDate }}</strong>
+            </div>
+
+            <button *ngIf="alert.urgency === 'warning' && alert.id === 'alert-iso'" class="btn btn-primary btn-sm w-full mt-2" (click)="openRenewModal(alert)">
+              {{ alert.actionText }} &rarr;
+            </button>
+
+            <button *ngIf="alert.urgency === 'warning' && alert.id === 'alert-trade'" class="btn btn-secondary btn-sm w-full mt-2" (click)="openUploadModal(filings()[7])">
+              {{ alert.actionText }} &rarr;
+            </button>
+
+            <button *ngIf="alert.urgency === 'info'" class="btn btn-outline btn-sm w-full mt-2" routerLink="/supplier/documents">
+              View Verified Credential &rarr;
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATUTORY FILINGS & RETURNS LEDGER -->
+  <div class="vp-card filings-card">
+    <div class="filings-card-header">
+      <div>
+        <h2 class="card-title">STATUTORY FILINGS & SOVEREIGN RETURNS LEDGER</h2>
+        <p class="card-sub">Audited filings across GSTN, MCA21, CBDT, and EPFO with cryptographic ARN verification</p>
+      </div>
+
+      <!-- FILTER TABS -->
+      <div class="filter-tabs">
+        <button
+          *ngFor="let tab of tabs"
+          class="tab-btn"
+          [class.active]="activeTab() === tab"
+          (click)="setTab(tab)"
+        >
+          {{ tab }}
+        </button>
+      </div>
+    </div>
+
+    <!-- FILINGS GRID -->
+    <div class="filings-grid">
+      <div *ngIf="filteredFilings().length === 0" class="empty-state text-center p-4">
+        <p class="text-muted">No statutory compliance filings recorded yet for this organization.</p>
+      </div>
+
+      <div *ngFor="let filing of filteredFilings()" class="filing-item-card" [ngClass]="filing.status.toLowerCase()">
+        <div class="filing-card-top">
+          <div class="filing-title-group">
+            <span class="filing-code-badge">{{ filing.code }}</span>
+            <h3 class="filing-name">{{ filing.name }}</h3>
+          </div>
+          <span class="filing-status-badge" [ngClass]="filing.status.toLowerCase()">
+            {{ filing.status === 'COMPLIANT' ? '✓ FILED & COMPLIANT' : (filing.status === 'ACTION_REQUIRED' ? '⚠ ACTION REQUIRED' : '○ UPCOMING') }}
+          </span>
+        </div>
+
+        <p class="filing-desc">{{ filing.description }}</p>
+
+        <div class="filing-particulars-grid">
+          <div class="part-item">
+            <span class="part-label">Filing Period</span>
+            <strong class="part-val">{{ filing.period }}</strong>
+          </div>
+          <div class="part-item">
+            <span class="part-label">Authority</span>
+            <span class="part-val authority-val">{{ filing.authorityLogoText }}</span>
+          </div>
+          <div class="part-item">
+            <span class="part-label">Due Date</span>
+            <strong class="part-val">{{ filing.dueDate }}</strong>
+          </div>
+          <div class="part-item">
+            <span class="part-label">ARN / Ref</span>
+            <code class="part-val font-mono arn-code">{{ filing.arnNumber }}</code>
+          </div>
+          <div class="part-item" *ngIf="filing.taxPaid">
+            <span class="part-label">Tax / Fee Paid</span>
+            <strong class="part-val text-green">{{ filing.taxPaid }}</strong>
+          </div>
+          <div class="part-item">
+            <span class="part-label">Filing Date</span>
+            <span class="part-val">{{ filing.filingDate }}</span>
+          </div>
+        </div>
+
+        <div class="filing-card-actions">
+          <button
+            *ngIf="filing.status === 'COMPLIANT'"
+            class="btn btn-secondary btn-sm"
+            (click)="openFilingModal(filing)"
+            title="Inspect Official Filing Acknowledgment"
+          >
+            <span>📄</span>
+            <span>View Acknowledgment</span>
+          </button>
+
+          <button
+            *ngIf="filing.status === 'ACTION_REQUIRED'"
+            class="btn btn-primary btn-sm btn-pulse"
+            (click)="openUploadModal(filing)"
+            title="Upload Statutory Receipt or Challan"
+          >
+            <span>📤</span>
+            <span>Upload Fee Challan & Resolve</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 1: STATUTORY FILING ACKNOWLEDGMENT INSPECTION -->
+<div class="modal-backdrop" *ngIf="activeFilingModal()" (click)="closeFilingModal()">
+  <div class="statutory-modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <span class="modal-cat-tag">{{ activeFilingModal()?.category }}</span>
+        <h2 class="modal-title">{{ activeFilingModal()?.name }}</h2>
+        <span class="modal-sub">Authoritative Gateway: {{ activeFilingModal()?.authority }}</span>
+      </div>
+      <button class="btn-close-modal" (click)="closeFilingModal()" title="Close Details">✕</button>
+    </div>
+
+    <div class="modal-body-scrollable">
+      <!-- Authority Verification Banner -->
+      <div class="auth-banner">
+        <div class="auth-banner-left">
+          <span class="auth-glyph">{{ activeFilingModal()?.authorityLogoText }}</span>
+          <div>
+            <span class="auth-lbl">RECONCILIATION SOURCE</span>
+            <strong class="auth-name">{{ activeFilingModal()?.authority }}</strong>
+          </div>
+        </div>
+        <div class="confidence-badge">
+          <span class="conf-dot"></span>
+          <span>100% Sovereign Reconciled</span>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="modal-desc-box">
+        <p>{{ activeFilingModal()?.description }}</p>
+      </div>
+
+      <!-- Particulars Table -->
+      <div class="stat-table">
+        <div class="stat-table-header">OFFICIAL STATUTORY FILING ATTRIBUTES</div>
+        <div *ngFor="let d of activeFilingModal()?.acknowledgmentDetails" class="stat-row">
+          <span class="stat-key">{{ d.label }}</span>
+          <span
+            class="stat-val"
+            [class.font-mono]="d.isMono"
+            [class.highlight]="d.isHighlight"
+            [class.text-green]="d.isGreen"
+          >
+            {{ d.value }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Cryptographic Hash -->
+      <div class="crypto-seal-box">
+        <div class="seal-icon">🔒</div>
+        <div class="seal-details">
+          <span class="seal-lbl">CRYPTOGRAPHIC ARTIFACT SIGNATURE</span>
+          <code class="digest-code">SHA-256 {{ activeFilingModal()?.arnNumber }}f90184b910248ae8491cba0918</code>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Actions -->
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" (click)="downloadFilingAcknowledgment(activeFilingModal()!)" title="Export PDF Receipt">
+        <span>📄</span>
+        <span>Download Acknowledgment Slip (PDF)</span>
+      </button>
+      <button class="btn btn-primary btn-sm" (click)="closeFilingModal()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 2: STATUTORY FILING CHALLAN UPLOAD -->
+<div class="modal-backdrop" *ngIf="showUploadFilingModal()" (click)="closeUploadModal()">
+  <div class="statutory-modal-card upload-modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <span class="modal-cat-tag">CHALLAN RECONCILIATION</span>
+        <h2 class="modal-title">Upload Statutory Fee Slip: {{ showUploadFilingModal()?.code }}</h2>
+        <span class="modal-sub">{{ showUploadFilingModal()?.authority }}</span>
+      </div>
+      <button class="btn-close-modal" (click)="closeUploadModal()" [disabled]="isProcessingUpload()">✕</button>
+    </div>
+
+    <div class="modal-body-scrollable">
+      <div class="upload-intro-box">
+        <p>
+          Upload your bank payment challan, fee receipt, or official municipal payment confirmation for
+          <strong>{{ showUploadFilingModal()?.name }}</strong> to clear pending compliance flags.
+        </p>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Payment ARN / Challan Reference Number *</label>
+        <input
+          type="text"
+          class="form-control font-mono"
+          [ngModel]="uploadArnInput()"
+          (ngModelChange)="uploadArnInput.set($event)"
+          placeholder="e.g. GZB-2026-CHALLAN-99214"
+          [disabled]="isProcessingUpload()"
+        />
+      </div>
+
+      <!-- File Dropzone -->
+      <div class="form-group">
+        <label class="form-label">Statutory Proof Document (PDF, JPEG, max 10MB) *</label>
+        <div class="file-dropzone" [class.has-file]="uploadFileName()">
+          <input type="file" class="dropzone-input" (change)="onFileSelected($event)" accept=".pdf,.png,.jpg,.jpeg" [disabled]="isProcessingUpload()" />
+          <div class="dropzone-content">
+            <span class="dropzone-icon">📁</span>
+            <div *ngIf="!uploadFileName()">
+              <strong class="dropzone-title">Click to browse or drag and drop receipt</strong>
+              <span class="dropzone-sub">Official Bank Challan, Municipal Receipt, or Fee Confirmation</span>
+            </div>
+            <div *ngIf="uploadFileName()" class="file-selected-box">
+              <span class="file-name">📄 {{ uploadFileName() }}</span>
+              <span class="file-status text-green">✓ Ready for Sovereign Reconciliation</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress bar when processing -->
+      <div class="progress-container" *ngIf="uploadProgress() !== null">
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" [style.width.%]="uploadProgress()"></div>
+        </div>
+        <div class="progress-info">
+          <span class="spinner-icon" *ngIf="uploadProgress()! < 100">⚙️</span>
+          <span class="check-icon" *ngIf="uploadProgress() === 100">✓</span>
+          <span class="progress-step-text">{{ uploadStepText() }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" (click)="closeUploadModal()" [disabled]="isProcessingUpload()">Cancel</button>
+      <button class="btn btn-primary btn-sm" (click)="submitFilingUpload()" [disabled]="isProcessingUpload()">
+        {{ isProcessingUpload() ? 'Reconciling...' : 'Submit & Reconcile Sovereign Rails' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 3: CREDENTIAL RENEWAL MODAL (ISO 9001 / Permits) -->
+<div class="modal-backdrop" *ngIf="showRenewModal()" (click)="closeRenewModal()">
+  <div class="statutory-modal-card upload-modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <span class="modal-cat-tag">CREDENTIAL RENEWAL</span>
+        <h2 class="modal-title">Renew Credential: {{ showRenewModal()?.title }}</h2>
+        <span class="modal-sub">Accredited Body: {{ showRenewModal()?.authority }}</span>
+      </div>
+      <button class="btn-close-modal" (click)="closeRenewModal()" [disabled]="isProcessingRenew()">✕</button>
+    </div>
+
+    <div class="modal-body-scrollable">
+      <div class="upload-intro-box">
+        <p>
+          Submit the renewed certificate document issued by an authorized accreditation registrar.
+          Veripass will verify the digital signature, accreditation serial, and validity term.
+        </p>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Accreditation Certificate File *</label>
+        <div class="file-dropzone" [class.has-file]="renewDocFileName()">
+          <input type="file" class="dropzone-input" (change)="onRenewFileSelected($event)" accept=".pdf,.png,.jpg,.jpeg" [disabled]="isProcessingRenew()" />
+          <div class="dropzone-content">
+            <span class="dropzone-icon">📜</span>
+            <div *ngIf="!renewDocFileName()">
+              <strong class="dropzone-title">Click to browse or drop certificate</strong>
+              <span class="dropzone-sub">Accredited ISO 9001:2015 Audit Certificate</span>
+            </div>
+            <div *ngIf="renewDocFileName()" class="file-selected-box">
+              <span class="file-name">📄 {{ renewDocFileName() }}</span>
+              <span class="file-status text-green">✓ Ready for Sovereign Verification</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress bar when processing -->
+      <div class="progress-container" *ngIf="renewProgress() !== null">
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" [style.width.%]="renewProgress()"></div>
+        </div>
+        <div class="progress-info">
+          <span class="spinner-icon" *ngIf="renewProgress()! < 100">⚙️</span>
+          <span class="check-icon" *ngIf="renewProgress() === 100">✓</span>
+          <span class="progress-step-text">{{ renewStepText() }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" (click)="closeRenewModal()" [disabled]="isProcessingRenew()">Cancel</button>
+      <button class="btn btn-primary btn-sm" (click)="submitRenew()" [disabled]="isProcessingRenew()">
+        {{ isProcessingRenew() ? 'Verifying...' : 'Verify & Update Credential' }}
+      </button>
+    </div>
+  </div>
+</div>

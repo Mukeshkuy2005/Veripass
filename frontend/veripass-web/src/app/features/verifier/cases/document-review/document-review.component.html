@@ -1,0 +1,482 @@
+<div class="doc-review-container">
+  <!-- TOAST NOTIFICATION -->
+  <div class="toast-banner" *ngIf="toastMessage()" role="alert">
+    <span class="toast-icon">ℹ</span>
+    <span class="toast-text">{{ toastMessage() }}</span>
+  </div>
+
+  <!-- LOADING SKELETON STATE -->
+  <div class="skeleton-container" *ngIf="state() === 'LOADING'">
+    <div class="sk-header">
+      <div class="sk-line sk-w30"></div>
+      <div class="sk-line sk-w60"></div>
+    </div>
+    <div class="sk-grid">
+      <div class="sk-card sk-canvas">
+        <div class="sk-spinner"></div>
+        <p class="sk-loading-label">Loading authoritative document evidence & cryptographic records...</p>
+      </div>
+      <div class="sk-card sk-sidebar">
+        <div class="sk-line sk-w40"></div>
+        <div class="sk-line sk-w80"></div>
+        <div class="sk-line sk-w60"></div>
+        <div class="sk-divider"></div>
+        <div class="sk-line sk-w40"></div>
+        <div class="sk-line sk-w90"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ERROR STATE -->
+  <div class="error-container" *ngIf="state() === 'ERROR'">
+    <div class="error-card">
+      <div class="error-icon">✕</div>
+      <h2 class="error-title">Document Inspection Inaccessible</h2>
+      <p class="error-desc">{{ errorMessage() || 'Unable to retrieve document metadata and forensic records.' }}</p>
+      <div class="error-actions">
+        <button class="btn-primary" (click)="loadDocumentReview(caseId())">↺ Retry Inspection</button>
+        <button class="btn-secondary" (click)="closeReview()">← Return to Case</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN READY WORKSPACE -->
+  <div class="review-workspace" *ngIf="state() === 'READY' && review() as r">
+
+    <!-- WORKSPACE TOP HEADER -->
+    <header class="workstation-header">
+      <div class="header-left">
+        <button class="back-link-btn" (click)="closeReview()" title="Return to V3 Verification Case">
+          &larr; Case {{ r.caseNumber || r.caseId }}
+        </button>
+        <div class="doc-title-row">
+          <h1 class="doc-primary-title">{{ r.document.fileName }}</h1>
+          <span class="badge-type">{{ r.document.documentType }} EVIDENCE</span>
+          <span class="badge-version">v{{ r.document.versionNumber }}</span>
+          <span class="badge-case-status">{{ r.caseStatus }}</span>
+        </div>
+        <div class="doc-context-meta">
+          <span class="ctx-item"><strong>Entity:</strong> {{ r.legalName }} ({{ r.businessName }})</span>
+          <span class="ctx-sep">&bull;</span>
+          <span class="ctx-item"><strong>Verification Track:</strong> {{ r.verificationType }}</span>
+          <span class="ctx-sep">&bull;</span>
+          <span class="ctx-item"><strong>Pipeline:</strong> {{ r.provenance.ingestionPipeline }}</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- Multiple Document Selector if more than 1 document is associated -->
+        <div class="doc-selector-dropdown" *ngIf="r.availableDocuments && r.availableDocuments.length > 1">
+          <label class="sel-label">Switch Document:</label>
+          <div class="doc-pill-group">
+            <button *ngFor="let d of r.availableDocuments"
+              class="doc-pill-btn"
+              [class.active]="d.documentId === r.document.id"
+              (click)="selectDocument(d)">
+              {{ d.isPrimary ? '★ ' : '' }}{{ d.documentType }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Version Selector Chips -->
+        <div class="version-chips" *ngIf="r.availableVersions && r.availableVersions.length > 1">
+          <span class="v-label">Version:</span>
+          <button *ngFor="let v of r.availableVersions"
+            class="v-chip"
+            [class.active]="v.versionNumber === r.document.versionNumber"
+            (click)="selectVersion(v)">
+            v{{ v.versionNumber }}{{ v.isCurrent ? ' (Latest)' : '' }}
+          </button>
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn-download" (click)="downloadDocument()" [disabled]="isDownloading()" title="Download Authoritative PDF">
+            <span *ngIf="!isDownloading()">📥 Download PDF</span>
+            <span *ngIf="isDownloading()">⏳ Downloading...</span>
+          </button>
+          <button class="btn-close-workstation" (click)="closeReview()" title="Close Document Review">
+            ✕ Close
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2-COLUMN DESKTOP / STACKED MOBILE WORKSPACE -->
+    <main class="review-grid">
+
+      <!-- LEFT COLUMN: FORENSIC DOCUMENT CANVAS -->
+      <section class="canvas-column" aria-label="Forensic Document Inspection Canvas">
+        <div class="canvas-header-bar">
+          <div class="ch-left">
+            <span class="canvas-label">FORENSIC EVIDENCE CANVAS</span>
+            <span class="canvas-subinfo">{{ r.document.fileName }} &bull; {{ r.document.formattedFileSize }} &bull; v{{ r.document.versionNumber }}</span>
+          </div>
+
+          <div class="ch-tools">
+            <button class="tool-btn" (click)="zoomIn()" title="Zoom In (+15%)">+</button>
+            <button class="tool-btn" (click)="zoomOut()" title="Zoom Out (-15%)">&minus;</button>
+            <button class="tool-btn" (click)="resetZoom()" title="Reset 1:1 Scale">1:1</button>
+            <button class="tool-btn" (click)="rotateDoc()" title="Rotate 90°">&#8635; 90°</button>
+            <button class="tool-btn clear-btn" *ngIf="selectedField()" (click)="clearHighlight()" title="Clear OCR Selection">
+              ✕ Clear Highlight
+            </button>
+          </div>
+        </div>
+
+        <!-- ACTIVE FIELD HIGHLIGHT BANNER -->
+        <div class="highlight-banner" *ngIf="selectedField() as sf">
+          <span class="hl-icon">🔍</span>
+          <span class="hl-text">
+            Inspecting field: <strong>{{ sf.fieldName }}</strong> &bull; Raw: <code>"{{ sf.rawValue }}"</code> &bull; Confidence: <strong>{{ sf.confidence }}% ({{ sf.confidenceTier }})</strong>
+          </span>
+          <button class="hl-close-btn" (click)="clearHighlight()">✕</button>
+        </div>
+
+        <!-- CANVAS VIEWPORT -->
+        <div class="canvas-viewport">
+          <div class="canvas-scaler" [style.transform]="'scale(' + zoomLevel() + ') rotate(' + rotation() + 'deg)'">
+
+            <!-- PDF Viewer Stream via Iframe/Object -->
+            <div class="pdf-stream-wrapper">
+              <iframe *ngIf="documentContentUrl()"
+                [src]="documentContentUrl()"
+                class="pdf-iframe"
+                title="Authoritative Document Viewer">
+              </iframe>
+
+              <!-- Interactive Forensic Fallback & OCR Bounding-Box Overlay -->
+              <div class="statutory-certificate-sheet">
+                <div class="cert-border-outer">
+                  <div class="cert-border-inner">
+
+                    <!-- Certificate Header -->
+                    <div class="cert-head-block">
+                      <div class="emblem-badge">GOVERNMENT OF INDIA</div>
+                      <h2 class="cert-title">
+                        {{ r.document.documentType === 'GST' || r.document.documentType === 'GST_CERTIFICATE' ? 'FORM GST REG-06' : (r.document.documentType === 'PAN' ? 'INCOME TAX DEPARTMENT - PERMANENT ACCOUNT NUMBER' : 'STATUTORY REGISTRATION CERTIFICATE') }}
+                      </h2>
+                      <h3 class="cert-subtitle">Authoritative Certificate of Record</h3>
+                    </div>
+
+                    <!-- Certificate Field                      <div class="cert-table-grid">
+                      <div class="cert-row" [class.field-highlighted]="selectedField()?.fieldName?.toLowerCase()?.includes('identifier') || selectedField()?.fieldName?.toLowerCase()?.includes('gstin') || selectedField()?.fieldName?.toLowerCase()?.includes('pan')">
+                        <span class="cert-col-lbl">Statutory Identifier:</span>
+                        <code class="cert-col-val font-mono">{{ getFieldVal(1) || getFieldVal(0) || '09ABCDE1234F1Z5' }}</code>
+                        <span class="hl-tag" *ngIf="selectedField()?.fieldName?.toLowerCase()?.includes('identifier') || selectedField()?.fieldName?.toLowerCase()?.includes('gstin')">TARGET FIELD</span>
+                      </div>
+
+                      <div class="cert-row" [class.field-highlighted]="selectedField()?.fieldName?.toLowerCase()?.includes('name') || selectedField()?.fieldName?.toLowerCase()?.includes('business')">
+                        <span class="cert-col-lbl">Legal Entity Name:</span>
+                        <span class="cert-col-val font-bold">{{ r.legalName }}</span>
+                        <span class="hl-tag" *ngIf="selectedField()?.fieldName?.toLowerCase()?.includes('name')">TARGET FIELD</span>
+                      </div>
+
+                      <div class="cert-row">
+                        <span class="cert-col-lbl">Trade / Business Name:</span>
+                        <span class="cert-col-val">{{ r.businessName }}</span>
+                      </div>
+
+                      <div class="cert-row" [class.field-highlighted]="selectedField()?.fieldName?.toLowerCase()?.includes('address')">
+                        <span class="cert-col-lbl">Principal Place of Business:</span>
+                        <span class="cert-col-val">{{ getFieldVal(2, 'Verified Registered Address, Sector 12 Industrial Area') }}</span>
+                        <span class="hl-tag" *ngIf="selectedField()?.fieldName?.toLowerCase()?.includes('address')">TARGET FIELD</span>
+                      </div>                    </div>
+
+                      <div class="cert-row">
+                        <span class="cert-col-lbl">Constitution of Business:</span>
+                        <span class="cert-col-val">Private Limited Company</span>
+                      </div>
+
+                      <div class="cert-row">
+                        <span class="cert-col-lbl">Jurisdictional Authority:</span>
+                        <span class="cert-col-val">Central Board of Indirect Taxes and Customs (CBIC)</span>
+                      </div>
+
+                      <div class="cert-row">
+                        <span class="cert-col-lbl">Registration Status:</span>
+                        <span class="cert-col-val text-green font-bold">ACTIVE &amp; OPERATIONAL</span>
+                      </div>
+
+                      <div class="cert-row">
+                        <span class="cert-col-lbl">Document Reference:</span>
+                        <code class="cert-col-val font-mono text-muted">{{ r.provenance.auditReference }}</code>
+                      </div>
+                    </div>
+
+                    <!-- Digital Certificate Seal -->
+                    <div class="cert-seal-footer">
+                      <span class="seal-icon">✓</span>
+                      <span class="seal-text">Digitally Certified &amp; Cryptographically Sealed &bull; VeriPass Statutory Rails</span>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT COLUMN: DETAILS, OCR, VALIDATION, INTEGRITY -->
+      <aside class="details-column" aria-label="Document Metadata, OCR, and Integrity Analysis">
+
+        <!-- 1. DOCUMENT DETAILS (SPEC SECTION 15) -->
+        <div class="panel-section-card">
+          <div class="sec-card-header">
+            <h2 class="sec-title">DOCUMENT DETAILS</h2>
+            <span class="version-badge">Version {{ r.document.versionNumber }}</span>
+          </div>
+          <div class="details-meta-table">
+            <div class="m-row">
+              <span class="m-label">File name</span>
+              <span class="m-val font-mono text-truncate" [title]="r.document.fileName">{{ r.document.fileName }}</span>
+            </div>
+            <div class="m-row">
+              <span class="m-label">Uploaded</span>
+              <span class="m-val">{{ r.document.uploadedAt | date:'dd MMM yyyy, HH:mm:ss' }}</span>
+            </div>
+            <div class="m-row">
+              <span class="m-label">File type</span>
+              <span class="m-val">{{ r.document.contentType }} ({{ r.document.documentType }})</span>
+            </div>
+            <div class="m-row">
+              <span class="m-label">File size</span>
+              <span class="m-val">{{ r.document.formattedFileSize }} ({{ r.document.fileSize | number }} bytes)</span>
+            </div>
+            <div class="m-row">
+              <span class="m-label">SHA-256</span>
+              <div class="hash-val-wrapper">
+                <code class="hash-code" [title]="r.document.sha256Hash">{{ r.document.sha256Hash | slice:0:16 }}...{{ r.document.sha256Hash | slice:-8 }}</code>
+                <button class="btn-copy-hash" (click)="copyHash(r.document.sha256Hash)" [title]="copiedHash() ? 'Copied!' : 'Copy full SHA-256'">
+                  {{ copiedHash() ? '✓' : '📋' }}
+                </button>
+              </div>
+            </div>
+            <div class="m-row">
+              <span class="m-label">File Integrity</span>
+              <span class="m-val hash-status-badge" [class.match]="r.document.hashMatchStatus === 'MATCH'" [class.mismatch]="r.document.hashMatchStatus === 'MISMATCH'">
+                {{ r.document.hashMatchStatus === 'MATCH' ? '✓ MATCH (Authoritative Digest)' : '⚠ MISMATCH DETECTED' }}
+              </span>
+            </div>
+            <div class="m-row">
+              <span class="m-label">Storage Reference</span>
+              <span class="m-val font-mono text-muted text-truncate" [title]="r.document.storageKey">{{ r.document.storageKey }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. OCR RESULTS (SPEC SECTION 20-25) -->
+        <div class="panel-section-card">
+          <div class="sec-card-header">
+            <div class="sch-title-group">
+              <h2 class="sec-title">OCR RESULTS</h2>
+              <span class="ocr-engine-tag">{{ r.ocr.engineName }} {{ r.ocr.engineVersion }}</span>
+            </div>
+            <div class="sch-actions">
+              <button class="btn-text-action" (click)="openRawOcr()" title="Inspect Raw OCR Stream">
+                📄 Raw Text
+              </button>
+              <button class="btn-text-action" (click)="reprocessOcr()" [disabled]="isReprocessingOcr()" title="Reprocess Document OCR">
+                {{ isReprocessingOcr() ? '⏳ Running...' : '↺ Re-run OCR' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Overall OCR summary -->
+          <div class="ocr-status-bar">
+            <div class="ocr-stat-pill" [class.completed]="r.ocr.status === 'COMPLETED'">
+              <span class="dot">●</span> Status: <strong>{{ r.ocr.status }}</strong>
+            </div>
+            <div class="ocr-stat-pill confidence-pill">
+              Overall Confidence: <strong>{{ r.ocr.overallConfidence }}%</strong>
+            </div>
+          </div>
+
+          <!-- OCR Extracted Fields -->
+          <div class="ocr-fields-list">
+            <div *ngFor="let field of r.ocr.fields"
+              class="ocr-field-card"
+              [class.active-highlight]="selectedField()?.fieldName === field.fieldName"
+              (click)="highlightField(field)">
+              <div class="of-head">
+                <span class="of-name">{{ field.fieldName }}</span>
+                <span class="tier-pill"
+                  [class.tier-high]="field.confidenceTier === 'HIGH'"
+                  [class.tier-review]="field.confidenceTier === 'REVIEW'"
+                  [class.tier-low]="field.confidenceTier === 'LOW'">
+                  {{ field.confidence }}% {{ field.confidenceTier }}
+                </span>
+              </div>
+              <div class="of-values">
+                <div class="of-val-row">
+                  <span class="v-tag">Raw:</span>
+                  <span class="v-content font-mono">{{ field.rawValue }}</span>
+                </div>
+                <div class="of-val-row" *ngIf="field.normalizedValue && field.normalizedValue !== field.rawValue">
+                  <span class="v-tag">Normalized:</span>
+                  <span class="v-content font-mono text-blue">{{ field.normalizedValue }}</span>
+                </div>
+              </div>
+              <div class="of-foot">
+                <span class="source-tag">Source: {{ field.sourceReference }}</span>
+                <button class="btn-hl-field" (click)="highlightField(field); $event.stopPropagation()">
+                  {{ selectedField()?.fieldName === field.fieldName ? '● Highlighting' : '🔍 Highlight' }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- OCR Anomalies if any -->
+          <div class="ocr-anomalies-box" *ngIf="r.ocr.anomalies && r.ocr.anomalies.length > 0">
+            <h4 class="anom-title">Detected Text Anomalies:</h4>
+            <ul>
+              <li *ngFor="let anom of r.ocr.anomalies">{{ anom }}</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 3. VALIDATION RESULTS (SPEC SECTION 26-32) -->
+        <div class="panel-section-card">
+          <div class="sec-card-header">
+            <h2 class="sec-title">VALIDATION RESULTS</h2>
+            <span class="val-overall-pill" [class.pass]="r.validation.overallStatus === 'PASS'" [class.warn]="r.validation.overallStatus === 'WARNING'">
+              {{ r.validation.overallStatus }}
+            </span>
+          </div>
+
+          <div class="validation-checklist">
+            <div *ngFor="let item of r.validation.items"
+              class="val-item-row"
+              [class.val-pass]="item.status === 'PASS'"
+              [class.val-warn]="item.status === 'WARNING'"
+              [class.val-fail]="item.status === 'FAIL'">
+              <div class="val-icon-col">
+                <span *ngIf="item.status === 'PASS'" class="icon-pass">✓</span>
+                <span *ngIf="item.status === 'WARNING'" class="icon-warn">⚠</span>
+                <span *ngIf="item.status === 'FAIL'" class="icon-fail">✕</span>
+              </div>
+              <div class="val-text-col">
+                <div class="val-msg-row">
+                  <span class="val-msg">{{ item.message }}</span>
+                  <span class="val-sev-tag" [class.sev-warn]="item.severity === 'WARNING'" [class.sev-err]="item.severity === 'ERROR'">
+                    {{ item.severity }}
+                  </span>
+                </div>
+                <p class="val-details" *ngIf="item.details">{{ item.details }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. DOCUMENT INTEGRITY (SPEC SECTION 33-40) -->
+        <div class="panel-section-card integrity-card">
+          <div class="sec-card-header">
+            <div class="sch-title-group">
+              <h2 class="sec-title">DOCUMENT INTEGRITY</h2>
+              <span class="integrity-risk-pill" [class.risk-low]="r.integrity.riskLevel === 'LOW'">
+                RISK: {{ r.integrity.riskLevel }}
+              </span>
+            </div>
+            <button class="btn-text-action" (click)="reverifyIntegrity()" [disabled]="isVerifyingIntegrity()" title="Re-verify File Integrity">
+              {{ isVerifyingIntegrity() ? '⏳ Checking...' : '🛡 Re-verify' }}
+            </button>
+          </div>
+
+          <!-- Technically Defensible Finding (Prompt Rule 34) -->
+          <div class="defensible-finding-box">
+            <span class="df-icon">🛡</span>
+            <div class="df-body">
+              <strong>Forensic Finding:</strong>
+              <p>{{ r.integrity.defensibleFinding }}</p>
+            </div>
+          </div>
+
+          <!-- Integrity Checks Checklist -->
+          <div class="integrity-checks-list">
+            <div *ngFor="let check of r.integrity.checks" class="int-check-row">
+              <span class="chk-icon">✓</span>
+              <span class="chk-text">{{ check }}</span>
+            </div>
+          </div>
+
+          <!-- Metadata Inspection details if available -->
+          <div class="metadata-inspection-box" *ngIf="r.integrity.metadata as meta">
+            <h4 class="meta-insp-title">Metadata Inspection Telemetry</h4>
+            <div class="meta-grid">
+              <div class="mg-item"><span class="mgl">PDF Version:</span> <code>{{ meta.pdfVersion }}</code></div>
+              <div class="mg-item"><span class="mgl">Producer:</span> <code>{{ meta.producer }}</code></div>
+              <div class="mg-item"><span class="mgl">Page Count:</span> <code>{{ meta.pageCount }}</code></div>
+              <div class="mg-item"><span class="mgl">Digital Signature:</span> <code>{{ meta.hasDigitalSignature ? 'Detected' : 'Standard' }}</code></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. EVIDENCE PROVENANCE (SPEC SECTION 51-53) -->
+        <div class="panel-section-card provenance-card">
+          <h2 class="sec-title">EVIDENCE PROVENANCE &amp; AUDIT TRAIL</h2>
+          <div class="provenance-chain">
+            <div class="prov-node">
+              <span class="p-bullet">1</span>
+              <div class="p-info">
+                <strong>Verification Case</strong>
+                <code>{{ r.provenance.caseNumber || r.provenance.caseId }}</code>
+              </div>
+            </div>
+            <div class="prov-connector">&darr;</div>
+            <div class="prov-node">
+              <span class="p-bullet">2</span>
+              <div class="p-info">
+                <strong>Evidence Record</strong>
+                <code>{{ r.provenance.evidenceRecordId }}</code>
+              </div>
+            </div>
+            <div class="prov-connector">&darr;</div>
+            <div class="prov-node">
+              <span class="p-bullet">3</span>
+              <div class="p-info">
+                <strong>Document Object (Version {{ r.provenance.versionNumber }})</strong>
+                <code>{{ r.provenance.documentId }}</code>
+              </div>
+            </div>
+            <div class="prov-connector">&darr;</div>
+            <div class="prov-node">
+              <span class="p-bullet">4</span>
+              <div class="p-info">
+                <strong>Immutable Ingestion Key</strong>
+                <code class="font-mono text-truncate">{{ r.provenance.immutableStorageKey }}</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+    </main>
+  </div>
+
+  <!-- RAW OCR MODAL / DRAWER -->
+  <div class="modal-backdrop" *ngIf="showRawOcrModal()" (click)="closeRawOcr()">
+    <div class="modal-dialog raw-ocr-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <h3 class="modal-title">Raw Unnormalized OCR Text Stream</h3>
+        <div class="modal-head-tools">
+          <button class="btn-copy" (click)="copyRawOcrText()">
+            {{ copiedRawText() ? '✓ Copied' : '📋 Copy All' }}
+          </button>
+          <button class="btn-close-modal" (click)="closeRawOcr()">✕</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <p class="modal-note">
+          This stream reflects verbatim OCR character extraction prior to business rule normalization. Historical OCR results remain audited.
+        </p>
+        <pre class="raw-ocr-pre">{{ review()?.ocr?.rawOcrText || 'No raw OCR stream available for this document.' }}</pre>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-secondary" (click)="closeRawOcr()">Close</button>
+      </div>
+    </div>
+  </div>
+
+</div>

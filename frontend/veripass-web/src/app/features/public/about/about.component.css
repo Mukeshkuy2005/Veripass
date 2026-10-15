@@ -1,0 +1,321 @@
+    .about-page {
+      background-color: #F8FAFC;
+      color: #0F172A;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    .pt-8 {
+      padding-top: 40px;
+    }
+
+    /* 1. HERO */
+    .about-hero {
+      padding: 80px 0 50px 0;
+      background: #FFFFFF;
+      border-bottom: 1px solid #E2E8F0;
+    }
+
+    .badge-pill {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: #2563EB;
+      background: #EFF6FF;
+      border: 1px solid #DBEAFE;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      margin-bottom: 20px;
+    }
+
+    .hero-title {
+      font-size: 44px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #0F172A;
+      margin-bottom: 16px;
+    }
+
+    .hero-subtitle {
+      font-size: 19px;
+      color: #475569;
+      max-width: 580px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    /* 2. MISSION */
+    .mission-section {
+      padding: 60px 0;
+    }
+
+    .mission-box {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 24px;
+      padding: 48px 40px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.03);
+    }
+
+    .mission-tag {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: #2563EB;
+      margin-bottom: 14px;
+    }
+
+    .mission-text {
+      font-size: 28px;
+      font-weight: 800;
+      color: #0F172A;
+      max-width: 720px;
+      margin: 0 auto 16px auto;
+      line-height: 1.35;
+      letter-spacing: -0.01em;
+    }
+
+    .mission-sub {
+      font-size: 15px;
+      color: #64748B;
+      max-width: 680px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* 3. CONTRAST */
+    .contrast-section {
+      padding: 80px 0;
+      background: #FFFFFF;
+      border-top: 1px solid #E2E8F0;
+      border-bottom: 1px solid #E2E8F0;
+    }
+
+    .section-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #2563EB;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 32px;
+      font-weight: 800;
+      color: #0F172A;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .section-subtitle {
+      font-size: 16px;
+      color: #64748B;
+      max-width: 620px;
+      margin: 0 auto 48px auto;
+      line-height: 1.6;
+    }
+
+    .contrast-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+
+    .contrast-card {
+      border-radius: 20px;
+      padding: 36px 32px;
+    }
+
+    .legacy-card {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+    }
+
+    .veripass-card {
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+    }
+
+    .contrast-header {
+      margin-bottom: 24px;
+    }
+
+    .contrast-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      padding: 3px 10px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+
+    .legacy-badge {
+      background: #F1F5F9;
+      color: #64748B;
+    }
+
+    .vp-badge {
+      background: #DCFCE7;
+      color: #166534;
+    }
+
+    .contrast-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #0F172A;
+    }
+
+    .contrast-flow {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .flow-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .f-num {
+      font-size: 12px;
+      font-weight: 800;
+      color: #94A3B8;
+    }
+
+    .outcome-step {
+      border-color: #FECACA;
+      background: #FEF2F2;
+      color: #991B1B;
+    }
+
+    .outcome-step.vp-outcome {
+      border-color: #86EFAC;
+      background: #DCFCE7;
+      color: #166534;
+    }
+
+    .f-arrow {
+      text-align: center;
+      color: #94A3B8;
+      font-weight: 700;
+      font-size: 14px;
+      margin: -4px 0;
+    }
+
+    /* 4. PRINCIPLES */
+    .principles-section {
+      padding: 80px 0;
+    }
+
+    .principles-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+
+    .principle-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 16px;
+      padding: 28px 22px;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.02);
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .principle-card:hover {
+      transform: translateY(-4px);
+      border-color: #93C5FD;
+    }
+
+    .p-icon {
+      font-size: 28px;
+      margin-bottom: 16px;
+    }
+
+    .p-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #0F172A;
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+    }
+
+    .p-desc {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #64748B;
+    }
+
+    /* Common Button */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 26px;
+      border-radius: 12px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .btn-lg {
+      font-size: 15px;
+      padding: 14px 28px;
+    }
+
+    .btn-primary {
+      background: #0F172A;
+      color: #FFFFFF;
+      border: 1px solid #0F172A;
+    }
+
+    .btn-primary:hover {
+      background: #2563EB;
+      border-color: #2563EB;
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 900px) {
+      .contrast-grid {
+        grid-template-columns: 1fr;
+      }
+      .principles-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .hero-title {
+        font-size: 32px;
+      }
+      .principles-grid {
+        grid-template-columns: 1fr;
+      }
+      .mission-text {
+        font-size: 22px;
+      }
+    }

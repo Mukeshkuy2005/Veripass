@@ -1,0 +1,587 @@
+<div class="buyer-requests-container">
+  <!-- TOAST NOTIFICATION -->
+  <div *ngIf="toastMessage()" class="toast-banner" [ngClass]="'toast-' + toastType()">
+    <span class="toast-icon">
+      <ng-container [ngSwitch]="toastType()">
+        <span *ngSwitchCase="'success'">✓</span>
+        <span *ngSwitchCase="'error'">⚠️</span>
+        <span *ngSwitchDefault>ℹ️</span>
+      </ng-container>
+    </span>
+    <span class="toast-text">{{ toastMessage() }}</span>
+    <button class="toast-close" (click)="toastMessage.set(null)">&times;</button>
+  </div>
+
+  <!-- HERO HEADER -->
+  <header class="requests-hero vp-card">
+    <div class="hero-left">
+      <div class="hero-tag-row">
+        <span class="sovereign-tag">
+          <span class="pulse-indicator"></span>
+          DPDP ACT 2023 CONSENT GATEWAY
+        </span>
+        <span class="rfc-tag">ENTERPRISE VENDOR ONBOARDING</span>
+      </div>
+      <h1 class="hero-title">Buyer Verification Requests</h1>
+      <p class="hero-subtitle">
+        Review, authorize, and selectively disclose verified business credentials to enterprise procurement desks.
+        Maintain cryptographic control over your proprietary company data.
+      </p>
+    </div>
+    <div class="hero-actions">
+      <button class="btn btn-outline-light" (click)="loadRequests()" [disabled]="isLoading()">
+        <span class="refresh-icon" [class.spinning]="isLoading()">↻</span>
+        <span>Refresh</span>
+      </button>
+      <a routerLink="/supplier/passport" class="btn btn-primary-gradient">
+        <span>View Business Passport</span>
+        <span class="arrow">&rarr;</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- KPI SUMMARY ROW -->
+  <section class="kpi-grid">
+    <div
+      class="kpi-card"
+      [class.active]="filterStatus() === 'ALL'"
+      (click)="filterStatus.set('ALL')"
+      tabindex="0"
+      role="button"
+    >
+      <div class="kpi-top">
+        <span class="kpi-label">Total Inquiries</span>
+        <span class="kpi-badge badge-slate">All Time</span>
+      </div>
+      <div class="kpi-value text-slate">{{ totalCount() }}</div>
+      <div class="kpi-footer">Enterprise verification requests</div>
+      <div class="kpi-accent accent-slate"></div>
+    </div>
+
+    <div
+      class="kpi-card"
+      [class.active]="filterStatus() === 'PENDING'"
+      (click)="filterStatus.set('PENDING')"
+      tabindex="0"
+      role="button"
+    >
+      <div class="kpi-top">
+        <span class="kpi-label">Pending Review</span>
+        <span class="kpi-badge badge-amber">Action Needed</span>
+      </div>
+      <div class="kpi-value text-amber">{{ pendingCount() }}</div>
+      <div class="kpi-footer">Awaiting consent authorization</div>
+      <div class="kpi-accent accent-amber"></div>
+    </div>
+
+    <div
+      class="kpi-card"
+      [class.active]="filterStatus() === 'APPROVED'"
+      (click)="filterStatus.set('APPROVED')"
+      tabindex="0"
+      role="button"
+    >
+      <div class="kpi-top">
+        <span class="kpi-label">Approved & Active</span>
+        <span class="kpi-badge badge-emerald">Access Granted</span>
+      </div>
+      <div class="kpi-value text-emerald">{{ approvedCount() }}</div>
+      <div class="kpi-footer">Verified attestations active</div>
+      <div class="kpi-accent accent-emerald"></div>
+    </div>
+
+    <div
+      class="kpi-card"
+      [class.active]="filterStatus() === 'REJECTED'"
+      (click)="filterStatus.set('REJECTED')"
+      tabindex="0"
+      role="button"
+    >
+      <div class="kpi-top">
+        <span class="kpi-label">Declined / Revoked</span>
+        <span class="kpi-badge badge-rose">Closed</span>
+      </div>
+      <div class="kpi-value text-rose">{{ rejectedCount() }}</div>
+      <div class="kpi-footer">Withheld or expired inquiries</div>
+      <div class="kpi-accent accent-rose"></div>
+    </div>
+  </section>
+
+  <!-- SEARCH & FILTER TOOLBAR -->
+  <section class="toolbar-section vp-card">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        placeholder="Search by enterprise buyer, requested credential (GST, Bank, ISO), or purpose..."
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+        class="search-input"
+      />
+      <button *ngIf="searchQuery()" (click)="searchQuery.set('')" class="clear-search-btn">&times;</button>
+    </div>
+
+    <div class="toolbar-filters">
+      <div class="filter-group">
+        <label class="filter-label">Request Type:</label>
+        <select
+          [ngModel]="selectedType()"
+          (ngModelChange)="selectedType.set($event)"
+          class="filter-select"
+        >
+          <option value="ALL">All Categories</option>
+          <option value="VENDOR_ONBOARDING">Vendor Onboarding</option>
+          <option value="CREDENTIAL_UPDATE">Credential Refresh</option>
+          <option value="AUDIT">Statutory Audit</option>
+          <option value="RE_VERIFY">Periodic Re-Verify</option>
+        </select>
+      </div>
+
+      <!-- Quick status pills -->
+      <div class="status-pills">
+        <button
+          class="pill-btn"
+          [class.active]="filterStatus() === 'ALL'"
+          (click)="filterStatus.set('ALL')"
+        >
+          All ({{ totalCount() }})
+        </button>
+        <button
+          class="pill-btn pill-amber"
+          [class.active]="filterStatus() === 'PENDING'"
+          (click)="filterStatus.set('PENDING')"
+        >
+          Pending ({{ pendingCount() }})
+        </button>
+        <button
+          class="pill-btn pill-emerald"
+          [class.active]="filterStatus() === 'APPROVED'"
+          (click)="filterStatus.set('APPROVED')"
+        >
+          Approved ({{ approvedCount() }})
+        </button>
+        <button
+          class="pill-btn pill-rose"
+          [class.active]="filterStatus() === 'REJECTED'"
+          (click)="filterStatus.set('REJECTED')"
+        >
+          Declined ({{ rejectedCount() }})
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOADING SKELETON -->
+  <div *ngIf="isLoading()" class="loading-state">
+    <div class="loading-spinner"></div>
+    <p>Loading enterprise verification requests from secure ledger...</p>
+  </div>
+
+  <!-- EMPTY STATE -->
+  <div *ngIf="!isLoading() && filteredRequests().length === 0" class="empty-state vp-card">
+    <div class="empty-icon">📭</div>
+    <h3 class="empty-title">No verification requests found</h3>
+    <p class="empty-desc">
+      <ng-container *ngIf="searchQuery() || filterStatus() !== 'ALL' || selectedType() !== 'ALL'; else noReqsAtAll">
+        No buyer requests match your active search and filter parameters. Try clearing your filters.
+      </ng-container>
+      <ng-template #noReqsAtAll>
+        You have no pending verification requests from enterprise buyers at this time.
+      </ng-template>
+    </p>
+    <button
+      *ngIf="searchQuery() || filterStatus() !== 'ALL' || selectedType() !== 'ALL'"
+      class="btn btn-secondary btn-sm"
+      (click)="searchQuery.set(''); filterStatus.set('ALL'); selectedType.set('ALL')"
+    >
+      Clear All Filters
+    </button>
+  </div>
+
+  <!-- REQUEST CARDS GRID -->
+  <div *ngIf="!isLoading() && filteredRequests().length > 0" class="requests-grid">
+    <div
+      *ngFor="let req of filteredRequests()"
+      class="request-card vp-card"
+      [class.card-pending]="req.status === 'PENDING'"
+      [class.card-approved]="req.status === 'APPROVED'"
+      [class.card-rejected]="req.status === 'REJECTED'"
+    >
+      <!-- CARD HEADER -->
+      <div class="card-header">
+        <div class="buyer-profile">
+          <div class="buyer-avatar" [style.background]="getBuyerAvatarColor(req.buyerOrganizationName)">
+            {{ getBuyerInitials(req.buyerOrganizationName) }}
+          </div>
+          <div class="buyer-meta">
+            <div class="buyer-title-row">
+              <h3 class="buyer-name">{{ req.buyerOrganizationName }}</h3>
+              <span class="enterprise-badge" title="Verified Enterprise Buyer on VeriPass">
+                <span class="shield-check">🛡️</span> Verified Enterprise
+              </span>
+            </div>
+            <div class="sub-meta-row">
+              <span class="request-id">REF: #REQ-{{ req.id.substring(0, 8).toUpperCase() }}</span>
+              <span class="dot-separator">•</span>
+              <span class="date-text">Received: {{ formatDate(req.createdAt) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="header-badges">
+          <span class="type-badge" [ngClass]="getRequestTypeBadge(req.requestType).class">
+            {{ getRequestTypeBadge(req.requestType).label }}
+          </span>
+          <span
+            class="status-pill"
+            [ngClass]="{
+              'status-pending': req.status === 'PENDING',
+              'status-approved': req.status === 'APPROVED',
+              'status-rejected': req.status === 'REJECTED'
+            }"
+          >
+            <span class="status-indicator"></span>
+            {{ req.status === 'PENDING' ? 'PENDING REVIEW' : req.status === 'APPROVED' ? 'SOVEREIGN ACCESS ACTIVE' : 'ACCESS DECLINED' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- REASON / INTENDED PURPOSE BLOCK -->
+      <div class="purpose-block">
+        <div class="purpose-header">
+          <span class="purpose-icon">💼</span>
+          <span class="purpose-title">COMMERCIAL PURPOSE & SCOPE</span>
+        </div>
+        <p class="purpose-text">{{ req.reason || 'Annual vendor onboarding and compliance qualification.' }}</p>
+      </div>
+
+      <!-- REQUESTED CREDENTIALS CHIPS -->
+      <div class="credentials-section">
+        <div class="section-label-row">
+          <span class="section-label">REQUESTED CREDENTIALS ({{ req.requestedItems.length }})</span>
+          <span class="verified-guarantee">✓ Available in Sovereign Passport</span>
+        </div>
+        <div class="credential-chips-wrap">
+          <div *ngFor="let item of req.requestedItems" class="cred-chip">
+            <span class="cred-icon">{{ getCredInfo(item).icon }}</span>
+            <div class="cred-details">
+              <span class="cred-name">{{ getCredInfo(item).name }}</span>
+              <span class="cred-cat">{{ getCredInfo(item).category }} • VERIFIED</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD FOOTER (STATUS DEPENDENT) -->
+      <div class="card-footer">
+        <!-- PENDING STATE ACTIONS -->
+        <ng-container *ngIf="req.status === 'PENDING'">
+          <div class="sla-notice">
+            <span class="timer-icon">⏱️</span>
+            <span>SLA: Standard 30-day response window applies</span>
+          </div>
+          <div class="action-buttons">
+            <button class="btn btn-outline-danger btn-sm" (click)="openRejectModal(req)">
+              Decline Access
+            </button>
+            <button class="btn btn-primary-gradient btn-sm" (click)="openReviewModal(req)">
+              <span>Review & Grant Consent</span>
+              <span class="btn-arrow">&rarr;</span>
+            </button>
+          </div>
+        </ng-container>
+
+        <!-- APPROVED STATE BANNER -->
+        <ng-container *ngIf="req.status === 'APPROVED'">
+          <div class="approved-ribbon">
+            <div class="ribbon-icon">✓</div>
+            <div class="ribbon-content">
+              <strong>Sovereign Zero-Knowledge Token Active</strong>
+              <p *ngIf="req.supplierResponse" class="ribbon-sub">{{ req.supplierResponse }}</p>
+              <p *ngIf="!req.supplierResponse" class="ribbon-sub">Encrypted proof delivered to buyer procurement ledger. Access valid for 30 days.</p>
+            </div>
+          </div>
+          <div class="approved-actions">
+            <button class="btn btn-outline-danger btn-sm" (click)="openRejectModal(req)">
+              Revoke Consent
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" (click)="openReviewModal(req)">
+              View Attestation Details
+            </button>
+          </div>
+        </ng-container>
+
+        <!-- REJECTED STATE BANNER -->
+        <ng-container *ngIf="req.status === 'REJECTED'">
+          <div class="rejected-ribbon">
+            <div class="ribbon-icon">✕</div>
+            <div class="ribbon-content">
+              <strong>Access Request Declined</strong>
+              <p *ngIf="req.supplierResponse" class="ribbon-sub">{{ req.supplierResponse }}</p>
+              <p *ngIf="!req.supplierResponse" class="ribbon-sub">Declined by supplier compliance administrator. No credentials were disclosed.</p>
+            </div>
+          </div>
+          <div class="rejected-actions">
+            <button class="btn btn-primary-gradient btn-sm" (click)="openReviewModal(req)">
+              <span>Re-evaluate & Grant Access</span>
+              <span class="btn-arrow">&rarr;</span>
+            </button>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONSENT REVIEW MODAL (DPDP ACT 2023 GATEWAY) -->
+  <div class="modal-backdrop" *ngIf="activeReviewReq()" (click)="closeReviewModal()">
+    <div class="modal-window vp-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-kicker">SOVEREIGN DPDP CONSENT GATEWAY</span>
+          <h2 class="modal-title">Authorize Access for {{ activeReviewReq()?.buyerOrganizationName }}</h2>
+        </div>
+        <button class="modal-close" (click)="closeReviewModal()" [disabled]="isSubmitting()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- BUYER REPUTATION SUMMARY -->
+        <div class="modal-buyer-banner">
+          <div class="buyer-avatar modal-avatar" [style.background]="getBuyerAvatarColor(activeReviewReq()?.buyerOrganizationName || '')">
+            {{ getBuyerInitials(activeReviewReq()?.buyerOrganizationName || '') }}
+          </div>
+          <div class="modal-buyer-info">
+            <h4>{{ activeReviewReq()?.buyerOrganizationName }}</h4>
+            <p>Purpose: <strong>{{ activeReviewReq()?.reason || 'Enterprise Vendor Empanelment' }}</strong></p>
+          </div>
+        </div>
+
+        <!-- SELECTIVE DISCLOSURE CHECKLIST -->
+        <div class="modal-section">
+          <div class="section-title-row">
+            <span class="modal-section-title">SELECTIVE CREDENTIAL DISCLOSURE</span>
+            <span class="selection-counter">{{ getSelectedCount() }} of {{ activeReviewReq()?.requestedItems?.length || 0 }} Selected</span>
+          </div>
+          <p class="section-hint">Under the DPDP Act 2023, you hold the legal sovereign right to choose which credentials to disclose:</p>
+
+          <div class="credential-selector-list">
+            <div
+              *ngFor="let item of activeReviewReq()?.requestedItems"
+              class="selector-item"
+              [class.checked]="selectedCredentials()[item]"
+              (click)="toggleCredential(item)"
+            >
+              <div class="item-checkbox">
+                <input
+                  type="checkbox"
+                  [checked]="selectedCredentials()[item]"
+                  (change)="toggleCredential(item)"
+                  (click)="$event.stopPropagation()"
+                />
+              </div>
+              <div class="item-content">
+                <div class="item-name-row">
+                  <span class="item-icon">{{ getCredInfo(item).icon }}</span>
+                  <span class="item-name">{{ getCredInfo(item).name }}</span>
+                </div>
+                <span class="item-badge">Verified via Registry • Zero-Knowledge Hash Valid</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DATA VISIBILITY MODE -->
+        <div class="modal-section">
+          <span class="modal-section-title">DATA VISIBILITY & REDACTION MODE</span>
+          <div class="visibility-grid">
+            <div
+              class="vis-card"
+              [class.selected]="!shareRawDoc()"
+              (click)="shareRawDoc.set(false)"
+            >
+              <div class="vis-radio">
+                <input type="radio" name="visMode" [checked]="!shareRawDoc()" />
+              </div>
+              <div class="vis-text">
+                <div class="vis-title">
+                  <strong>Zero-Knowledge Attestation Only</strong>
+                  <span class="recommended-pill">Recommended</span>
+                </div>
+                <p>Enterprise buyer verifies validity directly from MCA/GSTN/NSDL registries without exposing your raw tax returns, bank transactions, or trade secrets.</p>
+              </div>
+            </div>
+
+            <div
+              class="vis-card"
+              [class.selected]="shareRawDoc()"
+              (click)="shareRawDoc.set(true)"
+            >
+              <div class="vis-radio">
+                <input type="radio" name="visMode" [checked]="shareRawDoc()" />
+              </div>
+              <div class="vis-text">
+                <div class="vis-title">
+                  <strong>Attestation + Masked Document Proof</strong>
+                </div>
+                <p>Issues watermarked, redacted PDF copies of certificate proofs with account numbers and personal phone numbers cryptographically masked.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACCESS VALIDITY DURATION -->
+        <div class="modal-section">
+          <span class="modal-section-title">ACCESS DURATION & EXPIRATION</span>
+          <div class="duration-pills">
+            <button
+              class="duration-btn"
+              [class.active]="validityDays() === 30"
+              (click)="validityDays.set(30)"
+            >
+              30 Days (Standard)
+            </button>
+            <button
+              class="duration-btn"
+              [class.active]="validityDays() === 60"
+              (click)="validityDays.set(60)"
+            >
+              60 Days
+            </button>
+            <button
+              class="duration-btn"
+              [class.active]="validityDays() === 90"
+              (click)="validityDays.set(90)"
+            >
+              90 Days (Quarterly)
+            </button>
+            <button
+              class="duration-btn"
+              [class.active]="validityDays() === 365"
+              (click)="validityDays.set(365)"
+            >
+              1 Year (Annual)
+            </button>
+          </div>
+        </div>
+
+        <!-- CONSENT MEMO NOTE -->
+        <div class="modal-section">
+          <label class="modal-section-title">OPTIONAL COMPLIANCE NOTE / MEMO</label>
+          <input
+            type="text"
+            class="memo-input"
+            placeholder="Add internal or buyer-facing note (e.g. Approved for FY26 Tier-1 empanelment)"
+            [ngModel]="consentNotes()"
+            (ngModelChange)="consentNotes.set($event)"
+          />
+        </div>
+
+        <!-- DPDP ACT LEGAL ATTESTATION CLAUSE -->
+        <div class="legal-consent-card">
+          <span class="legal-icon">⚖️</span>
+          <div class="legal-text">
+            <strong>Digital Personal Data Protection (DPDP) Act 2023 Consent Notice</strong>
+            <p>
+              By proceeding, your digital signature will be embedded onto the consent grant token.
+              Access may be revoked or audited at any time from your Business Passport security center.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button
+          class="btn btn-outline-secondary"
+          (click)="closeReviewModal()"
+          [disabled]="isSubmitting()"
+        >
+          Cancel
+        </button>
+        <button
+          class="btn btn-outline-danger"
+          (click)="switchReviewToReject()"
+          [disabled]="isSubmitting()"
+        >
+          Decline Request
+        </button>
+        <button
+          class="btn btn-primary-gradient"
+          (click)="confirmApprove()"
+          [disabled]="isSubmitting() || !hasSelectedCredentials()"
+        >
+          <span *ngIf="isSubmitting()" class="spinner-sm"></span>
+          <span *ngIf="!isSubmitting()">Issue Cryptographic Access Token &rarr;</span>
+          <span *ngIf="isSubmitting()">Signing & Authorizing...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DECLINE REASON MODAL -->
+  <div class="modal-backdrop" *ngIf="activeRejectReq()" (click)="closeRejectModal()">
+    <div class="modal-window vp-card modal-sm" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-kicker text-rose">DECLINE VERIFICATION REQUEST</span>
+          <h2 class="modal-title">Decline {{ activeRejectReq()?.buyerOrganizationName }}</h2>
+        </div>
+        <button class="modal-close" (click)="closeRejectModal()" [disabled]="isSubmitting()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="decline-desc">
+          Specify a reason for declining this buyer inquiry. This reason will be logged in your compliance audit trail
+          and communicated to the buyer procurement officer.
+        </p>
+
+        <!-- Quick Reason Chips -->
+        <div class="quick-reasons">
+          <button
+            class="reason-chip"
+            (click)="rejectReasonText.set('Requested credentials fall outside standard empanelment scope.')"
+          >
+            Outside empanelment scope
+          </button>
+          <button
+            class="reason-chip"
+            (click)="rejectReasonText.set('Duplicate inquiry; access already provided under master agreement.')"
+          >
+            Duplicate inquiry
+          </button>
+          <button
+            class="reason-chip"
+            (click)="rejectReasonText.set('Excessive proprietary document disclosure requested.')"
+          >
+            Excessive disclosure
+          </button>
+        </div>
+
+        <textarea
+          class="reject-textarea"
+          rows="4"
+          placeholder="Enter detailed reason for decline..."
+          [ngModel]="rejectReasonText()"
+          (ngModelChange)="rejectReasonText.set($event)"
+        ></textarea>
+      </div>
+
+      <div class="modal-footer">
+        <button
+          class="btn btn-outline-secondary"
+          (click)="closeRejectModal()"
+          [disabled]="isSubmitting()"
+        >
+          Cancel
+        </button>
+        <button
+          class="btn btn-danger"
+          (click)="confirmReject()"
+          [disabled]="isSubmitting()"
+        >
+          <span *ngIf="isSubmitting()" class="spinner-sm"></span>
+          <span *ngIf="!isSubmitting()">Confirm Decline & Close</span>
+          <span *ngIf="isSubmitting()">Declining...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,758 @@
+<div class="settings-view">
+  <!-- HEADER HERO -->
+  <div class="settings-header vp-card">
+    <div class="header-left">
+      <div class="tag-row">
+        <span class="view-tag">ENTERPRISE GOVERNANCE</span>
+        <span class="cert-tag">DPDP &amp; MCA VERIFIED</span>
+      </div>
+      <h1 class="page-title">Enterprise Settings</h1>
+      <p class="page-sub">Configure sovereign corporate profile, team authorizations, RBAC governance, and ERP integration parameters.</p>
+    </div>
+    <div class="header-meta-pill">
+      <span class="pill-dot">●</span>
+      <span class="pill-text font-mono">{{ org.id }}</span>
+      <span class="pill-sep">&bull;</span>
+      <span class="pill-status">Enterprise Sovereign</span>
+    </div>
+  </div>
+
+  <!-- SAVED / TOAST NOTIFICATION -->
+  <div *ngIf="saveNotice()" class="toast-banner">
+    <div class="toast-icon">✓</div>
+    <div class="toast-text">{{ saveNotice() }}</div>
+  </div>
+
+  <!-- TWO-COLUMN LAYOUT -->
+  <div class="settings-layout-grid">
+    <!-- LEFT: SIDEBAR TABS -->
+    <div class="vp-card settings-nav-card">
+      <div class="nav-section-title">ADMINISTRATION</div>
+      <nav class="settings-nav">
+        <button
+          *ngFor="let tab of tabs"
+          class="s-nav-btn"
+          [class.active]="activeTab() === tab.id"
+          (click)="selectTab(tab.id)">
+          <span class="s-icon">{{ tab.icon }}</span>
+          <div class="s-text-col">
+            <span class="s-lbl">{{ tab.label }}</span>
+            <span class="s-desc" *ngIf="tab.description">{{ tab.description }}</span>
+          </div>
+        </button>
+      </nav>
+    </div>
+
+    <!-- RIGHT: CONTENT PANE -->
+    <div class="vp-card settings-content-card">
+      <!-- 1. ORGANIZATION PROFILE -->
+      <div class="tab-pane" *ngIf="activeTab() === 'org'">
+        <div class="pane-header-group">
+          <div>
+            <h2 class="pane-title">Organization Profile</h2>
+            <p class="pane-sub">Manage legal entity attributes, statutory identifiers, and registered office records.</p>
+          </div>
+          <span class="badge-role-pill">Procurement Entity</span>
+        </div>
+
+        <div class="profile-hero-card">
+          <div class="hero-avatar">{{ userInitials() }}</div>
+          <div class="hero-info">
+            <div class="hero-name-row">
+              <h3 class="hero-title">{{ org.companyName }}</h3>
+              <span class="badge-verified">
+                <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                MCA &amp; GSTIN Verified
+              </span>
+            </div>
+            <div class="hero-meta-row">
+              <span class="meta-item">{{ org.industry }}</span>
+              <span class="meta-sep">&bull;</span>
+              <span class="meta-item">{{ org.size }}</span>
+              <span class="meta-sep">&bull;</span>
+              <span class="meta-item font-mono text-muted">ID: {{ org.id }}</span>
+            </div>
+          </div>
+        </div>
+
+        <form (ngSubmit)="saveOrg()" class="settings-form-layout">
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="orgName">Legal Business Name <span class="req">*</span></label>
+              <input id="orgName" type="text" class="form-control" [(ngModel)]="org.companyName" name="companyName" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="orgIndustry">Industry Vertical</label>
+              <input id="orgIndustry" type="text" class="form-control" [(ngModel)]="org.industry" name="industry" />
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="orgGstin">Corporate GSTIN</label>
+              <input id="orgGstin" type="text" class="form-control font-mono" [(ngModel)]="org.gstin" name="gstin" readonly />
+              <span class="form-hint">Locked by MCA sovereign registry authentication.</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="orgPan">Permanent Account Number (PAN)</label>
+              <input id="orgPan" type="text" class="form-control font-mono" [(ngModel)]="org.pan" name="pan" readonly />
+              <span class="form-hint">Linked to Central Board of Direct Taxes.</span>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="orgSize">Workforce Scale</label>
+              <select id="orgSize" class="form-control" [(ngModel)]="org.size" name="size">
+                <option value="500-1,000 employees">500 - 1,000 employees</option>
+                <option value="1,000-5,000 employees">1,000 - 5,000 employees</option>
+                <option value="10,000+ employees">10,000+ employees (Global Enterprise)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="orgCategory">Primary Sourcing Category</label>
+              <input id="orgCategory" type="text" class="form-control" [(ngModel)]="org.category" name="category" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="orgAddress">Registered Head Office Address</label>
+            <textarea id="orgAddress" rows="2" class="form-control" [(ngModel)]="org.registeredAddress" name="registeredAddress"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="orgRegion">Sovereign Data Jurisdiction</label>
+            <input id="orgRegion" type="text" class="form-control" [(ngModel)]="org.sovereignRegion" name="sovereignRegion" readonly />
+            <span class="form-hint">Mandated zero-cross-border data sovereignty under India DPDP Act.</span>
+          </div>
+
+          <div class="btn-action-row">
+            <button type="submit" class="btn-primary">Save Profile Changes</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 2. TEAM MEMBERS -->
+      <div class="tab-pane" *ngIf="activeTab() === 'team'">
+        <div class="pane-header-group">
+          <div>
+            <h2 class="pane-title">Authorized Team Members</h2>
+            <p class="pane-sub">Manage colleagues who can discover, evaluate, compare, and onboard suppliers.</p>
+          </div>
+          <button class="btn-primary" (click)="openInviteModal()">
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            Invite Member
+          </button>
+        </div>
+
+        <div class="table-container">
+          <table class="enterprise-table">
+            <thead>
+              <tr>
+                <th>TEAM MEMBER</th>
+                <th>ROLE</th>
+                <th>STATUS</th>
+                <th>SECURITY</th>
+                <th class="text-right">ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let m of teamMembers()">
+                <td>
+                  <div class="user-cell">
+                    <div class="user-avatar-sm">{{ m.avatarInitials }}</div>
+                    <div class="user-names">
+                      <span class="user-name-text">{{ m.name }}</span>
+                      <span class="user-email-text">{{ m.email }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge-role-tag">{{ m.role }}</span>
+                </td>
+                <td>
+                  <span class="badge-status-dot" [class.status-invited]="m.status === 'Invited'">
+                    ● {{ m.status }}
+                  </span>
+                </td>
+                <td>
+                  <span class="mfa-indicator">
+                    <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944z" clip-rule="evenodd" />
+                    </svg>
+                    FIDO2 / SSO
+                  </span>
+                </td>
+                <td class="text-right">
+                  <button class="btn-table-action" (click)="removeMember(m.id)" title="Revoke Access">
+                    Revoke
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 3. ROLES & RBAC MATRIX -->
+      <div class="tab-pane" *ngIf="activeTab() === 'roles'">
+        <div class="pane-header-group">
+          <div>
+            <h2 class="pane-title">Roles &amp; Permissions Matrix</h2>
+            <p class="pane-sub">Granular access governance across enterprise sourcing operations and vendor verification.</p>
+          </div>
+          <span class="badge-role-pill">RBAC Policy v3.2</span>
+        </div>
+
+        <div class="table-container">
+          <table class="enterprise-table matrix-table">
+            <thead>
+              <tr>
+                <th class="perm-head">OPERATIONAL PERMISSION</th>
+                <th class="text-center">ADMIN</th>
+                <th class="text-center">PROCUREMENT LEAD</th>
+                <th class="text-center">COMPLIANCE OFFICER</th>
+                <th class="text-center">VIEWER</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of rbacPermissions">
+                <td class="perm-title-cell">
+                  <strong>{{ p.name }}</strong>
+                </td>
+                <td class="text-center">
+                  <span class="badge-perm perm-grant">✓ Full</span>
+                </td>
+                <td class="text-center">
+                  <span class="badge-perm" [class.perm-grant]="p.procurement.includes('✓')" [class.perm-warn]="p.procurement.includes('Limited')" [class.perm-deny]="p.procurement.includes('✕')">
+                    {{ p.procurement }}
+                  </span>
+                </td>
+                <td class="text-center">
+                  <span class="badge-perm" [class.perm-grant]="p.compliance.includes('✓')" [class.perm-warn]="p.compliance.includes('Sign-off')" [class.perm-deny]="p.compliance.includes('✕')">
+                    {{ p.compliance }}
+                  </span>
+                </td>
+                <td class="text-center">
+                  <span class="badge-perm" [class.perm-grant]="p.viewer.includes('✓')" [class.perm-deny]="p.viewer.includes('✕')">
+                    {{ p.viewer }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 4. SECURITY & AUTH -->
+      <div class="tab-pane" *ngIf="activeTab() === 'security'">
+        <div class="pane-header-group">
+          <div>
+            <h2 class="pane-title">Security &amp; Authentication Controls</h2>
+            <p class="pane-sub">Multi-factor enforcement, identity federation, and session rotation policies.</p>
+          </div>
+          <span class="badge-role-pill">SOC-2 Type II Enforced</span>
+        </div>
+
+        <div class="sec-grid-cards">
+          <!-- CARD 1: MFA -->
+          <div class="sec-card">
+            <div class="sec-card-header">
+              <div class="sec-icon-badge">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <span class="badge-status-dot">● Mandatory</span>
+            </div>
+            <h3 class="sec-card-title">Multi-Factor Authentication (MFA)</h3>
+            <p class="sec-card-desc">Hardware security keys (FIDO2 / WebAuthn) or time-based OTP required for all procurement approvals.</p>
+            <div class="sec-card-footer">
+              <span class="text-green-strong">✓ 100% Team Compliance</span>
+            </div>
+          </div>
+
+          <!-- CARD 2: ACTIVE SESSIONS -->
+          <div class="sec-card">
+            <div class="sec-card-header">
+              <div class="sec-icon-badge">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.804A1 1 0 0113 18H7a1 1 0 01-.707-1.707l.804-.804L7.22 15H5a2 2 0 01-2-2V5zm5.771 7H5V5h10v7H8.771z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <span class="text-muted font-mono">2 Concurrent</span>
+            </div>
+            <h3 class="sec-card-title">Active Authorized Sessions</h3>
+            <p class="sec-card-desc">Corporate sessions active in Mumbai &amp; Pune corporate subnet gateways.</p>
+            <div class="sec-card-footer">
+              <button class="btn-secondary-sm" (click)="revokeSessions()">Revoke Other Sessions</button>
+            </div>
+          </div>
+
+          <!-- CARD 3: ENTERPRISE SSO -->
+          <div class="sec-card">
+            <div class="sec-card-header">
+              <div class="sec-icon-badge">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <span class="badge-status-dot">● Active SAML 2.0</span>
+            </div>
+            <h3 class="sec-card-title">Enterprise Identity Federation</h3>
+            <p class="sec-card-desc">Federated authentication mapped through Okta &amp; Microsoft Entra ID corporate tenants.</p>
+            <div class="sec-card-footer">
+              <span class="text-green-strong">✓ Enforced at IdP</span>
+            </div>
+          </div>
+
+          <!-- CARD 4: AUDIT LOGGING -->
+          <div class="sec-card">
+            <div class="sec-card-header">
+              <div class="sec-icon-badge">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <span class="text-muted font-mono">Immutable WORM</span>
+            </div>
+            <h3 class="sec-card-title">Cryptographic Audit Ledger</h3>
+            <p class="sec-card-desc">Every passport query, comparison, and approval is sha256 checksummed and archived for 7 years.</p>
+            <div class="sec-card-footer">
+              <a routerLink="/buyer/activity" class="btn-link">View Sovereign Audit Trail &rarr;</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. NOTIFICATION RULES -->
+      <div class="tab-pane" *ngIf="activeTab() === 'notifications'">
+        <div class="pane-header-group">
+          <div>
+            <h2 class="pane-title">Procurement Notification Triggers</h2>
+            <p class="pane-sub">Configure real-time alerts for supplier verification, statutory risks, and document renewals.</p>
+          </div>
+          <button class="btn-primary" (click)="saveNotifications()">Save Triggers</button>
+        </div>
+
+        <div class="notif-groups-list">
+          <div class="notif-box">
+            <h4 class="notif-cat-title">SUPPLIER PASSPORT &amp; VERIFICATION TELEMETRY</h4>
+            <div class="toggle-list">
+              <label class="toggle-row">
+                <div class="toggle-meta">
+                  <strong>Verification Completed</strong>
+                  <span>Instant alert when third-party or government MCA/GST verification passes.</span>
+                </div>
+                <input type="checkbox" [(ngModel)]="notificationConfig.verifCompleted" class="checkbox-input" />
+              </label>
+
+              <label class="toggle-row">
+                <div class="toggle-meta">
+                  <strong>Verification Mismatch / Flagged</strong>
+                  <span>Priority alert if GST return defaults or bank penny-drop name mismatch occurs.</span>
+                </div>
+                <input type="checkbox" [(ngModel)]="notificationConfig.verifFailed" class="checkbox-input" />
+              </label>
+
+              <label class="toggle-row">
+                <div class="toggle-meta">
+                  <strong>Credential Expiry Notice (30-day lookahead)</strong>
+                  <span>Alert when ISO certificates, MSME Udyam, or factory licenses are nearing lapse.</span>
+                </div>
+                <input type="checkbox" [(ngModel)]="notificationConfig.credentialExpiring" class="checkbox-input" />
+              </label>
+            </div>
+          </div>
+
+          <div class="notif-box">
+            <h4 class="notif-cat-title">VENDOR ONBOARDING PIPELINE</h4>
+            <div class="toggle-list">
+              <label class="toggle-row">
+                <div class="toggle-meta">
+                  <strong>Vendor Accepted Invitation</strong>
+                  <span>Notify the sourcing manager when supplier accepts passport disclosure.</span>
+                </div>
+                <input type="checkbox" [(ngModel)]="notificationConfig.onboardingAccepted" class="checkbox-input" />
+              </label>
+
+              <label class="toggle-row">
+                <div class="toggle-meta">
+                  <strong>Complete Document Pack Ready</strong>
+                  <span>Notify compliance team when all statutory documents and PAN records are submitted.</span>
+                </div>
+                <input type="checkbox" [(ngModel)]="notificationConfig.allDocsSubmitted" class="checkbox-input" />
+              </label>
+
+              <label class="toggle-row">
+                <div class="toggle-meta">
+                  <strong>Final Approval &amp; ERP Sync</strong>
+                  <span>Notify procurement operations when supplier vendor code is created in SAP.</span>
+                </div>
+                <input type="checkbox" [(ngModel)]="notificationConfig.onboardingApproved" class="checkbox-input" />
+              </label>
+            </div>
+          </div>
+
+          <div class="notif-box">
+            <h4 class="notif-cat-title">TAX &amp; ITC RISK ALERTS</h4>
+            <div class="toggle-list">
+              <label class="toggle-row">
+                <div class="toggle-meta">
+                  <strong>GSTR-3B Tax Filing Default</strong>
+                  <span>Critical alert if an active vendor skips mandatory GST monthly filing.</span>
+                </div>
+                <input type="checkbox" [(ngModel)]="notificationConfig.riskDetected" class="checkbox-input" />
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. PROCUREMENT POLICIES -->
+      <div class="tab-pane" *ngIf="activeTab() === 'procurement'">
+        <div class="pane-header-group">
+          <div>
+            <h2 class="pane-title">Procurement &amp; Prequalification Baseline</h2>
+            <p class="pane-sub">Set standard corporate thresholds for vendor evaluation, risk scoring, and mandatory compliance.</p>
+          </div>
+          <button class="btn-primary" (click)="saveProcurementPolicies()">Save Policies</button>
+        </div>
+
+        <div class="settings-form-layout">
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Minimum VeriPass Trust Score Threshold</label>
+              <input type="text" class="form-control" [(ngModel)]="procurementRules.minScore" />
+              <span class="form-hint">Suppliers scoring below this are flagged for CPO sign-off before RFQ.</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tax Compliance Baseline</label>
+              <input type="text" class="form-control" [(ngModel)]="procurementRules.complianceBaseline" />
+              <span class="form-hint">Requires verified GSTR-3B filing and 0 defaults in 24 months.</span>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Default Onboarding SLA Target</label>
+              <input type="text" class="form-control" [(ngModel)]="procurementRules.onboardingSla" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Statutory Verification Rules</label>
+              <div class="checkbox-stack mt-8">
+                <label class="toggle-row-sm">
+                  <input type="checkbox" [(ngModel)]="procurementRules.pennyDropValidation" />
+                  <span>Mandatory Penny-Drop Bank Account Verification</span>
+                </label>
+                <label class="toggle-row-sm">
+                  <input type="checkbox" [(ngModel)]="procurementRules.sanctionScreening" />
+                  <span>Mandatory Global Sanctions &amp; PEP Screening</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Preferred Quality &amp; ESG Accreditations</label>
+            <div class="chips-container">
+              <span class="chip-item active">✓ ISO 9001 (Quality)</span>
+              <span class="chip-item active">✓ ISO 14001 (Environmental)</span>
+              <span class="chip-item active">✓ IATF 16949 (Automotive)</span>
+              <span class="chip-item active">✓ BIS Certification</span>
+              <span class="chip-item active">✓ MSME / Udyam Registered</span>
+              <span class="chip-item active">✓ ZED Gold Certified</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Preferred Regional Manufacturing Clusters</label>
+            <div class="chips-container">
+              <span class="chip-item active">✓ Maharashtra (Pune / Chakan / Aurangabad)</span>
+              <span class="chip-item active">✓ NCR (Gurugram / Noida / Faridabad)</span>
+              <span class="chip-item active">✓ Tamil Nadu (Chennai / Coimbatore)</span>
+              <span class="chip-item active">✓ Gujarat (Sanand / Ahmedabad)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. INTEGRATIONS -->
+      <div class="tab-pane" *ngIf="activeTab() === 'integrations'">
+        <div class="pane-header-group">
+          <div>
+            <h2 class="pane-title">Enterprise System Integrations</h2>
+            <p class="pane-sub">Synchronize supplier master data, compliance status, and bank verification into your ERP/SCM suites.</p>
+          </div>
+          <span class="badge-role-pill">Continuous Sync</span>
+        </div>
+
+        <div class="integrations-cards-grid">
+          <!-- SAP S/4HANA -->
+          <div class="integration-item-card">
+            <div class="integ-top-row">
+              <div class="erp-badge sap">SAP</div>
+              <span class="badge-status-dot">● Connected</span>
+            </div>
+            <h3 class="integ-title">SAP S/4HANA ERP</h3>
+            <p class="integ-desc">Bi-directional vendor master sync, penny-drop bank master verification, and tax clearance reconciliation.</p>
+            <div class="integ-action-row">
+              <button class="btn-secondary-sm">Configure Endpoints</button>
+            </div>
+          </div>
+
+          <!-- ORACLE SCM -->
+          <div class="integration-item-card">
+            <div class="integ-top-row">
+              <div class="erp-badge orcl">ORCL</div>
+              <span class="badge-status-dot status-invited">Ready to Link</span>
+            </div>
+            <h3 class="integ-title">Oracle Cloud SCM</h3>
+            <p class="integ-desc">Automated supplier pre-qualification import and enterprise purchase order dispatch routing.</p>
+            <div class="integ-action-row">
+              <button class="btn-primary-sm">+ Connect Oracle</button>
+            </div>
+          </div>
+
+          <!-- ARIBA -->
+          <div class="integration-item-card">
+            <div class="integ-top-row">
+              <div class="erp-badge arib">ARIB</div>
+              <span class="badge-status-dot status-invited">Ready to Link</span>
+            </div>
+            <h3 class="integ-title">SAP Ariba Sourcing</h3>
+            <p class="integ-desc">RFQ invitation dispatch and automatic vendor trust passport score ingestion into RFP grading.</p>
+            <div class="integ-action-row">
+              <button class="btn-primary-sm">+ Connect Ariba</button>
+            </div>
+          </div>
+
+          <!-- MS TEAMS -->
+          <div class="integration-item-card">
+            <div class="integ-top-row">
+              <div class="erp-badge team">MS</div>
+              <span class="badge-status-dot">● Active</span>
+            </div>
+            <h3 class="integ-title">Microsoft Teams Webhook</h3>
+            <p class="integ-desc">Real-time procurement approval notifications, high-risk supplier alerts, and onboarding sign-offs.</p>
+            <div class="integ-action-row">
+              <button class="btn-secondary-sm">Channel Settings</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. DEVELOPER & API -->
+      <div class="tab-pane" *ngIf="activeTab() === 'api'">
+        <div class="pane-header-group">
+          <div>
+            <h2 class="pane-title">Developer &amp; API Access</h2>
+            <p class="pane-sub">Programmatic REST API keys and cryptographic webhooks for automated sourcing pipelines.</p>
+          </div>
+          <button class="btn-primary" (click)="openCreateKeyModal()">
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            + Create API Key
+          </button>
+        </div>
+
+        <div class="keys-list-container">
+          <div class="webhook-empty-card" *ngIf="apiKeys().length === 0">
+            <div class="empty-icon">🔑</div>
+            <strong>No Active API Keys</strong>
+            <p>Generate an API key to securely connect external procurement and ERP systems to VeriPass.</p>
+            <button class="btn-primary-sm" (click)="openCreateKeyModal()">+ Create API Key</button>
+          </div>
+          <div class="key-card" *ngFor="let k of apiKeys()">
+            <div class="key-left">
+              <div class="key-name-row">
+                <strong class="key-name">{{ k.name }}</strong>
+                <span class="badge-status-dot" [class.text-muted]="k.status === 'Revoked'">
+                  ● {{ k.status }}
+                </span>
+              </div>
+              <div class="key-code-row">
+                <code class="key-prefix">{{ k.prefix }}</code>
+                <span class="key-meta">Created {{ k.created }} &bull; Last used: {{ k.lastUsed }}</span>
+              </div>
+            </div>
+            <div class="key-right" *ngIf="k.status === 'Active'">
+              <button class="btn-table-action" (click)="revokeApiKey(k.id)">Revoke Key</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="webhook-section mt-28">
+          <div class="section-sub-header">
+            <h3 class="section-title">Webhook Endpoints</h3>
+            <span class="badge-role-pill">HMAC-SHA256 Signed</span>
+          </div>
+          <p class="field-hint">Deliver real-time JSON payloads to your private procurement servers whenever vendor verification status changes.</p>
+          
+          <div class="webhook-empty-card">
+            <div class="empty-icon">🔌</div>
+            <strong>No Custom Webhooks Configured</strong>
+            <p>Configure a destination webhook URL to receive instant push alerts for vendor compliance events.</p>
+            <button class="btn-secondary-sm">+ Add Webhook Endpoint</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 9. ACCOUNT GOVERNANCE -->
+      <div class="tab-pane" *ngIf="activeTab() === 'account'">
+        <div class="pane-header-group">
+          <div>
+            <h2 class="pane-title">Account Governance &amp; Sovereignty</h2>
+            <p class="pane-sub">Enterprise tier parameters, sovereign data custody, and audit archive portability.</p>
+          </div>
+          <span class="badge-role-pill">Tier 1 Sovereign</span>
+        </div>
+
+        <div class="governance-meta-card">
+          <div class="gov-row">
+            <span class="gov-lbl">Organization Sovereign ID</span>
+            <span class="gov-val font-mono">{{ org.id }}</span>
+          </div>
+          <div class="gov-row">
+            <span class="gov-lbl">Active License Tier</span>
+            <span class="gov-val text-green-strong">Enterprise Unlimited (Continuous Telemetry Active)</span>
+          </div>
+          <div class="gov-row">
+            <span class="gov-lbl">Registration Date</span>
+            <span class="gov-val">04 September 2026</span>
+          </div>
+          <div class="gov-row">
+            <span class="gov-lbl">Data Residency Jurisdiction</span>
+            <span class="gov-val">Republic of India &bull; MeitY Sovereign Cloud (Mumbai Region)</span>
+          </div>
+        </div>
+
+        <!-- EXPORT ARCHIVE -->
+        <div class="export-box-card mt-24">
+          <div class="export-left">
+            <h4 class="export-title">Enterprise Sovereign Data Export</h4>
+            <p class="export-desc">Download a cryptographically signed JSON archive containing your full organization profile, authorized team directories, and active API integrations for sovereign compliance audits.</p>
+          </div>
+          <div class="export-right">
+            <button class="btn-secondary" (click)="triggerDataExport()" [disabled]="exportingData()">
+              <span *ngIf="!exportingData()">Download Sovereign Archive</span>
+              <span *ngIf="exportingData()">Generating Archive...</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- DANGER ZONE -->
+        <div class="danger-zone-card mt-28">
+          <div class="danger-info">
+            <h4 class="danger-title">Terminate Organization Workspace</h4>
+            <p class="danger-desc">Permanently decommission enterprise procurement workspace, disconnect all ERP synchronizations, and revoke supplier passport access.</p>
+          </div>
+          <div class="danger-action">
+            <button class="btn-danger" (click)="openDeleteModal()">Request Workspace Termination</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: INVITE MEMBER -->
+  <div class="modal-backdrop" *ngIf="showInviteModal()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Invite Team Member</h3>
+        <button class="modal-close" (click)="closeInviteModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro">Grant enterprise access to your procurement colleagues. They will be required to authenticate with corporate SSO and FIDO2 MFA.</p>
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" class="form-control" [(ngModel)]="newMemberName" placeholder="e.g. Vikram Singhania" />
+        </div>
+        <div class="form-group mt-12">
+          <label class="form-label">Corporate Email Address <span class="req">*</span></label>
+          <input type="email" class="form-control" [(ngModel)]="newMemberEmail" placeholder="v.singhania@tata.com" />
+        </div>
+        <div class="form-group mt-12">
+          <label class="form-label">Enterprise Role</label>
+          <select class="form-control" [(ngModel)]="newMemberRole">
+            <option value="Procurement Admin">Procurement Admin (Full Access)</option>
+            <option value="Strategic Sourcing Lead">Strategic Sourcing Lead (Discovery &amp; RFQ)</option>
+            <option value="Compliance Officer">Compliance Officer (Statutory Audits)</option>
+            <option value="Procurement Viewer">Procurement Viewer (Read-only)</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeInviteModal()">Cancel</button>
+        <button class="btn-primary" (click)="sendInvite()" [disabled]="!newMemberEmail()">Send Invitation</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CREATE API KEY -->
+  <div class="modal-backdrop" *ngIf="showCreateKeyModal()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Generate Production API Key</h3>
+        <button class="modal-close" (click)="closeCreateKeyModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="!generatedSecretKey()">
+          <p class="modal-intro">Create a scoped API credential to connect your SAP, Oracle, or custom microservices to VeriPass supplier telemetry.</p>
+          <div class="form-group">
+            <label class="form-label">Key Description / Name <span class="req">*</span></label>
+            <input type="text" class="form-control" [(ngModel)]="newKeyLabel" placeholder="e.g. Production ERP Master Sync" />
+          </div>
+        </div>
+
+        <div *ngIf="generatedSecretKey()" class="secret-reveal-box">
+          <div class="secret-alert-head">
+            <span class="warning-icon">⚠️</span>
+            <strong>Save this API key immediately</strong>
+          </div>
+          <p class="secret-alert-desc">For security reasons, this token will never be displayed again. Store it in a secure enterprise key vault (AWS KMS, HashiCorp Vault).</p>
+          <div class="secret-token-row">
+            <code class="token-code font-mono">{{ generatedSecretKey() }}</code>
+            <button class="btn-copy" (click)="copySecretKey()">
+              {{ copiedSecretNotice() ? '✓ Copied' : 'Copy' }}
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeCreateKeyModal()">Close</button>
+        <button *ngIf="!generatedSecretKey()" class="btn-primary" (click)="generateApiKey()" [disabled]="!newKeyLabel()">
+          Generate Key
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DELETE ACCOUNT CONFIRMATION -->
+  <div class="modal-backdrop" *ngIf="showDeleteAccountModal()">
+    <div class="modal-card modal-danger">
+      <div class="modal-header">
+        <h3 class="modal-title text-danger">Confirm Workspace Termination</h3>
+        <button class="modal-close" (click)="closeDeleteModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro text-danger">This is an irreversible enterprise action. All supplier evaluations, comparison matrices, and sovereign audit logs will be scheduled for permanent destruction after the statutory 30-day grace period.</p>
+        <div class="form-group mt-12">
+          <label class="form-label">Type <strong>DELETE</strong> below to confirm termination authorization:</label>
+          <input type="text" class="form-control font-mono" [(ngModel)]="deleteConfirmInput" placeholder="DELETE" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeDeleteModal()">Cancel</button>
+        <button class="btn-danger" (click)="confirmAccountTermination()" [disabled]="deleteConfirmInput() !== 'DELETE' || isDeletingAccount()">
+          {{ isDeletingAccount() ? 'Submitting...' : 'Terminate Workspace' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

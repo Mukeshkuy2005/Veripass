@@ -1,0 +1,68 @@
+<div class="panel-box" id="priority-cases-panel">
+  <div class="panel-header">
+    <div>
+      <h3 class="panel-title">PRIORITY CASES</h3>
+      <span class="panel-sub">Immediate attention cases ordered by risk severity and SLA timeline</span>
+    </div>
+    <a routerLink="/verifier/queue" class="btn-view-queue" id="btn-view-queue">
+      View Queue &rarr;
+    </a>
+  </div>
+
+  <!-- Loading Skeletons -->
+  <div class="priority-cases-list" *ngIf="loading()">
+    <div class="case-item skeleton-case" *ngFor="let i of [1, 2, 3]">
+      <div class="skeleton-pill"></div>
+      <div class="skeleton-content">
+        <div class="skeleton-line-title"></div>
+        <div class="skeleton-line-meta"></div>
+      </div>
+      <div class="skeleton-btn"></div>
+    </div>
+  </div>
+
+  <!-- Priority Cases List -->
+  <div class="priority-cases-list" *ngIf="!loading() && cases().length > 0">
+    <div
+      *ngFor="let c of cases()"
+      class="case-item"
+      [ngClass]="getPriorityClass(c.priority)"
+      [attr.id]="'case-item-' + c.id">
+      
+      <!-- Priority Badge with accessible text -->
+      <div class="case-priority-badge">
+        <span class="badge-icon" aria-hidden="true">{{ getPriorityBadge(c.priority).icon }}</span>
+        <span class="badge-label">{{ getPriorityBadge(c.priority).text }}</span>
+      </div>
+
+      <!-- Main Case Information -->
+      <div class="case-main">
+        <div class="case-title-row">
+          <strong class="case-title">{{ c.businessName }} &mdash; {{ c.verificationType }} Verification</strong>
+        </div>
+        <div class="case-meta-row">
+          <span class="case-time">{{ formatRelativeTime(c.submittedAt) }}</span>
+          <span class="meta-sep">&bull;</span>
+          <span class="case-number" *ngIf="c.caseNumber">{{ c.caseNumber }}</span>
+          <span class="case-number" *ngIf="!c.caseNumber">Case: {{ c.id.slice(0, 8) }}</span>
+          <span class="meta-sep">&bull;</span>
+          <span class="case-risk" [ngClass]="'risk-' + (c.riskLevel | lowercase)">Risk: {{ c.riskLevel }}</span>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <div class="case-actions">
+        <a [routerLink]="['/verifier/cases', c.id]" class="btn-review" [attr.id]="'btn-review-' + c.id">
+          Review
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!loading() && cases().length === 0" id="empty-priority-cases">
+    <div class="empty-icon">✓</div>
+    <div class="empty-title">No pending verification cases.</div>
+    <div class="empty-sub">You're all caught up. New priority cases will appear here as businesses submit statutory records.</div>
+  </div>
+</div>

@@ -1,0 +1,307 @@
+    <div class="business-page">
+      <!-- HEADER -->
+      <div class="header-card">
+        <div>
+          <div class="header-tag">PLATFORM BUSINESS REGISTRY</div>
+          <h1 class="page-title">Business Management</h1>
+          <p class="page-subtitle">
+            Global repository of <strong>84,291 registered business passports</strong>. 
+            Governance, compliance flags, and statutory status oversight.
+          </p>
+        </div>
+        <div class="header-ctas">
+          <button type="button" class="btn-sec" (click)="exportRegistry()">Export Registry 📥</button>
+          <button type="button" class="btn-primary" (click)="openFlagModal(null)">+ Add Internal Flag</button>
+        </div>
+      </div>
+
+      <!-- SEARCH & FILTER TOOLBAR -->
+      <div class="filter-card">
+        <div class="search-bar-row">
+          <div class="search-box">
+            <span class="s-icon">🔍</span>
+            <input 
+              type="text" 
+              [(ngModel)]="searchQuery" 
+              placeholder="Search by business name, GSTIN, CIN, or Passport ID (e.g. VP-ABCD123)..." 
+              class="search-input">
+          </div>
+        </div>
+
+        <div class="filter-controls-row">
+          <div class="filter-group">
+            <label class="filter-label">Status</label>
+            <select [(ngModel)]="statusFilter" class="filter-select">
+              <option value="ALL">All Statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="FLAGGED">Flagged</option>
+              <option value="SUSPENDED">Suspended</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">Risk Rating</label>
+            <select [(ngModel)]="riskFilter" class="filter-select">
+              <option value="ALL">All Risk Ratings</option>
+              <option value="LOW">Low Risk</option>
+              <option value="MEDIUM">Medium Risk</option>
+              <option value="HIGH">High Risk</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">Industry</label>
+            <select [(ngModel)]="industryFilter" class="filter-select">
+              <option value="ALL">All Industries</option>
+              <option value="Manufacturing">Manufacturing</option>
+              <option value="Heavy Engineering">Heavy Engineering</option>
+              <option value="Electronics & Hardware">Electronics</option>
+              <option value="Automotive & EV">Automotive & EV</option>
+              <option value="Semiconductors">Semiconductors</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">Jurisdiction State</label>
+            <select [(ngModel)]="stateFilter" class="filter-select">
+              <option value="ALL">All States</option>
+              <option value="Uttar Pradesh">Uttar Pradesh</option>
+              <option value="Delhi NCT">Delhi NCT</option>
+              <option value="Haryana">Haryana</option>
+              <option value="Karnataka">Karnataka</option>
+            </select>
+          </div>
+
+          <button type="button" class="btn-reset" (click)="resetFilters()">Reset</button>
+        </div>
+      </div>
+
+      <!-- DENSE BUSINESSES TABLE -->
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="dense-table">
+            <thead>
+              <tr>
+                <th>PASSPORT ID</th>
+                <th>BUSINESS / LEGAL NAME</th>
+                <th>GSTIN / CIN</th>
+                <th>VERIFY SCORE</th>
+                <th>RISK</th>
+                <th>STATUS</th>
+                <th class="text-right">GOVERNANCE ACTION</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let b of filteredBusinesses()" (click)="selectBusiness(b)" class="clickable-row" [class.selected]="selectedBiz()?.passportId === b.passportId">
+                <td>
+                  <span class="passport-tag font-mono">{{ b.passportId }}</span>
+                </td>
+                <td>
+                  <div class="biz-info">
+                    <span class="biz-title">{{ b.businessName }}</span>
+                    <span class="biz-sub">{{ b.industry }} &bull; {{ b.state }}</span>
+                  </div>
+                </td>
+                <td class="font-mono text-muted">
+                  <div>{{ b.gstin }}</div>
+                  <div class="cin-sub">{{ b.cin }}</div>
+                </td>
+                <td>
+                  <div class="score-pill" [class.high-score]="b.verifyScore >= 80" [class.mid-score]="b.verifyScore >= 50 && b.verifyScore < 80" [class.low-score]="b.verifyScore < 50">
+                    {{ b.verifyScore }} / 100
+                  </div>
+                </td>
+                <td>
+                  <span class="badge-risk" [ngClass]="b.riskRating.toLowerCase()">
+                    {{ b.riskRating }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge-status" [ngClass]="b.status.toLowerCase()">
+                    ● {{ b.status }}
+                  </span>
+                </td>
+                <td class="text-right" (click)="$event.stopPropagation()">
+                  <div class="action-btn-group">
+                    <button type="button" class="btn-view-quick" (click)="selectBusiness(b)">Inspect</button>
+                    <button *ngIf="b.status === 'ACTIVE'" type="button" class="btn-action-suspend" (click)="openSuspendModal(b)">Suspend</button>
+                    <button *ngIf="b.status !== 'ACTIVE'" type="button" class="btn-action-reactivate" (click)="reactivate(b.passportId)">Reactivate</button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr *ngIf="filteredBusinesses().length === 0">
+                <td colspan="7" class="empty-state">
+                  No businesses found matching current search and filter parameters.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- BUSINESS DETAIL DRAWER (RULE 2) -->
+      <div class="drawer-overlay" *ngIf="selectedBiz() as b" (click)="closeDrawer()">
+        <div class="drawer-panel" (click)="$event.stopPropagation()">
+          <div class="drawer-head">
+            <div>
+              <span class="drawer-tag">PASSPORT DOSSIER &bull; {{ b.passportId }}</span>
+              <h2 class="drawer-title">{{ b.businessName }}</h2>
+            </div>
+            <button type="button" class="close-btn" (click)="closeDrawer()">✕</button>
+          </div>
+
+          <div class="drawer-body">
+            <!-- Principle Banner -->
+            <div class="governance-notice">
+              <strong>STATUTORY GOVERNANCE PROTOCOL:</strong>
+              Admin cannot directly alter verified evidence. Flagging triggers a verified compliance investigation workflow.
+            </div>
+
+            <div class="detail-block">
+              <div class="d-row">
+                <span class="d-lbl">Legal Registered Name</span>
+                <span class="d-val font-bold">{{ b.legalName }}</span>
+              </div>
+              <div class="d-row">
+                <span class="d-lbl">GSTIN Registration</span>
+                <span class="d-val font-mono">{{ b.gstin }}</span>
+              </div>
+              <div class="d-row">
+                <span class="d-lbl">Corporate CIN</span>
+                <span class="d-val font-mono">{{ b.cin }}</span>
+              </div>
+              <div class="d-row">
+                <span class="d-lbl">Jurisdiction State</span>
+                <span class="d-val">{{ b.state }}</span>
+              </div>
+              <div class="d-row">
+                <span class="d-lbl">Active Credentials</span>
+                <span class="d-val">{{ b.credentialsCount }} verified certificates on file</span>
+              </div>
+              <div class="d-row">
+                <span class="d-lbl">Registered On</span>
+                <span class="d-val">{{ b.registeredDate }}</span>
+              </div>
+            </div>
+
+            <!-- Active Flags / Suspensions -->
+            <div *ngIf="b.flagReason" class="flag-box">
+              <div class="f-head">⚠ ACTIVE COMPLIANCE FLAG</div>
+              <div class="f-text">{{ b.flagReason }}</div>
+            </div>
+
+            <div *ngIf="b.suspensionReason" class="susp-box">
+              <div class="f-head">🛑 SUSPENSION RECORD</div>
+              <div class="f-text">{{ b.suspensionReason }}</div>
+            </div>
+
+            <!-- Operational Links -->
+            <div class="drawer-actions-grid">
+              <a [routerLink]="['/passport', b.passportId]" target="_blank" class="drawer-btn">
+                View Public Passport ↗
+              </a>
+              <a routerLink="/admin/verification" class="drawer-btn">
+                View Verification Pipeline &rarr;
+              </a>
+              <a routerLink="/admin/risk" class="drawer-btn">
+                View Risk Assessment &rarr;
+              </a>
+              <a routerLink="/admin/audit" class="drawer-btn">
+                View Audit History &rarr;
+              </a>
+            </div>
+          </div>
+
+          <div class="drawer-foot">
+            <button *ngIf="b.status === 'ACTIVE'" type="button" class="btn-warn" (click)="openFlagModal(b)">
+              Flag for Investigation
+            </button>
+            <button *ngIf="b.status === 'ACTIVE'" type="button" class="btn-danger" (click)="openSuspendModal(b)">
+              Suspend Business
+            </button>
+            <button *ngIf="b.status !== 'ACTIVE'" type="button" class="btn-success" (click)="reactivate(b.passportId)">
+              Reactivate Business
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUSPEND CONFIRMATION MODAL (RULE 3) -->
+      <div class="modal-overlay" *ngIf="modalMode() === 'SUSPEND' && targetBiz() as b" (click)="closeModal()">
+        <div class="modal-panel" (click)="$event.stopPropagation()">
+          <div class="modal-head">
+            <div>
+              <span class="modal-tag text-danger">RESTRICTED GOVERNANCE ACTION</span>
+              <h2 class="modal-title">Suspend {{ b.businessName }}?</h2>
+            </div>
+            <button type="button" class="close-btn" (click)="closeModal()">✕</button>
+          </div>
+
+          <div class="modal-body">
+            <p class="modal-desc">
+              Suspending this business will immediately revoke its active Passport status, invalidate API trust queries, and prevent participation in ongoing buyer RFQs.
+            </p>
+
+            <div class="form-group">
+              <label class="form-label required">Statutory Justification &amp; Suspension Reason *</label>
+              <textarea 
+                [(ngModel)]="actionReason" 
+                rows="4" 
+                placeholder="Detail the non-compliance violation, fraud indicator, or regulatory order..."
+                class="form-textarea"></textarea>
+              <span class="hint-text" [class.text-danger]="attemptedSubmit && !actionReason.trim()">
+                Mandatory. Will be permanently recorded in immutable audit logs.
+              </span>
+            </div>
+          </div>
+
+          <div class="modal-foot">
+            <button type="button" class="btn-sec" (click)="closeModal()">Cancel</button>
+            <button type="button" class="btn-danger" (click)="confirmSuspend(b.passportId)">
+              Confirm Suspension
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FLAG CONFIRMATION MODAL (RULE 3) -->
+      <div class="modal-overlay" *ngIf="modalMode() === 'FLAG'" (click)="closeModal()">
+        <div class="modal-panel" (click)="$event.stopPropagation()">
+          <div class="modal-head">
+            <div>
+              <span class="modal-tag text-amber">INTERNAL COMPLIANCE FLAG</span>
+              <h2 class="modal-title">Flag Business for Verifier Review</h2>
+            </div>
+            <button type="button" class="close-btn" (click)="closeModal()">✕</button>
+          </div>
+
+          <div class="modal-body">
+            <p class="modal-desc">
+              Routes this business identity directly to the compliance officer triage queue for re-verification against sovereign authorities.
+            </p>
+
+            <div class="form-group" *ngIf="!targetBiz()">
+              <label class="form-label required">Target Passport ID *</label>
+              <input type="text" [(ngModel)]="customPassportId" placeholder="e.g. VP-ABCD123" class="form-input">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Reason for Investigation *</label>
+              <textarea 
+                [(ngModel)]="actionReason" 
+                rows="4" 
+                placeholder="Specify the suspected anomaly or discrepancy requiring verification officer review..."
+                class="form-textarea"></textarea>
+            </div>
+          </div>
+
+          <div class="modal-foot">
+            <button type="button" class="btn-sec" (click)="closeModal()">Cancel</button>
+            <button type="button" class="btn-warn" (click)="confirmFlag()">
+              Submit Flag to Queue
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>

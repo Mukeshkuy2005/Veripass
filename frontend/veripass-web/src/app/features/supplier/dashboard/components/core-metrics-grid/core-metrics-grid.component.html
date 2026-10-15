@@ -1,0 +1,63 @@
+<div class="metrics-grid">
+  <!-- Metric 1: Verification -->
+  <a routerLink="/supplier/verification" class="metric-card">
+    <div class="metric-header">
+      <span class="metric-title">Verification</span>
+      <span class="status-indicator success">●</span>
+    </div>
+    <div class="metric-value-row">
+      <span class="metric-num">{{ verificationScore }}</span>
+      <span class="metric-denom">/ 100</span>
+    </div>
+    <div class="metric-footer">
+      <span class="status-tag success">{{ verificationLabel }}</span>
+      <span class="metric-sub">{{ verificationDetail }}</span>
+    </div>
+  </a>
+
+  <!-- Metric 2: Compliance -->
+  <a routerLink="/supplier/compliance" class="metric-card">
+    <div class="metric-header">
+      <span class="metric-title">Compliance</span>
+      <span class="status-indicator warning">●</span>
+    </div>
+    <div class="metric-value-row">
+      <span class="metric-num">{{ complianceScore }}</span>
+      <span class="metric-denom">/ 100</span>
+    </div>
+    <div class="metric-footer">
+      <span class="status-tag warning">{{ complianceLabel }}</span>
+      <span class="metric-sub">{{ complianceDetail }}</span>
+    </div>
+  </a>
+
+  <!-- Metric 3: Credentials -->
+  <a routerLink="/supplier/documents" class="metric-card">
+    <div class="metric-header">
+      <span class="metric-title">Credentials</span>
+      <span class="status-indicator info">●</span>
+    </div>
+    <div class="metric-value-row">
+      <span class="metric-num">{{ totalCredentials }}</span>
+    </div>
+    <div class="metric-footer">
+      <span class="status-tag default">{{ verifiedCredentials }} Verified</span>
+      <span class="metric-sub">{{ totalCredentials - verifiedCredentials }} In Review</span>
+    </div>
+  </a>
+
+  <!-- Metric 4: Buyer Requests -->
+  <a routerLink="/supplier/requests" class="metric-card">
+    <div class="metric-header">
+      <span class="metric-title">Buyer Requests</span>
+      <span class="status-indicator warning">●</span>
+    </div>
+    <div class="metric-value-row">
+      <span class="metric-num">{{ buyerRequestsCount }}</span>
+    </div>
+    <div class="metric-footer">
+      <span class="status-tag warning">{{ pendingRequestsCount }} Needs Action</span>
+      <span class="metric-sub">{{ buyerRequestsCount - pendingRequestsCount }} Approved</span>
+    </div>
+  </a>
+</div>

@@ -1,0 +1,11 @@
+<ng-container *ngIf="isPortalRoute; else publicOrAuthLayout">
+  <div class="app-shell">
+    <app-navbar></app-navbar>
+    <main class="main-content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</ng-container>
+<ng-template #publicOrAuthLayout>
+  <router-outlet></router-outlet>
+</ng-template>

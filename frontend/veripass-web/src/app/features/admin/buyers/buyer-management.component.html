@@ -1,0 +1,233 @@
+    <div class="buyer-page">
+      <!-- HEADER -->
+      <div class="header-card">
+        <div>
+          <div class="header-tag">ENTERPRISE BUYER GOVERNANCE</div>
+          <h1 class="page-title">Buyer Management</h1>
+          <p class="page-subtitle">
+            Enterprise procurement organizations, buyer accounts, and supplier onboarding governance.
+          </p>
+        </div>
+        <div class="header-stat-pill">
+          <span class="pulse-dot"></span>
+          <span>8,912 Registered Procurement Orgs</span>
+        </div>
+      </div>
+
+      <!-- KPI CARDS -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <span class="kpi-title">TOTAL ORGANIZATIONS</span>
+          <div class="kpi-val">8,912</div>
+          <span class="kpi-sub">Across 42 industrial sectors</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">ACTIVE BUYERS</span>
+          <div class="kpi-val text-success">8,214</div>
+          <span class="kpi-sub">Regular RFQ &amp; verification activity</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">PENDING APPROVAL</span>
+          <div class="kpi-val text-amber">412</div>
+          <span class="kpi-sub">Domain &amp; corporate registry check</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">SUSPENDED</span>
+          <div class="kpi-val text-danger">286</div>
+          <span class="kpi-sub">Compliance policy breach / inactive</span>
+        </div>
+      </div>
+
+      <!-- SEARCH & FILTER TOOLBAR -->
+      <div class="filter-card">
+        <div class="search-box">
+          <span class="s-icon">🔍</span>
+          <input 
+            type="text" 
+            [(ngModel)]="searchQuery" 
+            placeholder="Search buyer organization or Org ID (e.g. ORG-10291)..." 
+            class="search-input">
+        </div>
+
+        <div class="filter-pills">
+          <button 
+            type="button" 
+            class="pill-btn" 
+            [class.active]="statusFilter === 'ALL'"
+            (click)="statusFilter = 'ALL'">
+            All Orgs
+          </button>
+          <button 
+            type="button" 
+            class="pill-btn" 
+            [class.active]="statusFilter === 'ACTIVE'"
+            (click)="statusFilter = 'ACTIVE'">
+            Active (8,214)
+          </button>
+          <button 
+            type="button" 
+            class="pill-btn" 
+            [class.active]="statusFilter === 'PENDING'"
+            (click)="statusFilter = 'PENDING'">
+            Pending (412)
+          </button>
+          <button 
+            type="button" 
+            class="pill-btn" 
+            [class.active]="statusFilter === 'SUSPENDED'"
+            (click)="statusFilter = 'SUSPENDED'">
+            Suspended (286)
+          </button>
+        </div>
+      </div>
+
+      <!-- ORGANIZATIONS TABLE -->
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="dense-table">
+            <thead>
+              <tr>
+                <th>ORG ID</th>
+                <th>ORGANIZATION</th>
+                <th>SECTOR</th>
+                <th>USERS</th>
+                <th>SUPPLIERS MANAGED</th>
+                <th>VERIFICATION REQUESTS</th>
+                <th>STATUS</th>
+                <th class="text-right">ACTION</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let b of filteredBuyers()" (click)="selectBuyer(b)" class="clickable-row" [class.selected]="selectedBuyer()?.orgId === b.orgId">
+                <td class="font-mono font-bold text-dark">{{ b.orgId }}</td>
+                <td>
+                  <span class="org-title">{{ b.organizationName }}</span>
+                </td>
+                <td class="text-muted">{{ b.industry }}</td>
+                <td class="font-mono">{{ b.usersCount }} users</td>
+                <td class="font-mono">{{ b.suppliersCount }}</td>
+                <td class="font-mono text-muted">{{ b.verificationRequestsCount }}</td>
+                <td>
+                  <span class="badge-status" [ngClass]="b.status.toLowerCase()">
+                    ● {{ b.status }}
+                  </span>
+                </td>
+                <td class="text-right" (click)="$event.stopPropagation()">
+                  <button type="button" class="btn-inspect" (click)="selectBuyer(b)">Inspect Drawer</button>
+                </td>
+              </tr>
+
+              <tr *ngIf="filteredBuyers().length === 0">
+                <td colspan="8" class="empty-state">
+                  No buyer organizations found matching current filter criteria.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- BUYER DETAIL DRAWER (A3 SPEC) -->
+      <div class="drawer-overlay" *ngIf="selectedBuyer() as org" (click)="closeDrawer()">
+        <div class="drawer-panel" (click)="$event.stopPropagation()">
+          <div class="drawer-head">
+            <div>
+              <span class="drawer-tag">{{ org.orgId }} &bull; BUYER PROFILE</span>
+              <h2 class="drawer-title">{{ org.organizationName }}</h2>
+            </div>
+            <button type="button" class="close-btn" (click)="closeDrawer()">✕</button>
+          </div>
+
+          <div class="drawer-body">
+            <div class="status-strip">
+              <span class="badge-status" [ngClass]="org.status.toLowerCase()">● Status: {{ org.status }}</span>
+              <span class="ind-lbl">Industry: <strong>{{ org.industry }}</strong></span>
+            </div>
+
+            <!-- 3 Stat Blocks -->
+            <div class="buyer-stats-grid">
+              <div class="bs-card">
+                <span class="bs-num">{{ org.usersCount }}</span>
+                <span class="bs-lbl">Authorized Users</span>
+              </div>
+              <div class="bs-card">
+                <span class="bs-num">{{ org.suppliersCount }}</span>
+                <span class="bs-lbl">Suppliers in Network</span>
+              </div>
+              <div class="bs-card">
+                <span class="bs-num">{{ org.verificationRequestsCount }}</span>
+                <span class="bs-lbl">Verification Requests</span>
+              </div>
+            </div>
+
+            <div class="info-block">
+              <div class="ib-row">
+                <span class="ib-lbl">Onboarded Since</span>
+                <span class="ib-val">{{ org.joinedDate }}</span>
+              </div>
+              <div class="ib-row">
+                <span class="ib-lbl">Corporate Domain</span>
+                <span class="ib-val font-mono">&#64;{{ org.orgId.toLowerCase() }}.com</span>
+              </div>
+              <div class="ib-row">
+                <span class="ib-lbl">SLA Performance</span>
+                <span class="ib-val text-success font-bold">99.4% Onboarding Rate</span>
+              </div>
+            </div>
+
+            <div *ngIf="org.suspensionReason" class="susp-box">
+              <div class="f-head">🛑 SUSPENSION RECORD</div>
+              <div class="f-text">{{ org.suspensionReason }}</div>
+            </div>
+
+            <div class="drawer-links">
+              <a routerLink="/admin/audit" class="btn-link">View Complete Audit Trail &rarr;</a>
+            </div>
+          </div>
+
+          <div class="drawer-foot">
+            <button *ngIf="org.status === 'ACTIVE'" type="button" class="btn-danger" (click)="openSuspendModal(org)">
+              Suspend Organization
+            </button>
+            <button *ngIf="org.status !== 'ACTIVE'" type="button" class="btn-success" (click)="reactivateBuyer(org.orgId)">
+              Reactivate Organization
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUSPEND CONFIRMATION MODAL -->
+      <div class="modal-overlay" *ngIf="suspendTarget() as org" (click)="closeModal()">
+        <div class="modal-panel" (click)="$event.stopPropagation()">
+          <div class="modal-head">
+            <div>
+              <span class="modal-tag text-danger">SUSPEND BUYER ORGANIZATION</span>
+              <h2 class="modal-title">Suspend {{ org.organizationName }}?</h2>
+            </div>
+            <button type="button" class="close-btn" (click)="closeModal()">✕</button>
+          </div>
+
+          <div class="modal-body">
+            <p class="modal-desc">
+              Suspends all {{ org.usersCount }} procurement users under this organization from issuing new supplier verification requests or accessing confidential supplier dossiers.
+            </p>
+
+            <div class="form-group">
+              <label class="form-label required">Statutory Justification &amp; Suspension Reason *</label>
+              <textarea 
+                [(ngModel)]="suspendReason" 
+                rows="4" 
+                placeholder="Reason for corporate suspension..." 
+                class="form-textarea"></textarea>
+            </div>
+          </div>
+
+          <div class="modal-foot">
+            <button type="button" class="btn-sec" (click)="closeModal()">Cancel</button>
+            <button type="button" class="btn-danger" (click)="confirmSuspend(org.orgId)">
+              Confirm Suspension
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>

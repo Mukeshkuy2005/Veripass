@@ -1,0 +1,134 @@
+.verification-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-top: 3px solid #10B981; /* Emerald Accent */
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.verification-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  background: linear-gradient(180deg, #F0FDF4 0%, #FFFFFF 100%);
+  border-bottom: 1px solid #DCFCE7;
+}
+
+.title-with-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0F172A !important;
+  margin: 0;
+}
+
+.verification-counter {
+  font-size: 12px;
+  font-weight: 700;
+  color: #059669;
+  background-color: #ECFDF5;
+  padding: 2px 10px;
+  border-radius: 12px;
+  border: 1px solid #A7F3D0;
+}
+
+.view-all-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: #059669;
+  text-decoration: none;
+}
+
+.view-all-link:hover {
+  text-decoration: underline;
+}
+
+.checks-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  divide-y: 1px solid #F1F5F9;
+}
+
+.check-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid #F1F5F9;
+  transition: background-color 0.1s ease;
+}
+
+.check-item-row:hover {
+  background-color: #F8FAFC;
+}
+
+.check-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.check-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.check-category {
+  font-size: 12px;
+  color: #64748B;
+  font-weight: 500;
+}
+
+.check-status-cell {
+  flex-shrink: 0;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.badge.verified {
+  background-color: #ECFDF5;
+  color: #059669;
+  border: 1px solid #A7F3D0;
+}
+
+.badge.in_review, .badge.pending {
+  background-color: #EFF6FF;
+  color: #2563EB;
+  border: 1px solid #BFDBFE;
+}
+
+.badge.action_required {
+  background-color: #FFFBEB;
+  color: #D97706;
+  border: 1px solid #FDE68A;
+}
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+@media (max-width: 768px) {
+  .checks-grid {
+    grid-template-columns: 1fr;
+  }
+}

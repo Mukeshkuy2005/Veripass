@@ -1,0 +1,124 @@
+    <div class="risk-page">
+      <!-- HEADER -->
+      <div class="header-card">
+        <div>
+          <div class="header-tag">PLATFORM RISK INTELLIGENCE</div>
+          <h1 class="page-title">Risk &amp; Anomaly Governance</h1>
+          <p class="page-subtitle">
+            Heuristic fraud telemetry, cross-passport entity anomaly detection, and automated threat clustering.
+          </p>
+        </div>
+        <div class="threat-level-badge">
+          <span class="threat-dot"></span>
+          <span>421 High Risk Watchlist Entities</span>
+        </div>
+      </div>
+
+      <!-- RISK DISTRIBUTION OVERVIEW (A8 SPEC) -->
+      <div class="two-col-grid">
+        <!-- DISTRIBUTION BARS -->
+        <div class="section-card">
+          <div class="card-head">
+            <div>
+              <h3 class="card-title">PLATFORM RISK DISTRIBUTION</h3>
+              <span class="card-sub">Categorized by neural heuristic anomaly score (0 - 100)</span>
+            </div>
+          </div>
+
+          <div class="dist-container">
+            <div class="dist-row">
+              <div class="dist-lbl font-bold text-danger">HIGH RISK (Score &gt; 75)</div>
+              <div class="dist-track">
+                <div class="dist-fill high" style="width: 12%"></div>
+              </div>
+              <span class="dist-val font-mono text-danger font-bold">{{ risk().high }} entities</span>
+            </div>
+
+            <div class="dist-row">
+              <div class="dist-lbl font-bold text-amber">MEDIUM RISK (Score 40 - 75)</div>
+              <div class="dist-track">
+                <div class="dist-fill medium" style="width: 32%"></div>
+              </div>
+              <span class="dist-val font-mono text-amber font-bold">{{ risk().medium | number }} entities</span>
+            </div>
+
+            <div class="dist-row">
+              <div class="dist-lbl font-bold text-success">LOW RISK (Score &lt; 40)</div>
+              <div class="dist-track">
+                <div class="dist-fill low" style="width: 95%"></div>
+              </div>
+              <span class="dist-val font-mono text-success font-bold">{{ risk().low | number }} entities</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- RISK CATEGORIES BREAKDOWN -->
+        <div class="section-card">
+          <div class="card-head">
+            <div>
+              <h3 class="card-title">ACTIVE ANOMALY CLUSTERS</h3>
+              <span class="card-sub">Top operational fraud triggers flagged across network</span>
+            </div>
+          </div>
+
+          <div class="cat-list">
+            <div *ngFor="let c of risk().categories" class="cat-item">
+              <span class="ci-name font-bold">{{ c.name }}</span>
+              <span class="ci-count font-mono">{{ c.count }} flagged cases</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HIGH RISK BUSINESSES WATCHLIST -->
+      <div class="section-card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">CRITICAL RISK WATCHLIST</h3>
+            <span class="card-sub">Businesses exhibiting multiple severe anomaly flags requiring immediate administrative review</span>
+          </div>
+          <span class="badge-danger">Priority Action</span>
+        </div>
+
+        <div class="table-wrap">
+          <table class="dense-table">
+            <thead>
+              <tr>
+                <th>PASSPORT ID</th>
+                <th>BUSINESS ENTITY</th>
+                <th>SECTOR &amp; STATE</th>
+                <th>COMPOSITE RISK SCORE</th>
+                <th>ANOMALY SIGNALS</th>
+                <th>CURRENT STATUS</th>
+                <th class="text-right">ADMIN ACTION</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (biz of businesses(); track biz.passportId) {
+                <tr>
+                  <td class="font-mono font-bold text-dark">{{ biz.passportId }}</td>
+                  <td class="font-bold">{{ biz.businessName }}</td>
+                  <td class="text-muted">{{ biz.industry }} &bull; {{ biz.state }}</td>
+                  <td>
+                    <span class="score-badge" [class.high]="biz.riskRating === 'HIGH'" [class.med]="biz.riskRating === 'MEDIUM'" [class.low]="biz.riskRating === 'LOW'">
+                      {{ biz.verifyScore }} / 100 {{ biz.riskRating }}
+                    </span>
+                  </td>
+                  <td class="font-mono font-bold" [class.text-danger]="biz.status === 'SUSPENDED'" [class.text-amber]="biz.status === 'FLAGGED'" [class.text-success]="biz.status === 'ACTIVE'">
+                    {{ biz.credentialsCount }} Credentials Verified
+                  </td>
+                  <td>
+                    <span class="badge-status" [class.suspended]="biz.status === 'SUSPENDED'" [class.flagged]="biz.status === 'FLAGGED'" [class.active]="biz.status === 'ACTIVE'">
+                      &bull; {{ biz.status }}
+                    </span>
+                  </td>
+                  <td class="text-right">
+                    <a routerLink="/admin/businesses" class="btn-action">Inspect Entity &rarr;</a>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>

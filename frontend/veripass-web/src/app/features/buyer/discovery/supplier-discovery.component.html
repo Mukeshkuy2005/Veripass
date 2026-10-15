@@ -1,0 +1,332 @@
+<div class="discovery-page">
+  <!-- HERO PROCUREMENT SEARCH -->
+  <section class="discovery-hero vp-card">
+    <div class="hero-badge-row">
+      <span class="view-tag">PROCUREMENT INTELLIGENCE ENGINE</span>
+      <span class="cert-tag">MCA &bull; GSTN &bull; NPCI VERIFIED</span>
+    </div>
+    <h1 class="hero-title">Discover Sovereign Verified Suppliers</h1>
+    <p class="hero-sub">Locate certified Indian manufacturing and industrial suppliers with continuous statutory compliance and audit-ready passports.</p>
+
+    <!-- SEARCH BOX -->
+    <div class="search-box-wrap">
+      <div class="search-input-group">
+        <svg class="search-icon-svg" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+        </svg>
+        <input
+          type="text"
+          class="hero-search-input"
+          placeholder="Search by supplier name, product keyword, GSTIN, or natural query..."
+          [(ngModel)]="searchQuery"
+          (keyup.enter)="onSearch()" />
+        <button class="btn-search-exec" (click)="onSearch()">
+          <span>Search</span>
+        </button>
+      </div>
+
+      <!-- SMART NATURAL LANGUAGE SEARCH PROMPT EXAMPLES -->
+      <div class="smart-search-hints">
+        <span class="hint-label">Try intelligent search:</span>
+        <button
+          type="button"
+          class="hint-chip"
+          (click)="applyExampleSearch('electrical component suppliers in Uttar Pradesh with ISO certification')">
+          electrical component suppliers in Uttar Pradesh with ISO certification
+        </button>
+        <button
+          type="button"
+          class="hint-chip"
+          (click)="applyExampleSearch('precision tooling manufacturers in Haryana with BIS')">
+          precision tooling manufacturers in Haryana with BIS
+        </button>
+      </div>
+    </div>
+
+    <!-- NATURAL LANGUAGE PARSED ENTITIES FEEDBACK -->
+    <div class="parsed-nlp-banner" *ngIf="parsedTokens().active">
+      <div class="nlp-status-line">
+        <span class="nlp-pulse"></span>
+        <span class="nlp-title">SEARCHING VERIPASS TELEMETRY...</span>
+      </div>
+      <div class="nlp-tokens-list">
+        <div class="nlp-token" *ngIf="parsedTokens().industry">
+          <span class="token-check">✓</span>
+          <span class="token-label">Industry:</span>
+          <strong class="token-value">{{ parsedTokens().industry }}</strong>
+        </div>
+        <div class="nlp-token" *ngIf="parsedTokens().location">
+          <span class="token-check">✓</span>
+          <span class="token-label">Location:</span>
+          <strong class="token-value">{{ parsedTokens().location }}</strong>
+        </div>
+        <div class="nlp-token" *ngIf="parsedTokens().certification">
+          <span class="token-check">✓</span>
+          <span class="token-label">Accreditation:</span>
+          <strong class="token-value">{{ parsedTokens().certification }}</strong>
+        </div>
+      </div>
+      <div class="nlp-match-count">
+        Found {{ filteredCount() }} verified suppliers matching your criteria
+      </div>
+    </div>
+  </section>
+
+  <!-- FILTER PANEL & INTEL CARDS -->
+  <div class="discovery-body-grid">
+    <!-- FILTER PANEL -->
+    <aside class="filter-panel-card vp-card">
+      <div class="panel-head">
+        <h3 class="panel-head-title">FILTERS &amp; CRITERIA</h3>
+        <button class="btn-reset" (click)="resetAllFilters()">Reset</button>
+      </div>
+
+      <!-- Industry -->
+      <div class="filter-section">
+        <span class="filter-label">Industry Vertical</span>
+        <div class="checkbox-group">
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isIndustrySelected('Manufacturing')" (change)="toggleIndustry('Manufacturing')" />
+            <span>Heavy Manufacturing</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isIndustrySelected('IT Services')" (change)="toggleIndustry('IT Services')" />
+            <span>IT &amp; SCM Software</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isIndustrySelected('Construction')" (change)="toggleIndustry('Construction')" />
+            <span>Infrastructure &amp; Steel</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isIndustrySelected('Logistics')" (change)="toggleIndustry('Logistics')" />
+            <span>Freight &amp; Warehousing</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isIndustrySelected('Electrical')" (change)="toggleIndustry('Electrical')" />
+            <span>Electrical Components</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Location (State) -->
+      <div class="filter-section">
+        <span class="filter-label">Manufacturing Cluster (State)</span>
+        <select class="form-select" [ngModel]="filters().state" (ngModelChange)="setStateFilter($event)">
+          <option value="">All Regions (Pan India)</option>
+          <option value="Uttar Pradesh">Uttar Pradesh</option>
+          <option value="Delhi">Delhi NCR</option>
+          <option value="Haryana">Haryana</option>
+          <option value="Maharashtra">Maharashtra</option>
+          <option value="Karnataka">Karnataka</option>
+          <option value="Gujarat">Gujarat</option>
+        </select>
+      </div>
+
+      <!-- Business Type -->
+      <div class="filter-section">
+        <span class="filter-label">Legal Constitution</span>
+        <div class="checkbox-group">
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isBusinessTypeSelected('Private Limited')" (change)="toggleBusinessType('Private Limited')" />
+            <span>Private Limited</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isBusinessTypeSelected('LLP')" (change)="toggleBusinessType('LLP')" />
+            <span>LLP</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isBusinessTypeSelected('Partnership')" (change)="toggleBusinessType('Partnership')" />
+            <span>Partnership</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isBusinessTypeSelected('Proprietorship')" (change)="toggleBusinessType('Proprietorship')" />
+            <span>Proprietorship</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Verification Status -->
+      <div class="filter-section">
+        <span class="filter-label">Verification Standing</span>
+        <div class="radio-group">
+          <label class="custom-radio">
+            <input type="radio" name="verification" value="verified" [checked]="filters().verificationStatus === 'verified'" (change)="setVerificationStatus('verified')" />
+            <span>Fully Verified</span>
+          </label>
+          <label class="custom-radio">
+            <input type="radio" name="verification" value="partially_verified" [checked]="filters().verificationStatus === 'partially_verified'" (change)="setVerificationStatus('partially_verified')" />
+            <span>Partially Verified</span>
+          </label>
+          <label class="custom-radio">
+            <input type="radio" name="verification" value="all" [checked]="filters().verificationStatus === 'all'" (change)="setVerificationStatus('all')" />
+            <span>All Standings</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Verification Score Slider -->
+      <div class="filter-section">
+        <div class="slider-header">
+          <span class="filter-label">Trust Score Threshold</span>
+          <span class="slider-value-badge">{{ filters().minTrustScore }}+</span>
+        </div>
+        <div class="slider-wrapper">
+          <input
+            type="range"
+            min="70"
+            max="100"
+            step="1"
+            class="score-slider"
+            [ngModel]="filters().minTrustScore"
+            (ngModelChange)="setMinScore($event)" />
+          <div class="slider-scale">
+            <span>70</span>
+            <span>85</span>
+            <span>100</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Certifications -->
+      <div class="filter-section">
+        <span class="filter-label">Mandatory Certifications</span>
+        <div class="checkbox-group">
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isCertSelected('ISO 9001')" (change)="toggleCert('ISO 9001')" />
+            <span>ISO 9001 (Quality)</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isCertSelected('ISO 14001')" (change)="toggleCert('ISO 14001')" />
+            <span>ISO 14001 (Environment)</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isCertSelected('BIS')" (change)="toggleCert('BIS')" />
+            <span>BIS Accreditation</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isCertSelected('Udyam')" (change)="toggleCert('Udyam')" />
+            <span>MSME / Udyam</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Compliance Standing -->
+      <div class="filter-section">
+        <span class="filter-label">Statutory Compliance</span>
+        <div class="checkbox-group">
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="filters().complianceStanding === 'good'" (change)="toggleComplianceStanding('good')" />
+            <span>Good Standing (GSTR-3B OK)</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="filters().complianceStanding === 'expiring'" (change)="toggleComplianceStanding('expiring')" />
+            <span>Expiring Soon (&lt;30d)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Years Active -->
+      <div class="filter-section">
+        <span class="filter-label">Operating Vintage</span>
+        <select class="form-select" [ngModel]="filters().minYears" (ngModelChange)="setMinYears($event)">
+          <option [ngValue]="0">Any Duration</option>
+          <option [ngValue]="3">3+ years operating</option>
+          <option [ngValue]="5">5+ years operating</option>
+          <option [ngValue]="10">10+ years operating</option>
+        </select>
+      </div>
+
+      <!-- ACTION BUTTONS -->
+      <div class="filter-actions">
+        <button class="btn-apply-filters" (click)="applyAndNavigate()">
+          Apply Filters ({{ filteredCount() }}) &rarr;
+        </button>
+        <button class="btn-reset-full" (click)="resetAllFilters()">
+          Clear All
+        </button>
+      </div>
+    </aside>
+
+    <!-- DISCOVERY INTELLIGENCE HIGHLIGHTS -->
+    <main class="discovery-intel-side">
+      <div class="intel-banner-card vp-card">
+        <div class="intel-header">
+          <span class="intel-badge">VERIPASS PROCUREMENT GUARANTEE</span>
+          <h3 class="intel-title">Real-Time Sovereign Telemetry Verification</h3>
+        </div>
+        <p class="intel-body">
+          Every supplier discovered on VeriPass is verified against official government registries:
+          <strong>Ministry of Corporate Affairs (MCA)</strong>, <strong>GSTN Invoicing Network</strong>, <strong>CBDT PAN registry</strong>,
+          and <strong>NPCI Penny-Drop Banking</strong>.
+        </p>
+        <div class="intel-stat-strip">
+          <div class="stat-cell">
+            <span class="sc-num">100%</span>
+            <span class="sc-desc">Statutory Identity Verification</span>
+          </div>
+          <div class="stat-cell">
+            <span class="sc-num">0%</span>
+            <span class="sc-desc">Fraudulent GST Invoicing Risk</span>
+          </div>
+          <div class="stat-cell">
+            <span class="sc-num">24/7</span>
+            <span class="sc-desc">Continuous Risk Telemetry</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- FEATURED CATEGORIES PREVIEW -->
+      <div class="featured-categories-panel vp-card">
+        <div class="fc-head">
+          <h4 class="fc-title">BROWSE VERIFIED TIERS BY CATEGORY</h4>
+          <span class="fc-sub">Explore pre-qualified sovereign suppliers by industrial specialty</span>
+        </div>
+
+        <div class="categories-grid">
+          <div class="cat-card" (click)="quickFilterCategory('Electrical')">
+            <div class="cat-icon">⚡</div>
+            <div class="cat-info">
+              <span class="cat-name">Electrical Components</span>
+              <span class="cat-meta">48 Verified Vendors &bull; Tier 1</span>
+            </div>
+          </div>
+
+          <div class="cat-card" (click)="quickFilterCategory('Manufacturing')">
+            <div class="cat-icon">⚙️</div>
+            <div class="cat-info">
+              <span class="cat-name">Heavy Manufacturing</span>
+              <span class="cat-meta">92 Verified Vendors &bull; Tier 1</span>
+            </div>
+          </div>
+
+          <div class="cat-card" (click)="quickFilterCategory('Logistics')">
+            <div class="cat-icon">🚚</div>
+            <div class="cat-info">
+              <span class="cat-name">Freight &amp; Logistics</span>
+              <span class="cat-meta">34 Verified Vendors &bull; Tier 2</span>
+            </div>
+          </div>
+
+          <div class="cat-card" (click)="quickFilterCategory('Construction')">
+            <div class="cat-icon">🏗️</div>
+            <div class="cat-info">
+              <span class="cat-name">Infrastructure &amp; Steel</span>
+              <span class="cat-meta">28 Verified Vendors &bull; Tier 1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESULTS CALLOUT -->
+      <div class="results-callout-card vp-card">
+        <div class="callout-left">
+          <h4>Ready to evaluate suppliers?</h4>
+          <p>We found <strong>{{ filteredCount() }} verified suppliers</strong> matching your active filter criteria.</p>
+        </div>
+        <button class="btn-goto-results" (click)="applyAndNavigate()">
+          View Search Results &rarr;
+        </button>
+      </div>
+    </main>
+  </div>
+</div>

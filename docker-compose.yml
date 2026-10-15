@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  veripass-db:
+    image: postgres:16-alpine
+    container_name: veripass-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: veripass_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d veripass_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  veripass-redis:
+    image: redis:7-alpine
+    container_name: veripass-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  veripass-minio:
+    image: minio/minio:latest
+    container_name: veripass-minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: veripassadmin
+      MINIO_ROOT_PASSWORD: veripasssecret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  veripass-api:
+    build:
+      context: ./backend
+      dockerfile: src/VeriPass.API/Dockerfile
+    container_name: veripass-api
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=veripass-db;Port=5432;Database=veripass_db;Username=postgres;Password=postgrespassword
+      - Jwt__Secret=VERIPASS_SUPER_SECURE_ENTERPRISE_JWT_SECRET_KEY_2026_INDIA_COMPLIANCE_!@#
+      - Jwt__Issuer=VeriPass
+      - Jwt__Audience=VeriPassClients
+    ports:
+      - "5000:8080"
+    depends_on:
+      veripass-db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

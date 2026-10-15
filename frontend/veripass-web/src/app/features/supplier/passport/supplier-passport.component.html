@@ -1,0 +1,834 @@
+<div class="passport-view">
+  <!-- TOAST NOTIFICATION -->
+  <div *ngIf="toastMessage()" class="vp-toast-alert animate-slide-in">
+    <div class="toast-content">
+      <span class="toast-sym">✨</span>
+      <span class="toast-text">{{ toastMessage() }}</span>
+    </div>
+    <button class="toast-close-btn" (click)="toastMessage.set(null)" aria-label="Close notification">✕</button>
+  </div>
+
+  <!-- PAGE HEADER & NAVIGATION -->
+  <header class="passport-header">
+    <div class="header-left">
+      <div class="sovereign-tag-row">
+        <span class="view-tag">
+          <span class="india-dot">🇮🇳</span> SOVEREIGN COMMERCIAL PASSPORT &bull; NATIONAL TRUST RAILS
+        </span>
+        <span class="live-status-pill" [class.live]="isPubliclyVisible()" [class.unlisted]="!isPubliclyVisible()">
+          <span class="pulse-indicator"></span>
+          {{ isPubliclyVisible() ? 'Publicly Verifiable' : 'Private / Unlisted' }}
+        </span>
+      </div>
+
+      <h1 class="page-title">
+        <ng-container *ngIf="activeTab() === 'passport'">Business Passport</ng-container>
+        <ng-container *ngIf="activeTab() === 'preview'">Enterprise Buyer Simulator</ng-container>
+        <ng-container *ngIf="activeTab() === 'share'">Share &amp; Transmission Center</ng-container>
+      </h1>
+
+      <p class="page-sub">
+        <ng-container *ngIf="activeTab() === 'passport'">
+          Continuously attested digital commercial identity credential recognized by enterprise procurement desks nationwide.
+        </ng-container>
+        <ng-container *ngIf="activeTab() === 'preview'">
+          Simulate how procurement officers and statutory auditors inspect your verifiable profile. Confidential financials remain protected.
+        </ng-container>
+        <ng-container *ngIf="activeTab() === 'share'">
+          Securely transmit your certified compliance dossier via tamper-evident links, high-res QR, or direct procurement dispatch.
+        </ng-container>
+      </p>
+    </div>
+
+    <!-- HEADER ACTIONS & VIEW TABS -->
+    <div class="header-actions-col">
+      <div class="header-quick-tools">
+        <button
+          class="btn-tool"
+          [class.active-public]="isPubliclyVisible()"
+          (click)="togglePublish()"
+          [disabled]="isPublishing()"
+          title="Toggle public visibility on the VeriPass trust network">
+          <span class="tool-icon">{{ isPubliclyVisible() ? '🌐' : '🔒' }}</span>
+          <span>{{ isPublishing() ? 'Updating...' : (isPubliclyVisible() ? 'Public: ON' : 'Public: OFF') }}</span>
+        </button>
+
+        <button class="btn-tool" (click)="downloadPdf()" [disabled]="isDownloadingPdf()" title="Download digitally signed PDF certificate">
+          <span class="tool-icon">📑</span>
+          <span>{{ isDownloadingPdf() ? 'Generating PDF...' : 'Download PDF' }}</span>
+        </button>
+
+        <button class="btn-tool" (click)="copyLink()" title="Copy public passport URL">
+          <span class="tool-icon">🔗</span>
+          <span>{{ linkCopied() ? 'Copied!' : 'Copy Link' }}</span>
+        </button>
+      </div>
+
+      <div class="passport-tabs-nav" role="tablist">
+        <button
+          id="btn-tab-passport"
+          class="tab-btn"
+          [class.active]="activeTab() === 'passport'"
+          (click)="selectTab('passport')"
+          role="tab"
+          aria-selected="true">
+          <span class="tab-glyph">◇</span> Passport Card &amp; Specs
+        </button>
+        <button
+          id="btn-tab-preview"
+          class="tab-btn"
+          [class.active]="activeTab() === 'preview'"
+          (click)="selectTab('preview')"
+          role="tab">
+          <span class="tab-glyph">👁</span> Public Preview
+        </button>
+        <button
+          id="btn-tab-share"
+          class="tab-btn"
+          [class.active]="activeTab() === 'share'"
+          (click)="selectTab('share')"
+          role="tab">
+          <span class="tab-glyph">↗</span> Share Passport
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ======================================================== -->
+  <!-- TAB 1: BUSINESS PASSPORT SMART CARD & TELEMETRY          -->
+  <!-- ======================================================== -->
+  <div *ngIf="activeTab() === 'passport'" class="tab-content animate-fade-in">
+    <div class="passport-grid">
+      <!-- LEFT COLUMN: THE PHYSICAL SMART PASSPORT CARD -->
+      <div class="passport-col-card">
+        <div class="card-wrapper-3d" [class.is-flipped]="cardFlipped()">
+          <!-- FRONT FACE -->
+          <div class="vp-passport-hero-card front-face">
+            <!-- Background Security Hologram & Waves -->
+            <div class="guilloche-overlay"></div>
+            <div class="hologram-shimmer"></div>
+
+            <!-- Card Top Header -->
+            <div class="card-brand-top">
+              <div class="brand-group">
+                <div class="crest-symbol">
+                  <svg viewBox="0 0 24 24" fill="none" class="card-shield">
+                    <path d="M12 2L4 6V11.5C4 16.5 7.4 21.1 12 22C16.6 21.1 20 16.5 20 11.5V6L12 2Z" fill="url(#crestGrad)" stroke="#FBBF24" stroke-width="1.5"/>
+                    <path d="M9 11.5L11 13.5L15.5 9" stroke="#0F172A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs>
+                      <linearGradient id="crestGrad" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#FCD34D"/>
+                        <stop offset="1" stop-color="#D97706"/>
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+                <div class="brand-titles">
+                  <span class="card-brand-title">VERIPASS SOVEREIGN PASSPORT</span>
+                  <span class="card-brand-sub">REPUBLIC OF INDIA &bull; COMMERCIAL TRUST RAILS</span>
+                </div>
+              </div>
+              <div class="card-top-right">
+                <div class="chip-hologram" title="Sovereign Cryptographic Chip">
+                  <div class="chip-lines"></div>
+                </div>
+                <span class="country-pill">🇮🇳 IN-SOV</span>
+              </div>
+            </div>
+
+            <!-- Card Entity Details -->
+            <div class="card-company-section">
+              <div class="company-badge-line">
+                <span class="verified-badge-glow">
+                  <span class="badge-icon">✓</span>
+                  <span>VERIFIED ENTERPRISE</span>
+                </span>
+                <span class="entity-type-badge">{{ companyIndustry() }}</span>
+              </div>
+              <h2 class="card-company-name">{{ companyName() }}</h2>
+              <div class="card-company-sub">
+                <span class="loc-pin">📍</span> {{ companyLocation() }}
+              </div>
+            </div>
+
+            <!-- Trust Score & Assurance Medallion Row -->
+            <div class="card-trust-score-box">
+              <div class="score-meta-col">
+                <span class="score-title">COMPLIANCE &amp; TRUST INDEX</span>
+                <span class="score-tag">
+                  <span class="dot-green"></span> Tier 1 Sovereign Clean &bull; 0 Default Flags
+                </span>
+                <div class="score-breakdown-mini">
+                  <span>Statutory: 96%</span> &bull; <span>Identity: 98%</span> &bull; <span>Filing: 100%</span>
+                </div>
+              </div>
+              <div class="score-medallion">
+                <div class="score-number-ring">
+                  <span class="big-score">{{ trustScore() }}</span>
+                  <span class="denom">/100</span>
+                </div>
+                <span class="score-label">RATED EXCELLENT</span>
+              </div>
+            </div>
+
+            <!-- Certified Credential Badges Row -->
+            <div class="card-credentials-bar">
+              <div class="cred-chip checked">
+                <span class="c-dot">✓</span> GSTIN Active
+              </div>
+              <div class="cred-chip checked">
+                <span class="c-dot">✓</span> Corporate PAN
+              </div>
+              <div class="cred-chip checked">
+                <span class="c-dot">✓</span> MCA Incorporated
+              </div>
+              <div class="cred-chip checked">
+                <span class="c-dot">✓</span> MSME Udyam
+              </div>
+              <div class="cred-chip checked">
+                <span class="c-dot">✓</span> NPCI Penny-Drop
+              </div>
+              <div class="cred-chip checked">
+                <span class="c-dot">✓</span> ISO 9001
+              </div>
+            </div>
+
+            <!-- Card Bottom Bar: QR, ID & Crypto Hash -->
+            <div class="card-footer-row">
+              <div class="verification-meta">
+                <div class="meta-row-item">
+                  <span class="ver-lbl">PASSPORT ID:</span>
+                  <strong class="ver-id font-mono">{{ passportNumber() }}</strong>
+                </div>
+                <div class="meta-row-item">
+                  <span class="ver-lbl">DIGITAL SEAL:</span>
+                  <span class="font-mono text-xs text-amber">SHA256: 4e9f7a...8c7d (Tamper Proof)</span>
+                </div>
+                <div class="meta-row-item">
+                  <span class="ver-lbl">ISSUANCE / VALIDITY:</span>
+                  <span class="text-xs text-slate-300">Issued: Jun 2026 &bull; Valid Thru: Jun 2027</span>
+                </div>
+              </div>
+
+              <!-- Interactive QR code container -->
+              <div class="qr-code-box cursor-pointer" (click)="showQrModal.set(true)" title="Click to view full high-res QR artifact">
+                <img *ngIf="qrDataUrl()" [src]="qrDataUrl()" alt="Passport QR" class="qr-svg" />
+                <span class="qr-hover-hint">SCAN</span>
+              </div>
+            </div>
+
+            <!-- Flip Trigger Button -->
+            <button class="btn-flip-card" (click)="toggleFlip()" title="Inspect statutory details on card back">
+              ↺ View Statutory Back Face
+            </button>
+          </div>
+
+          <!-- BACK FACE -->
+          <div class="vp-passport-hero-card back-face">
+            <div class="guilloche-overlay"></div>
+            <div class="back-header">
+              <div class="back-title-group">
+                <span class="card-brand-title">STATUTORY REGISTRY SPECIFICATIONS</span>
+                <span class="card-brand-sub">OFFICIAL GOVERNMENT &amp; FINANCIAL IDENTIFIERS</span>
+              </div>
+              <button class="btn-flip-back" (click)="toggleFlip()">↻ Front</button>
+            </div>
+
+            <div class="back-spec-grid">
+              <div class="spec-cell">
+                <span class="spec-lbl">LEGAL ENTITY</span>
+                <strong class="spec-val">{{ companyName() }}</strong>
+              </div>
+              <div class="spec-cell">
+                <span class="spec-lbl">GOODS &amp; SERVICES TAX (GSTIN)</span>
+                <strong class="spec-val font-mono">{{ gstin() || 'Pending' }} {{ gstin() ? '&bull; Active' : '' }}</strong>
+              </div>
+              <div class="spec-cell">
+                <span class="spec-lbl">CORPORATE PAN</span>
+                <strong class="spec-val font-mono">{{ pan() || 'Pending' }} {{ pan() ? '&bull; Verified' : '' }}</strong>
+              </div>
+              <div class="spec-cell">
+                <span class="spec-lbl">MCA CIN NUMBER</span>
+                <strong class="spec-val font-mono">{{ cin() || 'Pending' }}</strong>
+              </div>
+              <div class="spec-cell">
+                <span class="spec-lbl">MSME UDYAM REGISTRY</span>
+                <strong class="spec-val font-mono">{{ udyam() || 'Not Provided' }}</strong>
+              </div>
+              <div class="spec-cell">
+                <span class="spec-lbl">BANK ACCOUNT CLEARANCE</span>
+                <strong class="spec-val font-mono">{{ trustScore() > 0 ? 'Verified &bull; Active' : 'Pending Verification' }}</strong>
+              </div>
+            </div>
+
+            <div class="magnetic-strip">
+              <span class="strip-text">VERIPASS // SOVEREIGN TRUST NETWORK // SHA-256 ENCRYPTED SIGNATURE // VERIFIED</span>
+            </div>
+
+            <div class="back-footer">
+              <div class="back-meta-text">
+                This digital asset is attested by VeriPass Watchtower Continuous Compliance Engine.
+                Complies with Indian Digital Personal Data Protection Act &amp; MCA Statutory Reporting.
+              </div>
+              <div class="back-qr-mini" (click)="showQrModal.set(true)">
+                <img *ngIf="qrDataUrl()" [src]="qrDataUrl()" alt="Mini QR" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Card Control Buttons -->
+        <div class="card-action-bar">
+          <button class="btn-card-action" (click)="toggleFlip()">
+            <span>🔄</span> Flip Card
+          </button>
+          <button class="btn-card-action" (click)="showQrModal.set(true)">
+            <span>📱</span> Show QR Code
+          </button>
+          <button class="btn-card-action" (click)="downloadPdf()" [disabled]="isDownloadingPdf()">
+            <span>📑</span> {{ isDownloadingPdf() ? 'Exporting...' : 'Export PDF' }}
+          </button>
+          <button class="btn-card-action" (click)="printPassport()">
+            <span>🖨️</span> Print Card
+          </button>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: STATUS & CONTINUOUS ASSURANCE -->
+      <div class="passport-col-status">
+        <!-- Passport Status Card -->
+        <div class="vp-card status-panel-card">
+          <div class="panel-header-row">
+            <div>
+              <span class="section-kicker">VERIFICATION &amp; DISCOVERY</span>
+              <h3 class="panel-heading">Passport Telemetry</h3>
+            </div>
+            <span class="status-indicator-badge" [class.badge-active]="isPubliclyVisible()">
+              {{ isPubliclyVisible() ? '● ACTIVE ON RAILS' : '○ UNPUBLISHED' }}
+            </span>
+          </div>
+
+          <div class="telemetry-table">
+            <div class="telemetry-row">
+              <span class="t-lbl">Verification State</span>
+              <span class="t-val text-green font-bold">✓ Active &amp; Verified</span>
+            </div>
+            <div class="telemetry-row">
+              <span class="t-lbl">Passport Spec</span>
+              <span class="t-val font-mono">Version 4.0 (Enterprise)</span>
+            </div>
+            <div class="telemetry-row">
+              <span class="t-lbl">Passport Number</span>
+              <span class="t-val font-mono text-primary font-bold">{{ passportNumber() }}</span>
+            </div>
+            <div class="telemetry-row">
+              <span class="t-lbl">Public Slug</span>
+              <span class="t-val font-mono text-xs">{{ publicIdentifier() }}</span>
+            </div>
+            <div class="telemetry-row">
+              <span class="t-lbl">Public Search Visibility</span>
+              <div class="visibility-toggle-group">
+                <span [class.text-green]="isPubliclyVisible()" [class.text-muted]="!isPubliclyVisible()">
+                  {{ isPubliclyVisible() ? 'Publicly Listed' : 'Private (Unlisted)' }}
+                </span>
+                <button class="btn-mini-toggle" (click)="togglePublish()" [disabled]="isPublishing()">
+                  {{ isPubliclyVisible() ? 'Make Private' : 'Make Public' }}
+                </button>
+              </div>
+            </div>
+            <div class="telemetry-row">
+              <span class="t-lbl">Continuous Monitoring</span>
+              <span class="t-val text-blue font-bold">● Active (Watchtower)</span>
+            </div>
+            <div class="telemetry-row">
+              <span class="t-lbl">Next Scheduled Audit</span>
+              <span class="t-val">In 4 days (Automated)</span>
+            </div>
+          </div>
+
+          <div class="panel-cta-grid">
+            <button class="btn btn-outline" (click)="selectTab('preview')">
+              👁 Buyer Simulator
+            </button>
+            <button class="btn btn-primary" (click)="selectTab('share')">
+              ↗ Share Passport &rarr;
+            </button>
+          </div>
+        </div>
+
+        <!-- Continuous Assurance Card -->
+        <div class="vp-card assurance-card">
+          <div class="assurance-header">
+            <div class="assurance-icon">🛡️</div>
+            <div>
+              <h4 class="assurance-title">VeriPass Watchtower Active</h4>
+              <p class="assurance-sub">Continuous statutory compliance &amp; risk surveillance.</p>
+            </div>
+          </div>
+          <div class="assurance-points">
+            <div class="point-item">
+              <span class="p-check">✓</span>
+              <span><strong>GSTN 3B/GSTR-1:</strong> 100% on-time filing index over past 12 consecutive tax periods.</span>
+            </div>
+            <div class="point-item">
+              <span class="p-check">✓</span>
+              <span><strong>MCA Annual Filing:</strong> Form AOC-4 and MGT-7 certified in good legal standing.</span>
+            </div>
+            <div class="point-item">
+              <span class="p-check">✓</span>
+              <span><strong>Litigation &amp; Default Check:</strong> 0 NCLT insolvency petitions or credit write-offs detected.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOWER SECTION: CERTIFIED CREDENTIALS MATRIX -->
+    <div class="credentials-matrix-section">
+      <div class="section-title-wrap">
+        <div>
+          <span class="section-kicker">VERIFIED CREDENTIAL ATTESTATION</span>
+          <h2 class="section-title">Government &amp; Commercial Clearances</h2>
+        </div>
+        <span class="credentials-count-pill">{{ credentials().length }} Certified Credentials</span>
+      </div>
+
+      <div class="credential-cards-grid">
+        <div *ngFor="let cred of credentials()" class="vp-card cred-detail-card">
+          <div class="cred-card-top">
+            <span class="cred-icon-wrap" [ngSwitch]="cred.credentialType">
+              <span *ngSwitchCase="'GSTIN'">🧾</span>
+              <span *ngSwitchCase="'PAN'">💳</span>
+              <span *ngSwitchCase="'CIN'">🏛️</span>
+              <span *ngSwitchCase="'UDYAM'">🏭</span>
+              <span *ngSwitchCase="'BANK_ACCOUNT'">🏦</span>
+              <span *ngSwitchCase="'ISO_9001'">🎖️</span>
+              <span *ngSwitchDefault>📄</span>
+            </span>
+            <span class="vp-badge badge-verified">✓ Verified</span>
+          </div>
+
+          <h3 class="cred-name">{{ cred.credentialName }}</h3>
+          <div class="cred-display-value font-mono">{{ cred.displayValue || 'Verified Credential' }}</div>
+
+          <div class="cred-footer">
+            <span class="cred-type-lbl">ID: {{ cred.credentialType }}</span>
+            <span class="cred-check-time">Attested Live</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- TAB 2: ENTERPRISE BUYER SIMULATOR (PREVIEW)             -->
+  <!-- ======================================================== -->
+  <div *ngIf="activeTab() === 'preview'" class="tab-content animate-fade-in">
+    <!-- Notice banner -->
+    <div class="preview-notice-banner vp-card">
+      <div class="notice-left">
+        <span class="eye-glyph">👁️</span>
+        <div>
+          <strong class="notice-title">ENTERPRISE BUYER SIMULATOR &bull; LIVE VIEW</strong>
+          <p class="notice-desc">
+            This preview simulates exactly what enterprise buyers (e.g., Tata, Mahindra, L&amp;T) see when evaluating your company profile. Confidential bank credentials and full PAN remain strictly masked.
+          </p>
+        </div>
+      </div>
+      <div class="notice-actions">
+        <div class="audience-toggle">
+          <button
+            class="audience-btn"
+            [class.active]="previewAudience() === 'buyer'"
+            (click)="previewAudience.set('buyer')">
+            Enterprise Buyer View
+          </button>
+          <button
+            class="audience-btn"
+            [class.active]="previewAudience() === 'public'"
+            (click)="previewAudience.set('public')">
+            Public Visitor View
+          </button>
+        </div>
+        <button class="btn btn-primary btn-sm" (click)="selectTab('share')">Share this view &rarr;</button>
+      </div>
+    </div>
+
+    <div class="preview-layout-grid">
+      <!-- MOCK PUBLIC VIEW CARD -->
+      <div class="vp-card public-mock-card">
+        <div class="public-card-head">
+          <div class="public-badge-row">
+            <span class="vp-badge badge-verified">✓ VERIFIED SOVEREIGN SUPPLIER</span>
+            <span class="sovereign-tag">🇮🇳 VeriPass Certified</span>
+          </div>
+          <span class="security-chip">SHA-256 SIGNED</span>
+        </div>
+
+        <h2 class="mock-company-name">{{ companyName() }}</h2>
+        <div class="mock-meta">{{ companyIndustry() }} &bull; {{ companyLocation() }}</div>
+
+        <!-- Trust Score Banner -->
+        <div class="mock-score-box">
+          <div class="mock-score-info">
+            <span class="mock-score-lbl">VERIPASS TRUST SCORE</span>
+            <span class="mock-tier">Tier 1 Sovereign Clean (Top 5% Manufacturers)</span>
+          </div>
+          <div class="mock-score-num">
+            {{ trustScore() }} <span>/ 100</span>
+          </div>
+        </div>
+
+        <!-- Credentials Checklist -->
+        <div class="mock-checks-list">
+          <div class="mock-check-item">
+            <span class="check-mark" [class.text-muted]="!gstin()">{{ gstin() ? '✓' : '○' }}</span>
+            <div class="check-text">
+              <strong>Goods &amp; Services Tax (GSTIN):</strong>
+              <span>{{ gstin() ? (gstin() + ' &bull; Active &amp; Up to Date') : 'Pending Verification' }}</span>
+            </div>
+          </div>
+          <div class="mock-check-item">
+            <span class="check-mark" [class.text-muted]="!pan()">{{ pan() ? '✓' : '○' }}</span>
+            <div class="check-text">
+              <strong>Corporate PAN Attestation:</strong>
+              <span>{{ pan() ? ((previewAudience() === 'buyer' ? pan() : '******' + pan().slice(-4)) + ' &bull; Verified via NSDL') : 'Pending Verification' }}</span>
+            </div>
+          </div>
+          <div class="mock-check-item">
+            <span class="check-mark" [class.text-muted]="!cin()">{{ cin() ? '✓' : '○' }}</span>
+            <div class="check-text">
+              <strong>MCA Certificate of Incorporation:</strong>
+              <span>{{ cin() ? (cin() + ' &bull; Active') : 'Pending Submission' }}</span>
+            </div>
+          </div>
+          <div class="mock-check-item" *ngIf="udyam()">
+            <span class="check-mark">✓</span>
+            <div class="check-text">
+              <strong>MSME Udyam Registration:</strong>
+              <span>{{ udyam() }} &bull; Registered</span>
+            </div>
+          </div>
+          <div class="mock-check-item">
+            <span class="check-mark" [class.text-muted]="trustScore() === 0">{{ trustScore() > 0 ? '✓' : '○' }}</span>
+            <div class="check-text">
+              <strong>Bank Account &amp; Financial Trust:</strong>
+              <span>{{ trustScore() > 0 ? (previewAudience() === 'buyer' ? 'Commercial Bank (Verified)' : '🔒 Gated &bull; Requires Buyer NDA') : 'Pending Verification' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mock-footer">
+          <div class="mock-foot-id">
+            <span>Passport Identifier:</span>
+            <strong class="font-mono">{{ passportNumber() }}</strong>
+          </div>
+          <button class="btn btn-outline btn-xs" (click)="copyLink()">
+            {{ linkCopied() ? 'Copied' : 'Copy Public URL' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- PRIVACY & VISIBILITY CONTROLS TABLE -->
+      <div class="vp-card privacy-controls-card">
+        <div class="privacy-head">
+          <h3 class="controls-title">DATA GOVERNANCE &amp; PRIVACY MATRIX</h3>
+          <p class="controls-sub">Granular visibility mapping governed under the Indian DPDP Framework.</p>
+        </div>
+
+        <div class="privacy-table">
+          <div class="priv-row">
+            <div class="priv-field-group">
+              <strong class="priv-field">Business Legal &amp; Trade Name</strong>
+              <span class="priv-desc">Public corporate registry name</span>
+            </div>
+            <span class="priv-status visible">✓ Publicly Visible</span>
+          </div>
+
+          <div class="priv-row">
+            <div class="priv-field-group">
+              <strong class="priv-field">Industry &amp; City Location</strong>
+              <span class="priv-desc">Used for buyer discovery &amp; RFP matching</span>
+            </div>
+            <span class="priv-status visible">✓ Publicly Visible</span>
+          </div>
+
+          <div class="priv-row">
+            <div class="priv-field-group">
+              <strong class="priv-field">GSTIN &amp; Return Filing Index</strong>
+              <span class="priv-desc">Attested compliance status</span>
+            </div>
+            <span class="priv-status visible">✓ Publicly Visible</span>
+          </div>
+
+          <div class="priv-row">
+            <div class="priv-field-group">
+              <strong class="priv-field">Overall Trust Score (0-100)</strong>
+              <span class="priv-desc">Attested composite reliability score</span>
+            </div>
+            <span class="priv-status visible">✓ Publicly Visible</span>
+          </div>
+
+          <div class="priv-row hidden-row">
+            <div class="priv-field-group">
+              <strong class="priv-field">Corporate PAN Number</strong>
+              <span class="priv-desc">Masked for public visitors; unmasked for verified buyers</span>
+            </div>
+            <span class="priv-status masked">🔒 Partially Masked</span>
+          </div>
+
+          <div class="priv-row hidden-row">
+            <div class="priv-field-group">
+              <strong class="priv-field">Bank Account &amp; Cancelled Cheque</strong>
+              <span class="priv-desc">Protected financial credentials</span>
+            </div>
+            <span class="priv-status protected">🔒 Strictly Protected</span>
+          </div>
+
+          <div class="priv-row hidden-row">
+            <div class="priv-field-group">
+              <strong class="priv-field">Audited P&amp;L &amp; Internal Documents</strong>
+              <span class="priv-desc">Internal files only shared on explicit request</span>
+            </div>
+            <span class="priv-status protected">🔒 Confidential</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- TAB 3: SHARE PASSPORT & TRANSMISSION CENTER              -->
+  <!-- ======================================================== -->
+  <div *ngIf="activeTab() === 'share'" class="tab-content animate-fade-in">
+    <div class="share-intro text-center">
+      <span class="section-kicker">ENTERPRISE ONBOARDING CHANNELS</span>
+      <h2 class="share-heading">Share Certified Business Passport</h2>
+      <p class="share-sub">Choose how to present your pre-verified identity to prospective buyers, banks, and procurement committees.</p>
+    </div>
+
+    <!-- 4 High-Trust Sharing Cards -->
+    <div class="share-cards-grid">
+      <!-- 1: Secure Link -->
+      <div class="vp-card share-action-card">
+        <div class="share-icon-wrap">🔗</div>
+        <h3 class="share-card-title">Cryptographic Share Link</h3>
+        <p class="share-card-desc">Copy a tamper-evident, verifiable link to include in vendor registration forms, emails, and tenders.</p>
+        <button id="btn-copy-share-link" class="btn btn-primary w-full" (click)="copyLink()">
+          {{ linkCopied() ? '✓ Link Copied to Clipboard!' : 'Copy Public Link' }}
+        </button>
+      </div>
+
+      <!-- 2: QR Code Artifact -->
+      <div class="vp-card share-action-card">
+        <div class="share-icon-wrap">📱</div>
+        <h3 class="share-card-title">Digital QR Code</h3>
+        <p class="share-card-desc">Generate or download high-resolution QR badges for factory gates, quotation letters, or invoices.</p>
+        <button id="btn-show-qr" class="btn btn-primary w-full" (click)="showQrModal.set(true)">
+          View &amp; Export QR Code
+        </button>
+      </div>
+
+      <!-- 3: Digitally Signed PDF -->
+      <div class="vp-card share-action-card">
+        <div class="share-icon-wrap">📑</div>
+        <h3 class="share-card-title">Signed PDF Certificate</h3>
+        <p class="share-card-desc">Download an official one-page sovereign certificate with cryptographic watermark and SHA-256 hash.</p>
+        <button id="btn-generate-pdf" class="btn btn-primary w-full" (click)="downloadPdf()" [disabled]="isDownloadingPdf()">
+          {{ isDownloadingPdf() ? 'Generating Certificate...' : 'Generate PDF Certificate' }}
+        </button>
+      </div>
+
+      <!-- 4: Direct Transmit to Buyer -->
+      <div class="vp-card share-action-card highlight-card">
+        <div class="share-icon-wrap">✉️</div>
+        <h3 class="share-card-title">Direct Procurement Dispatch</h3>
+        <p class="share-card-desc">Directly transmit your full verification dossier to a corporate procurement officer with custom scope.</p>
+        <button id="btn-direct-transmit" class="btn btn-accent w-full" (click)="openTransmitModal()">
+          Transmit to Buyer Desk &rarr;
+        </button>
+      </div>
+    </div>
+
+    <!-- LIVE ACTIVE SHARES & AUDIT TELEMETRY LOG -->
+    <div class="vp-card share-history-card">
+      <div class="history-card-header">
+        <div>
+          <span class="section-kicker">ACTIVE SHARES &amp; BUYER TELEMETRY</span>
+          <h3 class="controls-title">Active Transmissions &amp; Access Log</h3>
+          <p class="controls-sub">Live audit trail of buyer procurement desks with access to your certified credentials.</p>
+        </div>
+        <button class="btn btn-outline btn-sm" (click)="loadPassportData()" [disabled]="isLoading()">
+          {{ isLoading() ? 'Refreshing...' : '🔄 Refresh Log' }}
+        </button>
+      </div>
+
+      <div *ngIf="activeShares().length === 0" class="empty-shares-state text-center">
+        <p class="text-slate-400">No external share tokens generated yet. Click "Transmit to Buyer Desk" above to create your first dispatch.</p>
+      </div>
+
+      <div *ngIf="activeShares().length > 0" class="shares-table-wrap">
+        <table class="shares-table">
+          <thead>
+            <tr>
+              <th>RECIPIENT / ENTERPRISE</th>
+              <th>ACCESS SCOPE</th>
+              <th>SHARE TOKEN</th>
+              <th>VALID UNTIL</th>
+              <th>STATUS</th>
+              <th>ACTION</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of activeShares()">
+              <td>
+                <div class="recipient-cell">
+                  <strong class="recipient-org">{{ s.recipientName || 'Enterprise Buyer' }}</strong>
+                  <span class="recipient-email font-mono">{{ s.recipientEmail || 'Public Verifier' }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="scope-pill" [class.scope-full]="s.accessScope['bank']">
+                  {{ s.accessScope['bank'] ? 'Full Due Diligence' : 'Standard Verified' }}
+                </span>
+              </td>
+              <td>
+                <span class="font-mono text-xs text-primary">{{ s.shareToken }}</span>
+              </td>
+              <td>
+                <span class="text-xs text-slate-300">
+                  {{ s.expiresAt ? (s.expiresAt | date:'mediumDate') : '30 Days' }}
+                </span>
+              </td>
+              <td>
+                <span class="vp-badge badge-verified">Active</span>
+              </td>
+              <td>
+                <button
+                  class="btn-revoke"
+                  [disabled]="isRevoking() === s.id"
+                  (click)="revokeShare(s)">
+                  {{ isRevoking() === s.id ? 'Revoking...' : 'Revoke' }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL 1: HIGH-RES QR CODE MODAL                          -->
+<!-- ======================================================== -->
+<div *ngIf="showQrModal()" class="vp-modal-backdrop" (click)="showQrModal.set(false)">
+  <div class="vp-modal-card animate-scale-up" (click)="$event.stopPropagation()">
+    <div class="vp-modal-header">
+      <div class="modal-title-wrap">
+        <span class="modal-tag">VERIFIED IDENTITY ARTIFACT</span>
+        <h3 class="modal-title">Business Passport QR Code</h3>
+        <p class="modal-sub">Scan using any standard smartphone camera to verify {{ companyName() }} on the sovereign network.</p>
+      </div>
+      <button class="modal-close-btn" (click)="showQrModal.set(false)" aria-label="Close modal">✕</button>
+    </div>
+
+    <div class="qr-modal-body">
+      <div class="qr-big-frame">
+        <img *ngIf="qrDataUrl()" [src]="qrDataUrl()" alt="Business Passport QR Code" class="qr-big-img" />
+      </div>
+      <div class="qr-meta-box">
+        <div class="meta-row">
+          <span class="m-lbl">Public ID:</span>
+          <strong class="font-mono text-primary">{{ passportNumber() }}</strong>
+        </div>
+        <div class="meta-row">
+          <span class="m-lbl">Verification URL:</span>
+          <span class="font-mono text-xs">{{ publicPassportUrl() }}</span>
+        </div>
+        <div class="meta-row">
+          <span class="m-lbl">Integrity Seal:</span>
+          <span class="vp-badge badge-verified">SHA-256 Tamper-Proof</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="vp-modal-footer">
+      <button class="btn btn-outline" (click)="copyLink()">Copy URL</button>
+      <button class="btn btn-secondary" (click)="downloadQrArtifact()">Download PNG</button>
+      <button class="btn btn-primary" (click)="showQrModal.set(false)">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL 2: DIRECT PROCUREMENT TRANSMIT MODAL               -->
+<!-- ======================================================== -->
+<div *ngIf="showTransmitModal()" class="vp-modal-backdrop" (click)="closeTransmitModal()">
+  <div class="vp-modal-card animate-scale-up" (click)="$event.stopPropagation()">
+    <div class="vp-modal-header">
+      <div class="modal-title-wrap">
+        <span class="modal-tag">ENTERPRISE BUYER ONBOARDING</span>
+        <h3 class="modal-title">Transmit Passport to Buyer Desk</h3>
+        <p class="modal-sub">Dispatch your certified compliance dossier directly to a buyer's procurement team.</p>
+      </div>
+      <button class="modal-close-btn" (click)="closeTransmitModal()" aria-label="Close modal">✕</button>
+    </div>
+
+    <div class="transmit-modal-body">
+      <div class="form-group mb-3">
+        <label class="form-lbl">Buyer Procurement Email *</label>
+        <input
+          type="email"
+          [(ngModel)]="buyerEmail"
+          placeholder="e.g. procurement@tatasteel.com"
+          class="form-input"
+          required />
+      </div>
+
+      <div class="form-group mb-3">
+        <label class="form-lbl">Buyer Enterprise / Corporation Name</label>
+        <input
+          type="text"
+          [(ngModel)]="buyerOrg"
+          placeholder="e.g. Tata Steel Ltd"
+          class="form-input" />
+      </div>
+
+      <div class="form-group mb-3">
+        <label class="form-lbl">Access Scope Tier</label>
+        <div class="tier-select-grid">
+          <label class="tier-card" [class.selected]="accessTier === 'SUMMARY'">
+            <input type="radio" name="tier" value="SUMMARY" [(ngModel)]="accessTier" class="sr-only" />
+            <strong class="tier-title">Standard Verified Tier</strong>
+            <span class="tier-desc">Trust score, statutory GST &amp; PAN verification badges, active status.</span>
+          </label>
+          <label class="tier-card" [class.selected]="accessTier === 'FULL'">
+            <input type="radio" name="tier" value="FULL" [(ngModel)]="accessTier" class="sr-only" />
+            <strong class="tier-title">Full Due Diligence Tier</strong>
+            <span class="tier-desc">Complete passport, GSTIN consistency, NPCI bank validation, and ISO certs.</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group mb-2">
+        <label class="form-lbl">Optional Note or RFQ Reference</label>
+        <textarea
+          [(ngModel)]="transmitNote"
+          rows="2"
+          placeholder="Add RFQ reference or vendor registration ticket number..."
+          class="form-input"></textarea>
+      </div>
+    </div>
+
+    <div class="vp-modal-footer">
+      <button class="btn btn-outline" (click)="closeTransmitModal()">Cancel</button>
+      <button
+        class="btn btn-primary"
+        [disabled]="isTransmitting() || !buyerEmail"
+        (click)="submitTransmit()">
+        {{ isTransmitting() ? 'Transmitting...' : 'Transmit Verified Passport →' }}
+      </button>
+    </div>
+  </div>
+</div>

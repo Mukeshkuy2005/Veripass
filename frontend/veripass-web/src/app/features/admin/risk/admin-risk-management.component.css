@@ -1,0 +1,216 @@
+    .risk-page {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding-bottom: 32px;
+    }
+
+    .header-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 16px;
+      padding: 24px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .header-tag {
+      font-size: 11px;
+      font-weight: 800;
+      color: #2563EB;
+      letter-spacing: 0.8px;
+      margin-bottom: 4px;
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #0F172A;
+      margin: 0 0 4px 0;
+    }
+
+    .page-subtitle {
+      font-size: 13px;
+      color: #64748B;
+      margin: 0;
+    }
+
+    .threat-level-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      padding: 8px 14px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #B91C1C;
+
+      .threat-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #DC2626;
+      }
+    }
+
+    /* Two Col */
+    .two-col-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+
+      @media (max-width: 1080px) { grid-template-columns: 1fr; }
+    }
+
+    .section-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 16px;
+      padding: 22px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0F172A;
+      letter-spacing: 0.5px;
+      margin: 0 0 2px 0;
+    }
+
+    .card-sub { font-size: 11px; color: #64748B; }
+
+    /* Distribution Bars */
+    .dist-container {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .dist-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .dist-lbl { font-size: 11px; width: 180px; }
+    .dist-track {
+      flex: 1;
+      height: 12px;
+      background: #F1F5F9;
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+
+    .dist-fill {
+      height: 100%;
+      border-radius: 9999px;
+      &.high { background: #DC2626; }
+      &.medium { background: #F59E0B; }
+      &.low { background: #16A34A; }
+    }
+
+    .dist-val { font-size: 12px; width: 110px; text-align: right; }
+
+    /* Cat List */
+    .cat-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .cat-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .ci-name { color: #0F172A; }
+    .ci-count { color: #64748B; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    .dense-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+
+      th {
+        background: #F8FAFC;
+        padding: 10px 14px;
+        text-align: left;
+        font-size: 10px;
+        font-weight: 800;
+        color: #475569;
+        text-transform: uppercase;
+        border-bottom: 1px solid #E2E8F0;
+      }
+
+      td {
+        padding: 12px 14px;
+        border-bottom: 1px solid #F1F5F9;
+        vertical-align: middle;
+      }
+    }
+
+    .font-mono { font-family: monospace; }
+    .font-bold { font-weight: 700; }
+    .text-dark { color: #0F172A; }
+    .text-muted { color: #64748B; }
+    .text-danger { color: #DC2626 !important; }
+    .text-amber { color: #D97706 !important; }
+    .text-success { color: #16A34A !important; }
+    .text-right { text-align: right; }
+
+    .score-badge {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 4px;
+      &.high { background: #FEE2E2; color: #B91C1C; }
+      &.med { background: #FEF3C7; color: #B45309; }
+    }
+
+    .badge-status {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      &.active { background: #DCFCE7; color: #15803D; }
+      &.flagged { background: #FEF3C7; color: #B45309; }
+      &.suspended { background: #FEE2E2; color: #B91C1C; }
+    }
+
+    .badge-danger {
+      font-size: 11px;
+      font-weight: 700;
+      background: #FEE2E2;
+      color: #B91C1C;
+      padding: 3px 10px;
+      border-radius: 9999px;
+    }
+
+    .btn-action {
+      font-size: 12px;
+      font-weight: 700;
+      color: #2563EB;
+      text-decoration: none;
+      &:hover { text-decoration: underline; }
+    }

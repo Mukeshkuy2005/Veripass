@@ -1,0 +1,452 @@
+    <div class="verification-center-view">
+      <!-- FLOATING TOAST NOTIFICATION -->
+      <div *ngIf="toastMessage()" class="vc-toast-banner">
+        <span class="toast-check">✓</span>
+        <span class="toast-text">{{ toastMessage() }}</span>
+      </div>
+
+      <!-- HEADER -->
+      <div class="vc-header">
+        <div>
+          <span class="view-tag">AUTHORITATIVE ENGINE</span>
+          <h1 class="page-title">Verification Center</h1>
+          <p class="page-sub">Continuous statutory compliance & sovereign identity reconciliation for <strong>{{ companyName }}</strong>.</p>
+        </div>
+        <div class="vc-header-actions">
+          <button class="btn btn-secondary btn-sm btn-icon-label" (click)="refreshAllChecks()" [disabled]="isRefreshing()" title="Re-sync with sovereign government registries">
+            <span class="refresh-spinner" [class.spinning]="isRefreshing()">↻</span>
+            <span>{{ isRefreshing() ? 'Syncing...' : 'Sync Sovereign Registries' }}</span>
+          </button>
+          <a routerLink="/supplier/history" class="btn btn-outline btn-sm">Full Verification Audit &rarr;</a>
+        </div>
+      </div>
+
+      <!-- TOP SCORE & 3 SUMMARY METRICS HERO CARD -->
+      <div class="vp-card score-hero-card">
+        <div class="score-hero-top">
+          <div class="score-left">
+            <span class="score-lbl">OVERALL VERIFICATION STATUS</span>
+            <div class="big-score-row">
+              <span class="big-score" [class.text-green]="verificationScore() >= 94" [class.text-amber]="verificationScore() < 94">
+                {{ verificationScore() }}%
+              </span>
+              <div class="score-status-block">
+                <span class="score-status-text">{{ verificationStatusText() }}</span>
+                <span class="score-status-sub">Reconciled in real-time across MCA21, GSTN, NSDL & NPCI</span>
+              </div>
+            </div>
+          </div>
+          <div class="score-bar-wrap">
+            <div class="score-meter-bg">
+              <div class="score-meter-fill" [style.width.%]="verificationScore()" [class.score-meter-full]="verificationScore() === 100"></div>
+            </div>
+            <div class="meter-labels">
+              <span>0% Baseline</span>
+              <span class="mid-target" [class.target-met]="verificationScore() >= 90">Target 90%+ for Enterprise Priority (Active: {{ verificationScore() }}%)</span>
+              <span>100% Sovereign Clean</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 Pillars Row -->
+        <div class="pillars-grid">
+          <div class="pillar-box">
+            <span class="pillar-title">Identity & Existence</span>
+            <span class="pillar-val text-green">
+              {{ verificationScore() === 100 ? '✓ 6 of 6 Verified' : (verificationScore() >= 94 ? '✓ 5 of 6 Verified' : '4 of 6 Verified') }}
+            </span>
+            <span class="pillar-sub">Sovereign identity confirmed</span>
+          </div>
+
+          <div class="pillar-box">
+            <span class="pillar-title">Filing & Compliance</span>
+            <span class="pillar-val text-green">
+              {{ verificationScore() === 100 ? '100 / 100' : '96 / 100' }}
+            </span>
+            <span class="pillar-sub">Zero statutory return defaults</span>
+          </div>
+
+          <div class="pillar-box">
+            <span class="pillar-title">Verified Credentials</span>
+            <span class="pillar-val text-blue">
+              {{ verificationScore() === 100 ? '16 / 16' : (verificationScore() >= 94 ? '15 / 16' : '14 / 16') }}
+            </span>
+            <span class="pillar-sub">Active ledger credentials</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2-COLUMN: CHECKLIST & FAILED RESOLUTION + TIMELINE -->
+      <div class="vc-main-grid">
+        <!-- LEFT: VERIFICATION CHECKLIST -->
+        <div class="checklist-col">
+          <div class="vp-card checklist-card">
+            <div class="checklist-card-header">
+              <h2 class="card-title">STATUTORY IDENTITY CHECKLIST</h2>
+              <span class="checklist-count-tag">
+                {{ verifiedChecksCount() }} of {{ totalChecksCount() }} Passed
+              </span>
+            </div>
+
+            <div class="checks-list">
+              <div *ngFor="let check of checks()" class="check-item" [ngClass]="check.status.toLowerCase()">
+                <div class="check-status-col">
+                  <span class="status-sym" *ngIf="check.status === 'VERIFIED'">✓</span>
+                  <span class="status-sym" *ngIf="check.status === 'WARNING'">⚠</span>
+                  <span class="status-sym" *ngIf="check.status === 'PENDING'">○</span>
+                </div>
+                <div class="check-info">
+                  <div class="check-title-row">
+                    <strong>{{ check.name }}</strong>
+                    <span class="auth-pill-tag">{{ check.authorityLogoText }}</span>
+                  </div>
+                  <p [class.text-amber]="check.status === 'WARNING'">{{ check.description }}</p>
+                  <div class="check-meta-row">
+                    <span class="meta-label">ID: <code class="meta-id">{{ check.identifier }}</code></span>
+                    <span class="meta-sep">&bull;</span>
+                    <span class="meta-time">Last Checked: {{ check.lastChecked }}</span>
+                  </div>
+                </div>
+
+                <div class="check-actions-col">
+                  <button *ngIf="check.status === 'VERIFIED'" class="btn btn-secondary btn-sm" (click)="openCheckDetails(check)">
+                    Details
+                  </button>
+                  <button *ngIf="check.status === 'WARNING'" class="btn btn-primary btn-sm btn-pulse" (click)="openAddressResolution()">
+                    Resolve Discrepancy
+                  </button>
+                  <button *ngIf="check.status === 'PENDING'" class="btn btn-secondary btn-sm btn-initiate" (click)="openPennyDropModal()">
+                    Initiate Penny Drop
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: RESOLUTION BOX & MINI TIMELINE -->
+        <div class="details-col">
+          <!-- 1. ACTION REQUIRED BOX (If address is warning) -->
+          <div *ngIf="verificationScore() < 94" class="vp-card resolution-card">
+            <div class="resolution-header">
+              <span class="warning-icon">⚠</span>
+              <div>
+                <h3 class="res-title">VERIFICATION ACTION REQUIRED</h3>
+                <span class="res-sub">Principal address reconciliation flagged</span>
+              </div>
+            </div>
+
+            <p class="res-body">
+              The address on the submitted electricity utility proof contains a minor suffix disparity compared to the official MCA21 / GSTN master charter.
+            </p>
+
+            <div class="res-reasons-box">
+              <div class="res-row">
+                <span class="res-lbl">Flagged Issue:</span>
+                <span class="res-val text-amber">Address Token Mismatch</span>
+              </div>
+              <div class="res-row">
+                <span class="res-lbl">Master Registered Address:</span>
+                <span class="res-val font-mono">{{ principalAddress }}</span>
+              </div>
+              <div class="res-row">
+                <span class="res-lbl">Utility Evidence Address:</span>
+                <span class="res-val font-mono text-gray">Plot 105B, Industrial Estate, Faridabad, Haryana 121004</span>
+              </div>
+              <div class="res-row">
+                <span class="res-lbl">Recommended Resolution:</span>
+                <span class="res-val text-action">Upload updated utility bill matching registered address or certify registered office amendment.</span>
+              </div>
+            </div>
+
+            <button class="btn btn-primary w-full" (click)="openAddressResolution()">
+              Resolve Issue & Upload Proof &rarr;
+            </button>
+          </div>
+
+          <!-- 1B. RESOLVED SUCCESS BOX (When address is fixed!) -->
+          <div *ngIf="verificationScore() >= 94" class="vp-card resolved-success-card">
+            <div class="resolved-header">
+              <div class="success-badge-icon">✓</div>
+              <div>
+                <h3 class="resolved-title">ALL STATUTORY CHECKS RESOLVED</h3>
+                <span class="resolved-sub">Sovereign identity reconciled across all rails</span>
+              </div>
+            </div>
+            <p class="resolved-body">
+              Your registered entity <strong>{{ companyName }}</strong> has cleared all primary statutory identity reconciliations. Your Business Passport is ready for high-value buyer transactions.
+            </p>
+            <div class="resolved-meta-box">
+              <div class="m-item">
+                <span class="m-lbl">Current Standing:</span>
+                <strong class="m-val text-green">Tier-1 Sovereign Enterprise ({{ verificationScore() }}%)</strong>
+              </div>
+              <div class="m-item">
+                <span class="m-lbl">Reconciliation Status:</span>
+                <strong class="m-val text-blue">100% Passed</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. MINI TIMELINE -->
+          <div class="vp-card mini-timeline-card">
+            <div class="timeline-card-header">
+              <h3 class="card-title">VERIFICATION HISTORY</h3>
+              <span class="live-dot-tag"><span class="pulsing-dot"></span> Live Ledger</span>
+            </div>
+
+            <div class="mini-timeline">
+              <div *ngFor="let item of historyItems()" class="time-item">
+                <span class="dot" [ngClass]="item.status === 'VERIFIED' ? 'green' : (item.status === 'WARNING' ? 'amber' : 'gray')"></span>
+                <div class="time-content">
+                  <div class="time-title-row">
+                    <strong>{{ item.title }}</strong>
+                    <span class="time-tag-pill">{{ item.timeLabel }}</span>
+                  </div>
+                  <p class="time-desc">{{ item.description }}</p>
+                  <span class="time-meta">{{ item.timestamp }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====================================================================
+           MODAL 1: STATUTORY CHECK INSPECTION MODAL
+           ==================================================================== -->
+      <div class="modal-backdrop" *ngIf="activeCheckModal()" (click)="closeCheckDetails()">
+        <div class="statutory-modal-card" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <div class="modal-header-left">
+              <span class="modal-cat-tag">{{ activeCheckModal()?.category }}</span>
+              <h2 class="modal-title">{{ activeCheckModal()?.name }}</h2>
+              <span class="modal-sub">Authoritative Registry: {{ activeCheckModal()?.authority }}</span>
+            </div>
+            <button class="btn-close-modal" (click)="closeCheckDetails()" title="Close Details">✕</button>
+          </div>
+
+          <div class="modal-body-scrollable">
+            <!-- Authority Verification Banner -->
+            <div class="auth-banner">
+              <div class="auth-banner-left">
+                <span class="auth-glyph">{{ getAuthorityGlyph(activeCheckModal()?.authorityLogoText) }}</span>
+                <div>
+                  <span class="auth-lbl">RECONCILIATION SOURCE</span>
+                  <strong class="auth-name">{{ activeCheckModal()?.verificationSource }}</strong>
+                </div>
+              </div>
+              <div class="confidence-badge">
+                <span class="conf-dot"></span>
+                <span>{{ activeCheckModal()?.confidenceScore }}% Match Score</span>
+              </div>
+            </div>
+
+            <!-- Description -->
+            <div class="check-summary-box">
+              <p>{{ activeCheckModal()?.description }}</p>
+            </div>
+
+            <!-- Statutory Data Table -->
+            <div class="details-section">
+              <span class="section-heading">STATUTORY ATTRIBUTES MATCHED ON SOVEREIGN RAILS</span>
+              <div class="stat-table">
+                <div *ngFor="let d of activeCheckModal()?.details" class="stat-row">
+                  <span class="stat-key">{{ d.label }}</span>
+                  <span class="stat-val" [class.font-mono]="d.isMono" [class.highlight]="d.isHighlight" [class.text-green]="d.isGreen">
+                    {{ d.value }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cryptographic Digest Box -->
+            <div class="digest-card">
+              <div class="digest-header">
+                <span class="digest-lbl">TAMPER-PROOF AUDIT DIGEST</span>
+                <span class="digest-status">✓ IMMUTABLE LEDGER HASH</span>
+              </div>
+              <code class="digest-code">{{ activeCheckModal()?.digest }}</code>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-outline btn-sm btn-icon-label" (click)="downloadCheckCertificate(activeCheckModal()!)" title="Download Official Verification Certificate PDF">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Download Certificate</span>
+            </button>
+            <button class="btn btn-primary btn-sm" (click)="closeCheckDetails()">Done</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====================================================================
+           MODAL 2: ADDRESS DISCREPANCY RESOLUTION WORKFLOW MODAL
+           ==================================================================== -->
+      <div class="modal-backdrop" *ngIf="showResolutionModal()" (click)="closeAddressResolution()">
+        <div class="resolution-modal-card" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <div class="modal-header-left">
+              <span class="warning-tag">ACTION WORKFLOW</span>
+              <h2 class="modal-title">Address Discrepancy Resolution</h2>
+              <span class="modal-sub">Submit updated utility proof or certified amendment to reconcile physical operating location.</span>
+            </div>
+            <button class="btn-close-modal" (click)="closeAddressResolution()" [disabled]="isResolving()">✕</button>
+          </div>
+
+          <div class="modal-body-scrollable">
+            <!-- Discrepancy Comparison Box -->
+            <div class="comparison-grid">
+              <div class="comp-col master">
+                <span class="comp-lbl">MCA21 & GSTN REGISTERED ADDRESS</span>
+                <strong class="comp-val">{{ principalAddress }}</strong>
+                <span class="comp-tag green">Master Official Record</span>
+              </div>
+              <div class="comp-col evidence">
+                <span class="comp-lbl">PREVIOUS UTILITY BILL RECORD</span>
+                <strong class="comp-val">Plot 105B, Industrial Estate, Faridabad, Haryana 121004</strong>
+                <span class="comp-tag amber">Mismatch: Plot Number Suffix (105B)</span>
+              </div>
+            </div>
+
+            <!-- Resolution Step Form -->
+            <div class="resolution-form" *ngIf="!isResolving() && resolutionProgress() === null">
+              <!-- Error Banner -->
+              <div class="error-alert-banner" *ngIf="resolutionError()">
+                <span class="error-alert-icon">⚠</span>
+                <span>{{ resolutionError() }}</span>
+              </div>
+
+              <div class="form-group mb-4">
+                <label class="form-lbl">Select Evidence Document Type *</label>
+                <select class="vp-select" [ngModel]="selectedProofType()" (ngModelChange)="selectedProofType.set($event)">
+                  <option value="Electricity Utility Bill (Under 3 Months)">Electricity Utility Bill (DHBVN/State Discom - Issued within 90 days)</option>
+                  <option value="Municipal Property Tax Receipt">Municipal Property Tax Paid Receipt (Faridabad Municipal Corp)</option>
+                  <option value="Registered Commercial Lease Deed">Registered Commercial Lease / Rental Agreement with Landlord</option>
+                  <option value="Water Utility Connection Bill">State Water Authority / Sewerage Connection Utility Bill</option>
+                </select>
+              </div>
+
+              <!-- Upload Drag-Drop Box -->
+              <div class="form-group mb-4">
+                <label class="form-lbl">Upload Updated Evidence Document (PDF or High-Res Scan) *</label>
+                <div class="file-dropzone" (dragover)="$event.preventDefault()" (drop)="onFileDropped($event)">
+                  <div class="drop-icon">📄</div>
+                  <strong class="drop-title" *ngIf="!proofFileName()">Drag & drop your utility bill or lease deed here</strong>
+                  <strong class="drop-title text-green" *ngIf="proofFileName()">Selected: {{ proofFileName() }}</strong>
+                  <span class="drop-hint">Supported formats: PDF, PNG, JPEG &bull; Max size: 10 MB</span>
+                  <label class="btn btn-outline btn-sm btn-browse">
+                    Browse File
+                    <input type="file" id="proofFileInput" (change)="onFileSelected($event)" accept=".pdf,image/png,image/jpeg,image/jpg" hidden />
+                  </label>
+                </div>
+              </div>
+
+              <!-- Statutory Certification Checkbox -->
+              <div class="confirm-checkbox-row">
+                <input type="checkbox" id="chkAmendment" [ngModel]="confirmAmendment()" (ngModelChange)="confirmAmendment.set($event)" />
+                <label for="chkAmendment">
+                  I certify that the premises address above reflects the actual operating registered office of <strong>{{ companyName }}</strong> pursuant to Section 12 of Companies Act 2013.
+                </label>
+              </div>
+            </div>
+
+            <!-- Live Progress Bar when Resolving -->
+            <div class="live-progress-container" *ngIf="isResolving() || resolutionProgress() !== null">
+              <div class="progress-header">
+                <span class="progress-title">SOVEREIGN RE-VERIFICATION IN PROGRESS</span>
+                <span class="progress-percent">{{ resolutionProgress() }}%</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-bar-fill" [style.width.%]="resolutionProgress()"></div>
+              </div>
+              <div class="progress-status-box">
+                <span class="spinner-icon" *ngIf="resolutionProgress()! < 100">⏳</span>
+                <span class="check-icon" *ngIf="resolutionProgress() === 100">✓</span>
+                <span class="progress-step-text">{{ resolutionStepText() }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-secondary btn-sm" (click)="closeAddressResolution()" [disabled]="isResolving()">Cancel</button>
+            <button class="btn btn-primary btn-sm" (click)="submitAddressResolution()" [disabled]="isResolving() || !selectedProofFile() || !confirmAmendment()">
+              {{ isResolving() ? 'Re-Verifying with Registries...' : 'Submit for Sovereign Re-Verification' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====================================================================
+           MODAL 3: NPCI PENNY DROP BANK VERIFICATION MODAL
+           ==================================================================== -->
+      <div class="modal-backdrop" *ngIf="showPennyDropModal()" (click)="closePennyDropModal()">
+        <div class="statutory-modal-card" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <div class="modal-header-left">
+              <span class="modal-cat-tag">FINANCIAL SETTLEMENT</span>
+              <h2 class="modal-title">NPCI Penny Drop Account Verification</h2>
+              <span class="modal-sub">Verify bank settlement rails and confirm exact entity beneficiary match via NPCI IMPS.</span>
+            </div>
+            <button class="btn-close-modal" (click)="closePennyDropModal()" [disabled]="isPennyDropping()">✕</button>
+          </div>
+
+          <div class="modal-body-scrollable">
+            <!-- Bank Account Card -->
+            <div class="bank-account-box">
+              <div class="bank-logo-col">🏛️</div>
+              <div class="bank-meta">
+                <span class="bank-name">HDFC Bank Limited</span>
+                <strong class="account-num font-mono">50200084924321 &bull; Masked: ****4321</strong>
+                <span class="ifsc-code font-mono">IFSC: HDFC0000123 &bull; Faridabad Sector 16 Branch</span>
+              </div>
+              <div class="penny-test-badge">₹ 1.00 TEST CREDIT</div>
+            </div>
+
+            <!-- Beneficiary Match Expectation -->
+            <div class="beneficiary-match-box">
+              <div class="b-row">
+                <span class="b-lbl">Expected Beneficiary Legal Name:</span>
+                <strong class="b-val">{{ companyName.toUpperCase() }}</strong>
+              </div>
+              <div class="b-row">
+                <span class="b-lbl">Verification Rail:</span>
+                <span class="b-val font-mono">NPCI IMPS Instant Settlement API Gateway</span>
+              </div>
+              <div class="b-row">
+                <span class="b-lbl">Audit Guarantee:</span>
+                <span class="b-val text-green">100% Zero-Risk Sandbox Test with Live UTR Generation</span>
+              </div>
+            </div>
+
+            <!-- Live Penny Drop Progress -->
+            <div class="live-progress-container" *ngIf="isPennyDropping() || pennyDropProgress() !== null">
+              <div class="progress-header">
+                <span class="progress-title">NPCI IMPS PENNY DROP EXECUTION</span>
+                <span class="progress-percent">{{ pennyDropProgress() }}%</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-bar-fill" [style.width.%]="pennyDropProgress()"></div>
+              </div>
+              <div class="progress-status-box">
+                <span class="spinner-icon" *ngIf="pennyDropProgress()! < 100">💳</span>
+                <span class="check-icon" *ngIf="pennyDropProgress() === 100">✓</span>
+                <span class="progress-step-text">{{ pennyDropStepText() }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-secondary btn-sm" (click)="closePennyDropModal()" [disabled]="isPennyDropping()">Cancel</button>
+            <button class="btn btn-primary btn-sm" (click)="executePennyDrop()" [disabled]="isPennyDropping()">
+              {{ isPennyDropping() ? 'Executing Penny Drop...' : 'Execute ₹1.00 Sovereign Penny Drop' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+

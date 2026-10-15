@@ -1,0 +1,100 @@
+    .score-container {
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .gauge-ring {
+      position: relative;
+      width: 80px;
+      height: 80px;
+    }
+    .gauge-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+    .gauge-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.08);
+      stroke-width: 8;
+    }
+    .gauge-progress {
+      fill: none;
+      stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1s ease-in-out, stroke 0.3s ease;
+    }
+    .score-center {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .score-number {
+      font-family: var(--font-heading);
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-white);
+      line-height: 1;
+    }
+    .score-total {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .score-meta {
+      display: flex;
+      flex-direction: column;
+    }
+    .score-tier {
+      font-family: var(--font-heading);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .score-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    /* Tiers */
+    .tier-excellent .gauge-progress {
+      stroke: var(--emerald);
+      filter: drop-shadow(0 0 6px var(--emerald-glow));
+    }
+    .tier-excellent .score-tier {
+      color: var(--emerald);
+    }
+
+    .tier-good .gauge-progress {
+      stroke: var(--primary);
+      filter: drop-shadow(0 0 6px var(--primary-glow));
+    }
+    .tier-good .score-tier {
+      color: var(--primary);
+    }
+
+    .tier-moderate .gauge-progress {
+      stroke: var(--amber);
+      filter: drop-shadow(0 0 6px var(--amber-glow));
+    }
+    .tier-moderate .score-tier {
+      color: var(--amber);
+    }
+
+    .tier-risk .gauge-progress {
+      stroke: var(--crimson);
+      filter: drop-shadow(0 0 6px var(--crimson-glow));
+    }
+    .tier-risk .score-tier {
+      color: var(--crimson);
+    }

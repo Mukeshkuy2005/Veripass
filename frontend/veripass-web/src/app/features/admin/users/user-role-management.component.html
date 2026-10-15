@@ -1,0 +1,259 @@
+    <div class="user-page">
+      <!-- HEADER -->
+      <div class="header-card">
+        <div>
+          <div class="header-tag">IDENTITY &amp; ACCESS GOVERNANCE (RBAC)</div>
+          <h1 class="page-title">User &amp; Role Management</h1>
+          <p class="page-subtitle">
+            Granular role-based access control, privilege boundaries, platform user registry, and permission matrix.
+          </p>
+        </div>
+        <div class="header-badge">
+          <span>102,821 Total Directory Accounts</span>
+        </div>
+      </div>
+
+      <!-- 6 USER STATS KPIS (A12 SPEC) -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <span class="kpi-title">TOTAL ACCOUNTS</span>
+          <div class="kpi-val">102,821</div>
+          <span class="kpi-sub">Across all platform personas</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">SUPPLIER IDENTITIES</span>
+          <div class="kpi-val">84,291</div>
+          <span class="kpi-sub">Passport administrators</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">BUYER USERS</span>
+          <div class="kpi-val">8,912</div>
+          <span class="kpi-sub">Procurement managers</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">VERIFIER OFFICERS</span>
+          <div class="kpi-val text-success">412</div>
+          <span class="kpi-sub">Licensed compliance operators</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">PRIVILEGED ADMINS</span>
+          <div class="kpi-val text-purple">28</div>
+          <span class="kpi-sub">Governance &amp; security admins</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-title">SUSPENDED</span>
+          <div class="kpi-val text-danger">93</div>
+          <span class="kpi-sub">Access disabled</span>
+        </div>
+      </div>
+
+      <!-- TAB CONTROLS -->
+      <div class="tab-bar-card">
+        <div class="tab-group">
+          <button 
+            type="button" 
+            class="tab-btn" 
+            [class.active]="activeTab === 'USERS'"
+            (click)="activeTab = 'USERS'">
+            User Directory
+          </button>
+          <button 
+            type="button" 
+            class="tab-btn" 
+            [class.active]="activeTab === 'ROLES'"
+            (click)="activeTab = 'ROLES'">
+            Defined Roles (7)
+          </button>
+          <button 
+            type="button" 
+            class="tab-btn" 
+            [class.active]="activeTab === 'PERMISSIONS'"
+            (click)="activeTab = 'PERMISSIONS'">
+            RBAC Permission Matrix
+          </button>
+        </div>
+      </div>
+
+      <!-- VIEW 1: USER DIRECTORY -->
+      <div class="table-card" *ngIf="activeTab === 'USERS'">
+        <div class="table-responsive">
+          <table class="dense-table">
+            <thead>
+              <tr>
+                <th>USER ID</th>
+                <th>FULL NAME &amp; EMAIL</th>
+                <th>ASSIGNED ROLE</th>
+                <th>STATUS</th>
+                <th>LAST ACTIVITY</th>
+                <th class="text-right">ACTION</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let u of users()">
+                <td class="font-mono font-bold text-dark">{{ u.userId }}</td>
+                <td>
+                  <div class="u-info">
+                    <span class="u-name font-bold">{{ u.name }}</span>
+                    <span class="u-email text-muted">{{ u.email }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="role-badge" [ngClass]="u.role.toLowerCase()">
+                    {{ u.role }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge-status" [ngClass]="u.status.toLowerCase()">
+                    ● {{ u.status }}
+                  </span>
+                </td>
+                <td class="font-mono text-muted">{{ u.lastLogin }}</td>
+                <td class="text-right">
+                  <button type="button" class="btn-manage">Edit Role</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- VIEW 2: ROLES OVERVIEW -->
+      <div class="roles-grid" *ngIf="activeTab === 'ROLES'">
+        <div class="role-card">
+          <div class="rc-head">
+            <span class="rc-title">PLATFORM_ADMIN</span>
+            <span class="rc-level">Tier 4 Privileged</span>
+          </div>
+          <p class="rc-desc">Full governance over platform configuration, system security policies, and dispute finalization. No direct evidence tampering.</p>
+        </div>
+
+        <div class="role-card">
+          <div class="rc-head">
+            <span class="rc-title">COMPLIANCE_ADMIN</span>
+            <span class="rc-level">Tier 3 Compliance</span>
+          </div>
+          <p class="rc-desc">Manages verification rulesets, credential schema definitions, and audits verifier SLA adherence.</p>
+        </div>
+
+        <div class="role-card">
+          <div class="rc-head">
+            <span class="rc-title">SENIOR_VERIFIER</span>
+            <span class="rc-level">Tier 2 Special Investigations</span>
+          </div>
+          <p class="rc-desc">Resolves escalated conflict cases, overrides anomalous heuristic warnings, and performs senior adjudication.</p>
+        </div>
+
+        <div class="role-card">
+          <div class="rc-head">
+            <span class="rc-title">VERIFIER</span>
+            <span class="rc-level">Tier 1 Workstation</span>
+          </div>
+          <p class="rc-desc">Claims queue cases, reviews high-res documents, verifies against sovereign registries, and issues statutory decisions.</p>
+        </div>
+
+        <div class="role-card">
+          <div class="rc-head">
+            <span class="rc-title">BUYER_ADMIN</span>
+            <span class="rc-level">Enterprise Procurement</span>
+          </div>
+          <p class="rc-desc">Discovers vendors, issues verification requests, manages organization procurement team members.</p>
+        </div>
+
+        <div class="role-card">
+          <div class="rc-head">
+            <span class="rc-title">SUPPLIER</span>
+            <span class="rc-level">Business Owner</span>
+          </div>
+          <p class="rc-desc">Uploads business credentials, maintains Business Passport, and shares verified credentials with buyers.</p>
+        </div>
+      </div>
+
+      <!-- VIEW 3: GRANULAR RBAC PERMISSION MATRIX (A12 SPEC) -->
+      <div class="matrix-card" *ngIf="activeTab === 'PERMISSIONS'">
+        <div class="matrix-head">
+          <div>
+            <h3 class="mh-title">GRANULAR STATUTORY PERMISSION MATRIX</h3>
+            <span class="mh-sub">Enforced at API Gateway and domain handler boundaries</span>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th>PERMISSION PRIVILEGE</th>
+                <th class="text-center">VERIFIER</th>
+                <th class="text-center">SENIOR VERIFIER</th>
+                <th class="text-center">COMPLIANCE ADMIN</th>
+                <th class="text-center">PLATFORM ADMIN</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="font-bold">View Verification Cases &amp; Evidence</td>
+                <td class="text-center text-success font-bold">✓</td>
+                <td class="text-center text-success font-bold">✓</td>
+                <td class="text-center text-success font-bold">✓</td>
+                <td class="text-center text-success font-bold">✓</td>
+              </tr>
+              <tr>
+                <td class="font-bold">Issue Approval Decision</td>
+                <td class="text-center text-success font-bold">✓</td>
+                <td class="text-center text-success font-bold">✓</td>
+                <td class="text-center text-success font-bold">✓</td>
+                <td class="text-center text-success font-bold">✓</td>
+              </tr>
+              <tr>
+                <td class="font-bold">Issue Rejection Decision</td>
+                <td class="text-center text-success font-bold">✓</td>
+                <td class="text-center text-success font-bold">✓</td>
+                <td class="text-center text-success font-bold">✓</td>
+                <td class="text-center text-success font-bold">✓</td>
+              </tr>
+              <tr>
+                <td class="font-bold">Resolve Senior Escalations</td>
+                <td class="text-center text-danger font-bold">✕</td>
+                <td class="text-center text-success font-bold">✓</td>
+                <td class="text-center text-success font-bold">✓</td>
+                <td class="text-center text-success font-bold">✓</td>
+              </tr>
+              <tr>
+                <td class="font-bold">Create &amp; Publish Verification Rules</td>
+                <td class="text-center text-danger font-bold">✕</td>
+                <td class="text-center text-success font-bold">✓</td>
+                <td class="text-center text-success font-bold">✓</td>
+                <td class="text-center text-success font-bold">✓</td>
+              </tr>
+              <tr>
+                <td class="font-bold">Manage Directory Users &amp; Roles</td>
+                <td class="text-center text-danger font-bold">✕</td>
+                <td class="text-center text-danger font-bold">✕</td>
+                <td class="text-center text-danger font-bold">✕</td>
+                <td class="text-center text-success font-bold">✓</td>
+              </tr>
+              <tr>
+                <td class="font-bold">Manage Core Platform Configuration</td>
+                <td class="text-center text-danger font-bold">✕</td>
+                <td class="text-center text-danger font-bold">✕</td>
+                <td class="text-center text-danger font-bold">✕</td>
+                <td class="text-center text-success font-bold">✓</td>
+              </tr>
+              <tr>
+                <td class="font-bold">Access Immutable Audit Logs</td>
+                <td class="text-center text-muted">Limited (Self)</td>
+                <td class="text-center text-success font-bold">✓</td>
+                <td class="text-center text-success font-bold">✓</td>
+                <td class="text-center text-success font-bold">✓</td>
+              </tr>
+              <tr>
+                <td class="font-bold">Delete Historical Evidence</td>
+                <td class="text-center text-danger font-bold">✕ PROHIBITED</td>
+                <td class="text-center text-danger font-bold">✕ PROHIBITED</td>
+                <td class="text-center text-danger font-bold">✕ PROHIBITED</td>
+                <td class="text-center text-danger font-bold">✕ PROHIBITED</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>

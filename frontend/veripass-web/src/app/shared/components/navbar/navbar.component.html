@@ -1,0 +1,80 @@
+    <header class="navbar">
+      <div class="container nav-content">
+        <!-- Logo -->
+        <a routerLink="/" class="logo">
+          <div class="logo-badge">VP</div>
+          <div class="logo-text">
+            <span class="logo-name">VERIPASS</span>
+            <span class="logo-tag">INDIA VENDOR NETWORK</span>
+          </div>
+        </a>
+
+        <!-- Main Nav Links -->
+        <nav class="nav-links">
+          <ng-container *ngIf="auth.isAuthenticated()">
+            <!-- Supplier Links -->
+            <ng-container *ngIf="auth.currentRole() === 'SUPPLIER'">
+              <a routerLink="/supplier/dashboard" routerLinkActive="active">Dashboard</a>
+              <a routerLink="/supplier/documents" routerLinkActive="active">Documents & OCR</a>
+              <a routerLink="/supplier/verification" routerLinkActive="active">Verification</a>
+              <a routerLink="/supplier/passport" routerLinkActive="active">My Passport</a>
+              <a routerLink="/supplier/compliance" routerLinkActive="active">Compliance</a>
+              <a routerLink="/supplier/settings" routerLinkActive="active">Settings</a>
+            </ng-container>
+
+            <!-- Buyer Links -->
+            <ng-container *ngIf="auth.currentRole() === 'BUYER'">
+              <a routerLink="/buyer/dashboard" routerLinkActive="active">Procurement</a>
+              <a routerLink="/buyer/discovery" routerLinkActive="active">Supplier Search</a>
+              <a routerLink="/buyer/onboarding" routerLinkActive="active">Vendor Network</a>
+            </ng-container>
+
+            <!-- Verifier Links -->
+            <ng-container *ngIf="auth.currentRole() === 'VERIFIER'">
+              <a routerLink="/verifier/dashboard" routerLinkActive="active">Operations</a>
+              <a routerLink="/verifier/queue" routerLinkActive="active">Verification Queue</a>
+            </ng-container>
+
+            <!-- Admin Links -->
+            <ng-container *ngIf="auth.currentRole() === 'ADMIN'">
+              <a routerLink="/admin/dashboard" routerLinkActive="active">Admin Console</a>
+            </ng-container>
+          </ng-container>
+
+          <ng-container *ngIf="!auth.isAuthenticated()">
+            <a routerLink="/how-it-works" routerLinkActive="active">How It Works</a>
+            <a routerLink="/verify-business" routerLinkActive="active">Instant Check</a>
+          </ng-container>
+        </nav>
+
+        <!-- Right Action Bar & Role Switcher -->
+        <div class="nav-actions">
+          <!-- Role Switcher (For Demo & Testing) -->
+          <div class="role-selector">
+            <span class="role-label">Switch View:</span>
+            <button
+              class="role-btn"
+              [class.active]="auth.currentRole() === 'SUPPLIER'"
+              (click)="auth.switchDemoRole('SUPPLIER')">Supplier</button>
+            <button
+              class="role-btn"
+              [class.active]="auth.currentRole() === 'BUYER'"
+              (click)="auth.switchDemoRole('BUYER')">Buyer</button>
+            <button
+              class="role-btn"
+              [class.active]="auth.currentRole() === 'VERIFIER'"
+              (click)="auth.switchDemoRole('VERIFIER')">Verifier</button>
+            <button
+              class="role-btn"
+              [class.active]="auth.currentRole() === 'ADMIN'"
+              (click)="auth.switchDemoRole('ADMIN')">Admin</button>
+          </div>
+
+          <div class="user-profile" *ngIf="auth.currentUser() as user">
+            <div class="avatar">{{ user.firstName[0] }}</div>
+            <span class="user-name">{{ user.firstName }} ({{ user.role }})</span>
+            <button class="btn-logout" (click)="auth.logout()" title="Logout">&#x21aa;</button>
+          </div>
+        </div>
+      </div>
+    </header>

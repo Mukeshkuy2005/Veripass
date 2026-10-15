@@ -1,0 +1,477 @@
+<div class="activity-page">
+  <!-- TOAST NOTIFICATION -->
+  <div *ngIf="toastMessage()" class="toast-banner">
+    <div class="toast-icon">✓</div>
+    <div class="toast-text">{{ toastMessage() }}</div>
+  </div>
+
+  <!-- PAGE HEADER -->
+  <header class="activity-header vp-card">
+    <div class="header-left">
+      <div class="tag-row">
+        <span class="view-tag">AUDIT &amp; ACTIVITY</span>
+        <span class="cert-tag">IMMUTABLE FORENSIC LEDGER</span>
+      </div>
+      <h1 class="page-title">Audit &amp; Activity</h1>
+      <p class="page-subtitle">Track actions performed across your organization.</p>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-primary" (click)="openExportDialog()" [disabled]="isExporting()">
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+        <span>Export Log</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- OPERATIONAL SUMMARY CARDS -->
+  <section class="summary-grid">
+    <div class="summary-card vp-card stat-today">
+      <div class="stat-meta">
+        <span class="stat-label">Today</span>
+        <span class="stat-badge">Active</span>
+      </div>
+      <div class="stat-value font-mono">{{ summary().today }}</div>
+      <div class="stat-sub">Actions registered today</div>
+    </div>
+
+    <div class="summary-card vp-card stat-success">
+      <div class="stat-meta">
+        <span class="stat-label">Success</span>
+        <span class="stat-icon icon-success">✓</span>
+      </div>
+      <div class="stat-value font-mono text-success">{{ summary().success }}</div>
+      <div class="stat-sub">Completed enterprise actions</div>
+    </div>
+
+    <div class="summary-card vp-card stat-failed">
+      <div class="stat-meta">
+        <span class="stat-label">Failed</span>
+        <span class="stat-icon icon-failed">✕</span>
+      </div>
+      <div class="stat-value font-mono text-failed">{{ summary().failed }}</div>
+      <div class="stat-sub">Operations flagged or failed</div>
+    </div>
+
+    <div class="summary-card vp-card stat-denied">
+      <div class="stat-meta">
+        <span class="stat-label">Denied</span>
+        <span class="stat-icon icon-denied">🛡</span>
+      </div>
+      <div class="stat-value font-mono text-denied">{{ summary().denied }}</div>
+      <div class="stat-sub">Unauthorized access attempts blocked</div>
+    </div>
+  </section>
+
+  <!-- SEARCH & FILTER TOOLBAR -->
+  <section class="toolbar-card vp-card">
+    <!-- Prominent Search Bar -->
+    <div class="search-row">
+      <div class="search-input-wrap">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+        </svg>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Search activity, user, supplier, action, event ID..."
+          [ngModel]="filterState.search"
+          (ngModelChange)="onSearchInput($event)"
+        />
+        <button
+          *ngIf="filterState.search"
+          class="btn-clear-search"
+          (click)="onSearchInput('')"
+          title="Clear search"
+        >
+          &times;
+        </button>
+      </div>
+
+      <button class="btn-reset" (click)="clearFilters()" title="Reset all filters">
+        <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+        </svg>
+        Clear Filters
+      </button>
+    </div>
+
+    <!-- Filter Selectors -->
+    <div class="filters-row">
+      <!-- Date Filter -->
+      <div class="filter-group">
+        <label class="filter-label">Date</label>
+        <select class="filter-select" [(ngModel)]="filterState.dateRange" (change)="onFilterChange()">
+          <option *ngFor="let opt of dateRangeOptions" [value]="opt.value">{{ opt.label }}</option>
+        </select>
+      </div>
+
+      <!-- User Filter -->
+      <div class="filter-group">
+        <label class="filter-label">User</label>
+        <select class="filter-select" [(ngModel)]="filterState.userId" (change)="onFilterChange()">
+          <option value="all">All Users</option>
+          <option *ngFor="let u of users()" [value]="u.id">{{ u.name }} ({{ u.role }})</option>
+        </select>
+      </div>
+
+      <!-- Category Filter -->
+      <div class="filter-group">
+        <label class="filter-label">Category</label>
+        <select class="filter-select" [(ngModel)]="filterState.category" (change)="onCategoryChange()">
+          <option *ngFor="let c of categoryOptions" [value]="c.value">{{ c.label }}</option>
+        </select>
+      </div>
+
+      <!-- Action Filter -->
+      <div class="filter-group">
+        <label class="filter-label">Action</label>
+        <select class="filter-select" [(ngModel)]="filterState.action" (change)="onFilterChange()">
+          <option *ngFor="let a of getAvailableActions()" [value]="a.value">{{ a.label }}</option>
+        </select>
+      </div>
+
+      <!-- Target Filter -->
+      <div class="filter-group">
+        <label class="filter-label">Target</label>
+        <input
+          type="text"
+          class="filter-input"
+          placeholder="Filter target..."
+          [(ngModel)]="filterState.target"
+          (keyup.enter)="onFilterChange()"
+          (blur)="onFilterChange()"
+        />
+      </div>
+
+      <!-- Result Filter -->
+      <div class="filter-group">
+        <label class="filter-label">Result</label>
+        <select class="filter-select" [(ngModel)]="filterState.result" (change)="onFilterChange()">
+          <option *ngFor="let r of resultOptions" [value]="r.value">{{ r.label }}</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- AUDIT ACTIVITY TABLE -->
+  <section class="table-card vp-card">
+    <!-- Loading Skeleton State -->
+    <div *ngIf="isLoading()" class="loading-state">
+      <div class="skeleton-row" *ngFor="let i of [1,2,3,4,5,6]"></div>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="!isLoading() && isError()" class="state-container error-state">
+      <div class="state-icon">⚠️</div>
+      <h3 class="state-title">Unable to load audit activity</h3>
+      <p class="state-desc">{{ errorMessage() }}</p>
+      <button class="btn-primary btn-retry" (click)="loadActivity()">
+        Retry Request
+      </button>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!isLoading() && !isError() && items().length === 0" class="state-container empty-state">
+      <div class="state-icon">🔍</div>
+      <h3 class="state-title">No activity found</h3>
+      <p class="state-desc">No audit events match your current filter and search criteria.</p>
+      <button class="btn-secondary" (click)="clearFilters()">
+        Clear filters
+      </button>
+    </div>
+
+    <!-- Primary Table Content -->
+    <div class="table-wrap" *ngIf="!isLoading() && !isError() && items().length > 0">
+      <table class="audit-table">
+        <thead>
+          <tr>
+            <th class="th-time">TIME</th>
+            <th class="th-user">USER</th>
+            <th class="th-action">ACTION</th>
+            <th class="th-target">TARGET</th>
+            <th class="th-result">RESULT</th>
+            <th class="th-forensics text-right">FORENSICS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let ev of items()" (click)="selectEvent(ev)" class="clickable-row">
+            <!-- TIME -->
+            <td class="td-time">
+              <span class="time-main font-mono">{{ formatTimeShort(ev.timestamp) }}</span>
+              <span class="time-date">{{ formatDateFull(ev.timestamp) | slice:0:11 }}</span>
+            </td>
+
+            <!-- USER -->
+            <td class="td-user">
+              <div class="user-block">
+                <span class="user-name">{{ ev.user.name }}</span>
+                <span class="user-role-badge">{{ ev.user.role }}</span>
+              </div>
+            </td>
+
+            <!-- ACTION -->
+            <td class="td-action">
+              <div class="action-block">
+                <span class="action-title">{{ ev.actionLabel }}</span>
+                <span class="cat-pill" [attr.data-cat]="ev.category">{{ ev.category }}</span>
+              </div>
+            </td>
+
+            <!-- TARGET -->
+            <td class="td-target">
+              <div class="target-block">
+                <span class="target-name font-semibold">{{ ev.target.name || 'System Object' }}</span>
+                <span class="target-meta font-mono" *ngIf="ev.target.id">{{ ev.target.type }}: {{ ev.target.id }}</span>
+              </div>
+            </td>
+
+            <!-- RESULT -->
+            <td class="td-result">
+              <span class="res-badge" [attr.data-res]="ev.result">
+                <span *ngIf="ev.result === 'SUCCESS'">✓ {{ ev.resultLabel }}</span>
+                <span *ngIf="ev.result === 'FAILED'">✕ {{ ev.resultLabel }}</span>
+                <span *ngIf="ev.result === 'DENIED'">🛡 {{ ev.resultLabel }}</span>
+              </span>
+            </td>
+
+            <!-- FORENSICS -->
+            <td class="td-forensics text-right">
+              <button class="btn-inspect font-mono" (click)="selectEvent(ev); $event.stopPropagation()">
+                {{ ev.eventCode }} &rarr;
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- PAGINATION BAR -->
+    <footer class="pagination-footer" *ngIf="!isLoading() && !isError() && items().length > 0">
+      <div class="pagination-info">
+        Showing <strong>{{ (filterState.page - 1) * filterState.pageSize + 1 }}</strong> -
+        <strong>{{ (filterState.page - 1) * filterState.pageSize + items().length }}</strong>
+        of <strong>{{ totalCount() }}</strong> audit events
+      </div>
+
+      <div class="pagination-controls">
+        <div class="page-size-selector">
+          <label>Rows per page:</label>
+          <select [ngModel]="filterState.pageSize" (ngModelChange)="changePageSize($event)">
+            <option [value]="10">10</option>
+            <option [value]="25">25</option>
+            <option [value]="50">50</option>
+            <option [value]="100">100</option>
+          </select>
+        </div>
+
+        <div class="page-buttons">
+          <button
+            class="btn-page"
+            [disabled]="filterState.page <= 1"
+            (click)="goToPage(filterState.page - 1)"
+          >
+            &larr; Prev
+          </button>
+
+          <span class="page-current">Page {{ filterState.page }} of {{ totalPages() }}</span>
+
+          <button
+            class="btn-page"
+            [disabled]="filterState.page >= totalPages()"
+            (click)="goToPage(filterState.page + 1)"
+          >
+            Next &rarr;
+          </button>
+        </div>
+      </div>
+    </footer>
+  </section>
+
+  <!-- EVENT DETAIL RIGHT-SIDE DRAWER -->
+  <div class="drawer-backdrop" *ngIf="selectedEvent()" (click)="closeEventDrawer()">
+    <div class="drawer-panel vp-card" (click)="$event.stopPropagation()" *ngIf="selectedEvent() as ev">
+      <div class="drawer-head">
+        <div>
+          <span class="drawer-tag font-mono">FORENSIC AUDIT RECORD</span>
+          <h2 class="drawer-event-title font-mono">{{ ev.eventCode }}</h2>
+          <span class="drawer-sub">Immutable organization audit event</span>
+        </div>
+        <button class="drawer-close" (click)="closeEventDrawer()" title="Close drawer">&times;</button>
+      </div>
+
+      <div class="drawer-body">
+        <!-- ACTION & RESULT SUMMARY -->
+        <div class="drawer-section action-summary-card">
+          <div class="action-top">
+            <span class="drawer-action-text">{{ ev.actionLabel }}</span>
+            <span class="res-badge lg" [attr.data-res]="ev.result">
+              <span *ngIf="ev.result === 'SUCCESS'">✓ {{ ev.resultLabel }}</span>
+              <span *ngIf="ev.result === 'FAILED'">✕ {{ ev.resultLabel }}</span>
+              <span *ngIf="ev.result === 'DENIED'">🛡 {{ ev.resultLabel }}</span>
+            </span>
+          </div>
+          <div class="action-category-tag">Category: <strong>{{ ev.category }}</strong></div>
+        </div>
+
+        <!-- ACTOR / USER -->
+        <div class="drawer-section">
+          <h4 class="section-title">Actor</h4>
+          <div class="field-item">
+            <span class="field-label">Name</span>
+            <span class="field-value font-semibold">{{ ev.user.name }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Role</span>
+            <span class="role-pill">{{ ev.user.role }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Email</span>
+            <span class="field-value font-mono">{{ ev.user.email }}</span>
+          </div>
+        </div>
+
+        <!-- ORGANIZATION -->
+        <div class="drawer-section">
+          <h4 class="section-title">Organization</h4>
+          <div class="field-item">
+            <span class="field-label">Procuring Org</span>
+            <span class="field-value">{{ ev.organization.name }}</span>
+          </div>
+        </div>
+
+        <!-- TARGET -->
+        <div class="drawer-section">
+          <h4 class="section-title">Target</h4>
+          <div class="field-item">
+            <span class="field-label">Entity Name</span>
+            <span class="field-value font-bold text-primary">{{ ev.target.name || 'System Entity' }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Target Type</span>
+            <span class="field-value font-mono">{{ ev.target.type }}</span>
+          </div>
+          <div class="field-item" *ngIf="ev.target.id">
+            <span class="field-label">Target Reference</span>
+            <span class="field-value font-mono">{{ ev.target.id }}</span>
+          </div>
+        </div>
+
+        <!-- TIMESTAMP -->
+        <div class="drawer-section">
+          <h4 class="section-title">Timestamp</h4>
+          <div class="field-item">
+            <span class="field-label">Server Recorded</span>
+            <span class="field-value font-mono">{{ formatDateFull(ev.timestamp) }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">UTC Timestamp</span>
+            <span class="field-value font-mono text-muted">{{ ev.timestamp }}</span>
+          </div>
+        </div>
+
+        <!-- SECURITY FORENSICS (RBAC PROTECTED) -->
+        <div class="drawer-section security-section">
+          <div class="security-header">
+            <h4 class="section-title">Security Context</h4>
+            <span *ngIf="ev.securityContext.isRestricted" class="restricted-tag">Restricted</span>
+            <span *ngIf="!ev.securityContext.isRestricted" class="admin-unrestricted-tag">Admin View</span>
+          </div>
+
+          <div *ngIf="ev.securityContext.isRestricted" class="security-restricted-notice">
+            <span class="shield-lock">🔒</span>
+            <div>
+              <strong>Security context restricted by enterprise RBAC.</strong>
+              <p>Device fingerprinting, IP address, and active trace identifiers require Compliance Administrator privileges.</p>
+            </div>
+          </div>
+
+          <div *ngIf="!ev.securityContext.isRestricted">
+            <div class="field-item">
+              <span class="field-label">IP Address</span>
+              <span class="field-value font-mono">{{ ev.securityContext.ipAddress || 'Not recorded' }}</span>
+            </div>
+            <div class="field-item">
+              <span class="field-label">Client Device</span>
+              <span class="field-value font-mono text-xs">{{ ev.securityContext.device || 'Not recorded' }}</span>
+            </div>
+            <div class="field-item">
+              <span class="field-label">Session / Token</span>
+              <span class="field-value font-mono text-xs">{{ ev.securityContext.session || 'Not recorded' }}</span>
+            </div>
+            <div class="field-item">
+              <span class="field-label">Request Trace ID</span>
+              <span class="field-value font-mono text-xs">{{ ev.securityContext.requestId || 'Not recorded' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- EXTENDED METADATA JSON IF PRESENT -->
+        <div class="drawer-section" *ngIf="ev.metadataJson || ev.newValuesJson">
+          <h4 class="section-title">Operation Payload</h4>
+          <pre class="json-viewer font-mono">{{ ev.metadataJson || ev.newValuesJson }}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPORT AUDIT LOG DIALOG -->
+  <div class="modal-backdrop" *ngIf="isExportDialogOpen()" (click)="closeExportDialog()">
+    <div class="modal-dialog vp-card" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <h3 class="modal-title">Export Forensic Audit Ledger</h3>
+        <button class="btn-close" (click)="closeExportDialog()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-desc">
+          Exporting generates an authoritative compliance ledger formatted according to your current filter scope.
+          This operation will itself be cryptographically audited under <code>AUDIT_LOG_EXPORTED</code>.
+        </p>
+
+        <div class="form-group">
+          <label class="form-label">Export Format</label>
+          <div class="format-options">
+            <label class="format-card" [class.selected]="exportFormat() === 'CSV'">
+              <input type="radio" name="format" value="CSV" [ngModel]="exportFormat()" (ngModelChange)="exportFormat.set('CSV')" />
+              <div class="format-info">
+                <strong>CSV (Comma Separated Values)</strong>
+                <span>Standard compliance spreadsheet for Excel and ERP ingest</span>
+              </div>
+            </label>
+
+            <label class="format-card" [class.selected]="exportFormat() === 'JSON'">
+              <input type="radio" name="format" value="JSON" [ngModel]="exportFormat()" (ngModelChange)="exportFormat.set('JSON')" />
+              <div class="format-info">
+                <strong>JSON (Cryptographic Record Dump)</strong>
+                <span>Machine-readable structured payload with ISO-8601 timestamps</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="export-scope-summary">
+          <strong>Applied Filter Scope:</strong>
+          <ul>
+            <li>Date Range: <span>{{ filterState.dateRange | uppercase }}</span></li>
+            <li *ngIf="filterState.category !== 'all'">Category: <span>{{ filterState.category }}</span></li>
+            <li *ngIf="filterState.result !== 'all'">Result: <span>{{ filterState.result }}</span></li>
+            <li *ngIf="filterState.search">Search: <span>"{{ filterState.search }}"</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-secondary" (click)="closeExportDialog()" [disabled]="isExporting()">
+          Cancel
+        </button>
+        <button class="btn-primary" (click)="executeExport()" [disabled]="isExporting()">
+          <span *ngIf="!isExporting()">Generate &amp; Download Ledger</span>
+          <span *ngIf="isExporting()">Generating Export...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

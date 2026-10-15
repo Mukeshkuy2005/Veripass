@@ -1,0 +1,28 @@
+<div class="verification-card">
+  <div class="verification-card-header">
+    <div class="title-with-meta">
+      <h2 class="section-title">Verification Breakdown</h2>
+      <span class="verification-counter">{{ completedCount }} of {{ checks.length }} checks complete</span>
+    </div>
+    <a routerLink="/supplier/verification" class="view-all-link">View Center →</a>
+  </div>
+
+  <div class="checks-grid">
+    <div class="check-item-row" *ngFor="let check of checks">
+      <div class="check-info">
+        <span class="check-name">{{ check.name }}</span>
+        <span class="check-category">{{ check.category }}</span>
+      </div>
+
+      <div class="check-status-cell">
+        <span class="badge" [ngClass]="check.status.toLowerCase()">
+          <span class="dot"></span>
+          <span *ngIf="check.status === 'VERIFIED'">Verified</span>
+          <span *ngIf="check.status === 'IN_REVIEW'">In Review</span>
+          <span *ngIf="check.status === 'ACTION_REQUIRED'">Action Required</span>
+          <span *ngIf="check.status === 'PENDING'">Pending</span>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>

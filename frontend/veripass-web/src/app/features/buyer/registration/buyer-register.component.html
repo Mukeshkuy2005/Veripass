@@ -1,0 +1,146 @@
+    <div class="buyer-auth-container">
+      <div class="buyer-auth-box">
+        <!-- Logo Header -->
+        <div class="auth-header">
+          <a routerLink="/" class="auth-brand">
+            <svg viewBox="0 0 24 24" fill="none" class="brand-shield">
+              <path d="M12 2L4 6V11.5C4 16.5 7.4 21.1 12 22C16.6 21.1 20 16.5 20 11.5V6L12 2Z" fill="#1E40AF" stroke="#60A5FA" stroke-width="1.5"/>
+              <path d="M9 11.5L11 13.5L15.5 9" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="brand-text">VERIPASS</span>
+          </a>
+          <h2 class="auth-title" *ngIf="!isSuccess()">Create your organization account</h2>
+          <p class="auth-subtitle" *ngIf="!isSuccess()">Procurement intelligence & continuous vendor-risk management</p>
+        </div>
+
+        <!-- FORM VIEW -->
+        <div class="auth-card" *ngIf="!isSuccess()">
+          <form (ngSubmit)="onSubmit()" class="auth-form">
+            <div class="form-section-tag">ORGANIZATION</div>
+
+            <div class="form-group">
+              <label class="form-label">Company Name</label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="e.g. Enterprise Organization Name"
+                [(ngModel)]="form.companyName"
+                name="companyName"
+                required />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Work Email</label>
+              <input
+                type="email"
+                class="form-control"
+                placeholder="procurement@company.com"
+                [(ngModel)]="form.email"
+                name="email"
+                required />
+            </div>
+
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label class="form-label">Your Procurement Role</label>
+                <select class="form-control" [(ngModel)]="form.role" name="role">
+                  <option value="Procurement Manager">Procurement Manager</option>
+                  <option value="Chief Procurement Officer">Chief Procurement Officer</option>
+                  <option value="Vendor Risk Analyst">Vendor Risk Analyst</option>
+                  <option value="Sourcing Specialist">Sourcing Specialist</option>
+                </select>
+              </div>
+
+              <div class="form-group flex-1">
+                <label class="form-label">Organization Size</label>
+                <select class="form-control" [(ngModel)]="form.orgSize" name="orgSize">
+                  <option value="1,000+ employees">1,000+ employees</option>
+                  <option value="500–1,000 employees">500–1,000 employees</option>
+                  <option value="100–500 employees">100–500 employees</option>
+                  <option value="Under 100 employees">Under 100 employees</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Industry</label>
+              <select class="form-control" [(ngModel)]="form.industry" name="industry">
+                <option value="Manufacturing">Manufacturing</option>
+                <option value="Automotive & Mobility">Automotive & Mobility</option>
+                <option value="Aerospace & Defense">Aerospace & Defense</option>
+                <option value="Infrastructure & Construction">Infrastructure & Construction</option>
+                <option value="IT Services & Telecom">IT Services & Telecom</option>
+                <option value="FMCG & Consumer Goods">FMCG & Consumer Goods</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <div class="password-wrapper">
+                <input
+                  [type]="showPassword() ? 'text' : 'password'"
+                  class="form-control"
+                  placeholder="Min 8 characters with numbers & symbols"
+                  [(ngModel)]="form.password"
+                  name="password"
+                  required />
+                <button type="button" class="pwd-toggle" (click)="togglePassword()">
+                  {{ showPassword() ? '👁️' : '👁️‍🗨️' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="form-checkbox">
+              <input type="checkbox" id="terms" [(ngModel)]="form.terms" name="terms" required />
+              <label for="terms">I agree to the <a href="/terms" target="_blank">Terms</a> & <a href="/privacy" target="_blank">Privacy Policy</a></label>
+            </div>
+
+            <button type="submit" class="btn-submit" [disabled]="loading() || !form.terms">
+              <span *ngIf="!loading()">Create Organization</span>
+              <span *ngIf="loading()">Setting up organization...</span>
+            </button>
+          </form>
+
+          <div class="auth-footer">
+            Already have an account?
+            <a routerLink="/buyer/login">Sign in</a>
+          </div>
+        </div>
+
+        <!-- SUCCESS VIEW (Don't send directly into empty dashboard) -->
+        <div class="auth-card success-card" *ngIf="isSuccess()">
+          <div class="success-icon-wrap">
+            <span class="success-tick">✓</span>
+          </div>
+
+          <h3 class="success-title">Account Created</h3>
+          <p class="success-subtitle">Your organization <strong>{{ form.companyName }}</strong> is ready.</p>
+
+          <div class="next-steps-panel">
+            <span class="next-steps-heading">Next steps:</span>
+            <ul class="steps-list">
+              <li class="step-item done">
+                <span class="step-check">✓</span>
+                <span class="step-name">Organization created</span>
+              </li>
+              <li class="step-item done">
+                <span class="step-check">✓</span>
+                <span class="step-name">Admin account created ({{ form.email }})</span>
+              </li>
+              <li class="step-item pending">
+                <span class="step-circle">○</span>
+                <span class="step-name">Configure procurement preferences</span>
+              </li>
+              <li class="step-item pending">
+                <span class="step-circle">○</span>
+                <span class="step-name">Invite procurement team members</span>
+              </li>
+            </ul>
+          </div>
+
+          <button class="btn-submit btn-dashboard" (click)="goToDashboard()">
+            Go to Dashboard &rarr;
+          </button>
+        </div>
+      </div>
+    </div>

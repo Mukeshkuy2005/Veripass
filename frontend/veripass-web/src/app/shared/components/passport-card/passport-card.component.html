@@ -1,0 +1,64 @@
+    <div class="passport-card passport-glow" *ngIf="passport">
+      <!-- Header / Issuer Bar -->
+      <div class="passport-top">
+        <div class="brand">
+          <div class="logo-shield">VP</div>
+          <div>
+            <div class="brand-title">VERIPASS</div>
+            <div class="brand-sub">REPUBLIC OF INDIA &bull; BUSINESS IDENTITY</div>
+          </div>
+        </div>
+        <app-status-badge [status]="passport.status"></app-status-badge>
+      </div>
+
+      <!-- Main Passport Body -->
+      <div class="passport-grid">
+        <div class="passport-info">
+          <div class="passport-number-badge">
+            <span class="label">PASSPORT NO.</span>
+            <span class="val mono">{{ passport.passportNumber }}</span>
+          </div>
+
+          <h2 class="company-name">{{ passport.businessName }}</h2>
+
+          <div class="statutory-row">
+            <div class="stat-col">
+              <span class="stat-label">PUBLIC ID</span>
+              <span class="stat-val mono">{{ passport.publicIdentifier }}</span>
+            </div>
+            <div class="stat-col">
+              <span class="stat-label">ISSUED DATE</span>
+              <span class="stat-val">{{ passport.issuedAt ? (passport.issuedAt | date:'mediumDate') : 'Active' }}</span>
+            </div>
+            <div class="stat-col">
+              <span class="stat-label">LAST CONTINUOUS CHECK</span>
+              <span class="stat-val">{{ passport.lastVerifiedAt ? (passport.lastVerifiedAt | date:'mediumDate') : 'Today' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Score Pillar -->
+        <div class="passport-score-box">
+          <app-trust-score-badge [score]="passport.verificationScore"></app-trust-score-badge>
+        </div>
+      </div>
+
+      <!-- Verified Badges & Statutory Seals -->
+      <div class="passport-credentials-bar">
+        <div class="cred-pill" *ngFor="let cred of passport.verifiedCredentials">
+          <span class="cred-icon">&#10003;</span>
+          <span class="cred-name">{{ cred.credentialType }}</span>
+        </div>
+      </div>
+
+      <!-- Footer with Digital Watermark & QR -->
+      <div class="passport-footer">
+        <div class="digital-seal">
+          <span class="seal-icon">&#9672;</span>
+          <span>Sovereign Registry Cryptographically Signed</span>
+        </div>
+        <div class="qr-thumbnail">
+          <img [src]="passport.qrCodeUrl" alt="Verification QR" class="qr-img" />
+        </div>
+      </div>
+    </div>

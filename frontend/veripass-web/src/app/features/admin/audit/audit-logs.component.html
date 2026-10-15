@@ -1,0 +1,173 @@
+    <div class="audit-page">
+      <!-- HEADER -->
+      <div class="header-card">
+        <div>
+          <div class="header-tag">IMMUTABLE FORENSIC PLATFORM RECORD</div>
+          <h1 class="page-title">Platform Audit Logs</h1>
+          <p class="page-subtitle">
+            Non-repudiable audit ledger capturing all privileged actions, credential decisions, status overrides, and security events.
+          </p>
+        </div>
+        <button type="button" class="btn-export" (click)="exportAudit()">
+          Export Signed Audit Report 📥
+        </button>
+      </div>
+
+      <!-- MULTI-FILTER TOOLBAR -->
+      <div class="filter-card">
+        <div class="filter-grid">
+          <div class="f-item">
+            <label class="f-lbl">Actor / Email</label>
+            <input type="text" [(ngModel)]="actorFilter" placeholder="Search actor email or name..." class="f-input">
+          </div>
+
+          <div class="f-item">
+            <label class="f-lbl">Action Type</label>
+            <select [(ngModel)]="actionFilter" class="f-select">
+              <option value="ALL">All Actions</option>
+              <option value="APPROVE">Approve</option>
+              <option value="REJECT">Reject</option>
+              <option value="SUSPEND">Suspend</option>
+              <option value="RULE">Rule Action</option>
+              <option value="DISPUTE">Dispute</option>
+            </select>
+          </div>
+
+          <div class="f-item">
+            <label class="f-lbl">Role</label>
+            <select [(ngModel)]="roleFilter" class="f-select">
+              <option value="ALL">All Roles</option>
+              <option value="PLATFORM_ADMIN">PLATFORM_ADMIN</option>
+              <option value="SENIOR_VERIFIER">SENIOR_VERIFIER</option>
+              <option value="COMPLIANCE_OFFICER">COMPLIANCE_OFFICER</option>
+            </select>
+          </div>
+
+          <div class="f-item">
+            <label class="f-lbl">Result</label>
+            <select [(ngModel)]="resultFilter" class="f-select">
+              <option value="ALL">All Results</option>
+              <option value="SUCCESS">Success</option>
+              <option value="FAILURE">Failure</option>
+              <option value="WARNING">Warning</option>
+            </select>
+          </div>
+
+          <button type="button" class="btn-reset" (click)="resetFilters()">Reset Filters</button>
+        </div>
+      </div>
+
+      <!-- AUDIT TABLE -->
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="dense-table">
+            <thead>
+              <tr>
+                <th>TIMESTAMP (IST)</th>
+                <th>EVENT ID</th>
+                <th>ACTOR</th>
+                <th>ROLE</th>
+                <th>ACTION</th>
+                <th>RESOURCE</th>
+                <th>RESULT</th>
+                <th class="text-right">FORENSIC LOG</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let ev of filteredLogs()" (click)="selectEvent(ev)" class="clickable-row" [class.selected]="selectedLog()?.id === ev.id">
+                <td class="font-mono text-muted">{{ ev.time }}</td>
+                <td class="font-mono font-bold text-dark">{{ ev.id }}</td>
+                <td class="font-bold">{{ ev.actor }}</td>
+                <td>
+                  <span class="role-pill font-mono">{{ ev.role }}</span>
+                </td>
+                <td>
+                  <span class="action-tag">{{ ev.action }}</span>
+                </td>
+                <td class="font-mono font-bold text-dark">{{ ev.resource }}</td>
+                <td>
+                  <span class="badge-res" [ngClass]="ev.result.toLowerCase()">
+                    ● {{ ev.result }}
+                  </span>
+                </td>
+                <td class="text-right" (click)="$event.stopPropagation()">
+                  <button type="button" class="btn-inspect" (click)="selectEvent(ev)">
+                    Inspect Event
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- AUDIT DETAIL DRAWER (A10 SPEC) -->
+      <div class="drawer-overlay" *ngIf="selectedLog() as ev" (click)="closeDrawer()">
+        <div class="drawer-panel" (click)="$event.stopPropagation()">
+          <div class="drawer-head">
+            <div>
+              <span class="drawer-tag">EVENT ID &bull; {{ ev.id }}</span>
+              <h2 class="drawer-title">{{ ev.action }}</h2>
+            </div>
+            <button type="button" class="close-btn" (click)="closeDrawer()">✕</button>
+          </div>
+
+          <div class="drawer-body">
+            <div class="audit-info-card">
+              <div class="ai-row">
+                <span class="ai-lbl">Actor</span>
+                <span class="ai-val font-bold">{{ ev.actor }}</span>
+              </div>
+              <div class="ai-row">
+                <span class="ai-lbl">Role</span>
+                <span class="ai-val font-mono">{{ ev.role }}</span>
+              </div>
+              <div class="ai-row">
+                <span class="ai-lbl">Action</span>
+                <span class="ai-val font-bold">{{ ev.action }}</span>
+              </div>
+              <div class="ai-row">
+                <span class="ai-lbl">Resource Target</span>
+                <span class="ai-val font-mono font-bold">{{ ev.resource }}</span>
+              </div>
+              <div class="ai-row">
+                <span class="ai-lbl">Timestamp</span>
+                <span class="ai-val font-mono">{{ ev.time }}</span>
+              </div>
+              <div class="ai-row">
+                <span class="ai-lbl">Source IP Address</span>
+                <span class="ai-val font-mono">{{ ev.ip }}</span>
+              </div>
+              <div class="ai-row">
+                <span class="ai-lbl">Result</span>
+                <span class="ai-val text-success font-bold">{{ ev.result }}</span>
+              </div>
+              <div class="ai-row">
+                <span class="ai-lbl">Correlation ID</span>
+                <span class="ai-val font-mono">{{ ev.correlationId }}</span>
+              </div>
+            </div>
+
+            <!-- State Transition -->
+            <div class="transition-box" *ngIf="ev.previousState && ev.newState">
+              <span class="trans-title">STATE MACHINE TRANSITION</span>
+              <div class="trans-flow font-mono">
+                <span class="st-box">{{ ev.previousState }}</span>
+                <span class="trans-arr">&rarr;</span>
+                <span class="st-box active-st">{{ ev.newState }}</span>
+              </div>
+            </div>
+
+            <!-- Justification Reason -->
+            <div class="reason-box" *ngIf="ev.reason">
+              <span class="r-head">STATUTORY JUSTIFICATION &amp; REASON</span>
+              <p class="r-text">{{ ev.reason }}</p>
+            </div>
+          </div>
+
+          <div class="drawer-foot">
+            <button type="button" class="btn-sec" (click)="closeDrawer()">Dismiss</button>
+          </div>
+        </div>
+      </div>
+    </div>

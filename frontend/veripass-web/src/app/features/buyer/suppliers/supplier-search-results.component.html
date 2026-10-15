@@ -1,0 +1,670 @@
+<div class="unified-suppliers-page">
+  <!-- 1. HERO PROCUREMENT INTELLIGENCE SEARCH -->
+  <section class="discovery-hero vp-card">
+    <div class="hero-badge-row">
+      <span class="view-tag">SOVEREIGN PROCUREMENT INTELLIGENCE</span>
+      <span class="cert-tag">MCA &bull; GSTN &bull; NPCI AUDITED REGISTRY</span>
+    </div>
+    <h1 class="hero-title">Supplier Discovery &amp; Directory</h1>
+    <p class="hero-sub">
+      Search, evaluate, and inspect sovereign-verified Indian manufacturing and industrial suppliers with continuous statutory telemetry and audit-ready passports.
+    </p>
+
+    <!-- SEARCH INPUT BOX -->
+    <div class="search-box-wrap">
+      <div class="search-input-group">
+        <svg class="search-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          type="text"
+          class="hero-search-input"
+          placeholder="Search by supplier name, product keyword, GSTIN, PAN, or natural query..."
+          [(ngModel)]="searchInputValue"
+          (keyup.enter)="onSearch()" />
+        <button class="btn-search-clear" *ngIf="searchInputValue" (click)="clearSearchInput()" title="Clear search">
+          &times;
+        </button>
+        <button class="btn-search-exec" (click)="onSearch()">
+          <span>Search</span>
+        </button>
+      </div>
+
+      <!-- SMART NATURAL LANGUAGE SEARCH PROMPTS -->
+      <div class="smart-search-hints">
+        <span class="hint-label">Try intelligent search:</span>
+        <button
+          type="button"
+          class="hint-chip"
+          (click)="applyExampleSearch('electrical component suppliers in Uttar Pradesh with ISO certification')">
+          electrical component suppliers in Uttar Pradesh with ISO certification
+        </button>
+        <button
+          type="button"
+          class="hint-chip"
+          (click)="applyExampleSearch('precision tooling manufacturers in Haryana with BIS')">
+          precision tooling manufacturers in Haryana with BIS
+        </button>
+        <button
+          type="button"
+          class="hint-chip"
+          (click)="applyExampleSearch('fleet and logistics vendors in Maharashtra')">
+          fleet &amp; logistics in Maharashtra
+        </button>
+      </div>
+    </div>
+
+    <!-- NATURAL LANGUAGE PARSED ENTITIES FEEDBACK -->
+    <div class="parsed-nlp-banner" *ngIf="parsedTokens().active">
+      <div class="nlp-status-line">
+        <span class="nlp-pulse"></span>
+        <span class="nlp-title">SEARCHING VERIPASS TELEMETRY...</span>
+      </div>
+      <div class="nlp-tokens-list">
+        <div class="nlp-token" *ngIf="parsedTokens().industry">
+          <span class="token-check">✓</span>
+          <span class="token-label">Industry:</span>
+          <strong class="token-value">{{ parsedTokens().industry }}</strong>
+        </div>
+        <div class="nlp-token" *ngIf="parsedTokens().location">
+          <span class="token-check">✓</span>
+          <span class="token-label">Location:</span>
+          <strong class="token-value">{{ parsedTokens().location }}</strong>
+        </div>
+        <div class="nlp-token" *ngIf="parsedTokens().certification">
+          <span class="token-check">✓</span>
+          <span class="token-label">Accreditation:</span>
+          <strong class="token-value">{{ parsedTokens().certification }}</strong>
+        </div>
+      </div>
+      <div class="nlp-match-count">
+        Found {{ suppliers().length }} verified suppliers matching your criteria
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. QUICK PRESET STATUS TABS -->
+  <div class="tabs-and-controls-bar">
+    <div class="status-preset-tabs">
+      <button
+        class="tab-btn"
+        [class.active]="activeTab() === 'all'"
+        (click)="setActiveTab('all')">
+        All Suppliers
+        <span class="tab-badge">{{ suppliers().length }}</span>
+      </button>
+      <button
+        class="tab-btn"
+        [class.active]="activeTab() === 'verified'"
+        (click)="setActiveTab('verified')">
+        <span class="dot-verified"></span>
+        Fully Verified
+      </button>
+      <button
+        class="tab-btn"
+        [class.active]="activeTab() === 'partially_verified'"
+        (click)="setActiveTab('partially_verified')">
+        <span class="dot-partial"></span>
+        In Review / Pending
+      </button>
+      <button
+        class="tab-btn"
+        [class.active]="activeTab() === 'shortlisted'"
+        (click)="setActiveTab('shortlisted')">
+        ★ Shortlisted
+      </button>
+      <button
+        class="tab-btn"
+        [class.active]="activeTab() === 'flagged'"
+        (click)="setActiveTab('flagged')">
+        ⚠ High Risk Flagged
+      </button>
+    </div>
+
+    <div class="toolbar-right-actions">
+      <!-- Toggle Filter Sidebar -->
+      <button
+        class="btn-toggle-sidebar"
+        [class.active]="filterSidebarOpen()"
+        (click)="toggleSidebar()"
+        title="Toggle Filter Panel">
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" />
+        </svg>
+        <span>{{ filterSidebarOpen() ? 'Hide Filters' : 'Show Filters' }}</span>
+      </button>
+
+      <!-- Sort Dropdown -->
+      <div class="sort-selector">
+        <label class="sort-label" for="sortSelect">Sort:</label>
+        <select id="sortSelect" class="sort-select" [ngModel]="currentSort()" (ngModelChange)="onSortChange($event)">
+          <option value="score_desc">Trust Score (High to Low)</option>
+          <option value="compliance_desc">Compliance Score (High to Low)</option>
+          <option value="years_desc">Operating Vintage (Years)</option>
+          <option value="name_asc">Alphabetical (A-Z)</option>
+        </select>
+      </div>
+
+      <!-- View Mode: Cards vs Table -->
+      <div class="view-mode-toggle">
+        <button
+          class="view-btn"
+          [class.active]="viewMode() === 'cards'"
+          (click)="setViewMode('cards')"
+          title="Grid View">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+          </svg>
+          Cards
+        </button>
+        <button
+          class="view-btn"
+          [class.active]="viewMode() === 'table'"
+          (click)="setViewMode('table')"
+          title="Table View">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+          </svg>
+          Table
+        </button>
+      </div>
+
+      <!-- Save Query -->
+      <button class="btn-save-query" (click)="saveSearch()" title="Save active query to library">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+        Save Query
+      </button>
+    </div>
+  </div>
+
+  <!-- 3. ACTIVE FILTERS STRIP -->
+  <div class="active-filters-strip vp-card" *ngIf="hasActiveFilters()">
+    <div class="chips-wrap">
+      <span class="chips-title">Active Filters:</span>
+      <span class="filter-chip" *ngIf="query()">
+        Query: "{{ query() }}"
+        <button class="chip-remove" (click)="clearSearchInput()">&times;</button>
+      </span>
+      <span class="filter-chip" *ngFor="let ind of filters().industries">
+        Vertical: {{ ind }}
+        <button class="chip-remove" (click)="removeIndustry(ind)">&times;</button>
+      </span>
+      <span class="filter-chip" *ngIf="filters().state">
+        Region: {{ filters().state }}
+        <button class="chip-remove" (click)="clearState()">&times;</button>
+      </span>
+      <span class="filter-chip" *ngIf="filters().minTrustScore > 70">
+        Trust Score: &ge;{{ filters().minTrustScore }}
+        <button class="chip-remove" (click)="setMinScore(70)">&times;</button>
+      </span>
+      <span class="filter-chip" *ngFor="let c of filters().certifications">
+        Cert: {{ c }}
+        <button class="chip-remove" (click)="toggleCert(c)">&times;</button>
+      </span>
+      <span class="filter-chip" *ngIf="activeTab() !== 'all'">
+        Status: {{ activeTab() }}
+        <button class="chip-remove" (click)="setActiveTab('all')">&times;</button>
+      </span>
+    </div>
+    <button class="btn-clear-all-chips" (click)="resetAllFilters()">Clear All</button>
+  </div>
+
+  <!-- 4. TWO-COLUMN WORKSPACE: SIDEBAR + RESULTS -->
+  <div class="directory-workspace-grid" [class.sidebar-collapsed]="!filterSidebarOpen()">
+    <!-- FILTER SIDEBAR -->
+    <aside class="filters-sidebar vp-card" *ngIf="filterSidebarOpen()">
+      <div class="sidebar-head">
+        <div class="head-left">
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" />
+          </svg>
+          <span class="sidebar-title">FILTERS &amp; CRITERIA</span>
+        </div>
+        <button class="btn-reset-sidebar" (click)="resetAllFilters()">Reset</button>
+      </div>
+
+      <!-- Industry Vertical -->
+      <div class="filter-group">
+        <span class="group-label">Industry Vertical</span>
+        <div class="checkbox-list">
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isIndustrySelected('Manufacturing')" (change)="toggleIndustry('Manufacturing')" />
+            <span>Heavy Manufacturing</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isIndustrySelected('Electrical')" (change)="toggleIndustry('Electrical')" />
+            <span>Electrical &amp; Electronics</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isIndustrySelected('Construction')" (change)="toggleIndustry('Construction')" />
+            <span>Infrastructure &amp; Steel</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isIndustrySelected('Logistics')" (change)="toggleIndustry('Logistics')" />
+            <span>Freight &amp; Warehousing</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isIndustrySelected('IT Services')" (change)="toggleIndustry('IT Services')" />
+            <span>IT &amp; SCM Solutions</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Manufacturing Cluster (State) -->
+      <div class="filter-group">
+        <span class="group-label">Manufacturing Cluster (State)</span>
+        <select class="form-select" [ngModel]="filters().state" (ngModelChange)="setStateFilter($event)">
+          <option value="">All Regions (Pan India)</option>
+          <option value="Maharashtra">Maharashtra (Mumbai/Pune)</option>
+          <option value="Uttar Pradesh">Uttar Pradesh (Noida/Ghaziabad)</option>
+          <option value="Delhi">Delhi NCR</option>
+          <option value="Haryana">Haryana (Faridabad/Gurugram)</option>
+          <option value="Karnataka">Karnataka (Bengaluru)</option>
+          <option value="Gujarat">Gujarat (Ahmedabad/Surat)</option>
+          <option value="Tamil Nadu">Tamil Nadu (Chennai/Coimbatore)</option>
+        </select>
+      </div>
+
+      <!-- Legal Constitution -->
+      <div class="filter-group">
+        <span class="group-label">Legal Constitution</span>
+        <div class="checkbox-list">
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isBusinessTypeSelected('Private Limited')" (change)="toggleBusinessType('Private Limited')" />
+            <span>Private Limited</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isBusinessTypeSelected('LLP')" (change)="toggleBusinessType('LLP')" />
+            <span>LLP</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isBusinessTypeSelected('Partnership')" (change)="toggleBusinessType('Partnership')" />
+            <span>Partnership</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isBusinessTypeSelected('Proprietorship')" (change)="toggleBusinessType('Proprietorship')" />
+            <span>Proprietorship</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Trust Score Threshold Slider -->
+      <div class="filter-group">
+        <div class="slider-head">
+          <span class="group-label">Trust Score Threshold</span>
+          <span class="slider-badge">{{ filters().minTrustScore }}+</span>
+        </div>
+        <div class="slider-wrap">
+          <input
+            type="range"
+            min="70"
+            max="100"
+            step="1"
+            class="score-slider"
+            [ngModel]="filters().minTrustScore"
+            (ngModelChange)="setMinScore($event)" />
+          <div class="slider-ticks">
+            <span>70</span>
+            <span>80</span>
+            <span>90</span>
+            <span>100</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mandatory Certifications -->
+      <div class="filter-group">
+        <span class="group-label">Mandatory Certifications</span>
+        <div class="checkbox-list">
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isCertSelected('ISO 9001')" (change)="toggleCert('ISO 9001')" />
+            <span>ISO 9001 (Quality)</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isCertSelected('ISO 14001')" (change)="toggleCert('ISO 14001')" />
+            <span>ISO 14001 (Environment)</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isCertSelected('BIS')" (change)="toggleCert('BIS')" />
+            <span>BIS Accreditation</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="isCertSelected('Udyam')" (change)="toggleCert('Udyam')" />
+            <span>MSME / Udyam Verified</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Statutory Compliance -->
+      <div class="filter-group">
+        <span class="group-label">Statutory Compliance</span>
+        <div class="checkbox-list">
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="filters().complianceStanding === 'good'" (change)="toggleComplianceStanding('good')" />
+            <span>Good Standing (GSTR-3B OK)</span>
+          </label>
+          <label class="custom-checkbox">
+            <input type="checkbox" [checked]="filters().complianceStanding === 'expiring'" (change)="toggleComplianceStanding('expiring')" />
+            <span>Expiring Soon (&lt;30d)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Operating Vintage -->
+      <div class="filter-group">
+        <span class="group-label">Operating Vintage</span>
+        <select class="form-select" [ngModel]="filters().minYears" (ngModelChange)="setMinYears($event)">
+          <option [ngValue]="0">Any Duration</option>
+          <option [ngValue]="3">3+ years operating</option>
+          <option [ngValue]="5">5+ years operating</option>
+          <option [ngValue]="10">10+ years operating</option>
+        </select>
+      </div>
+
+      <!-- Sidebar Foot -->
+      <div class="sidebar-actions">
+        <button class="btn-sidebar-reset" (click)="resetAllFilters()">Clear All Filters</button>
+      </div>
+    </aside>
+
+    <!-- RESULTS MAIN AREA -->
+    <main class="results-main">
+      <!-- Results Subheader -->
+      <div class="results-meta-bar">
+        <div class="results-count-text">
+          Showing <strong>{{ suppliers().length }} verified sovereign suppliers</strong>
+          <span *ngIf="query()">for "{{ query() }}"</span>
+        </div>
+        <div class="compare-info-text" *ngIf="selectedForCompare().length > 0">
+          <span class="compare-counter-pill">{{ selectedForCompare().length }}/4 selected for comparison</span>
+        </div>
+      </div>
+
+      <!-- CARDS GRID VIEW -->
+      <div class="suppliers-grid" *ngIf="viewMode() === 'cards' && suppliers().length > 0">
+        <div class="supplier-card vp-card" *ngFor="let s of suppliers()">
+          <!-- Card Header: Status + Compare Checkbox + Star -->
+          <div class="card-head">
+            <div class="head-left-group">
+              <span
+                class="status-pill"
+                [class.pill-verified]="s.status === 'Verified'"
+                [class.pill-partial]="s.status === 'Partially Verified'"
+                [class.pill-flagged]="s.status === 'Expired'">
+                ● {{ s.status }}
+              </span>
+
+              <label class="compare-checkbox-label" (click)="$event.stopPropagation()">
+                <input
+                  type="checkbox"
+                  [checked]="isComparing(s.id)"
+                  (change)="toggleCompare(s.id, s.name)" />
+                <span>Compare</span>
+              </label>
+            </div>
+
+            <button
+              class="btn-star"
+              (click)="toggleShortlist(s)"
+              [class.active]="s.isShortlisted"
+              [title]="s.isShortlisted ? 'Remove from shortlist' : 'Add to shortlist'">
+              <svg width="15" height="15" viewBox="0 0 20 20" [attr.fill]="s.isShortlisted ? '#F59E0B' : 'none'" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Supplier Identity -->
+          <div class="card-identity">
+            <h3 class="supplier-title">{{ s.name }}</h3>
+            <span class="supplier-category">{{ s.category }}</span>
+            <div class="supplier-meta-line">
+              <span class="supplier-location">
+                <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                </svg>
+                {{ s.location }}
+              </span>
+              <span class="gstin-badge font-mono">{{ s.gstin }}</span>
+            </div>
+          </div>
+
+          <!-- Metric Trio -->
+          <div class="metric-trio">
+            <div class="metric-item">
+              <span class="m-label">TRUST SCORE</span>
+              <span class="m-value text-blue">{{ s.trustScore }}/100</span>
+            </div>
+            <div class="metric-item">
+              <span class="m-label">COMPLIANCE</span>
+              <span class="m-value text-green">{{ s.complianceScore }}%</span>
+            </div>
+            <div class="metric-item">
+              <span class="m-label">OPERATING</span>
+              <span class="m-value">{{ s.yearsActive }} yrs</span>
+            </div>
+          </div>
+
+          <!-- Credential Badges -->
+          <div class="cred-strip">
+            <span class="cred-badge" *ngFor="let c of s.certifications | slice:0:4">{{ c }} ✓</span>
+            <span class="cred-badge-more" *ngIf="s.certifications.length > 4">+{{ s.certifications.length - 4 }} more</span>
+          </div>
+
+          <!-- Audit Meta -->
+          <div class="audit-meta-row">
+            <span class="audit-date">Audited: {{ s.lastVerified }}</span>
+            <span class="expiring-warning" *ngIf="s.expiringCredential">⚠ {{ s.expiringCredential }}</span>
+          </div>
+
+          <!-- Card Actions -->
+          <div class="card-actions">
+            <a [routerLink]="['/buyer/suppliers', s.id, 'passport']" class="btn-card-passport">
+              View Passport &rarr;
+            </a>
+            <button class="btn-card-engage" (click)="openEngagementModal(s)">
+              Engage &bull; Request
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABLE VIEW -->
+      <div class="table-container vp-card" *ngIf="viewMode() === 'table' && suppliers().length > 0">
+        <div class="table-responsive">
+          <table class="enterprise-supplier-table">
+            <thead>
+              <tr>
+                <th class="th-check">
+                  <span class="sr-only">Compare</span>
+                </th>
+                <th>SUPPLIER IDENTITY</th>
+                <th>TRUST SCORE</th>
+                <th>COMPLIANCE</th>
+                <th>LOCATION</th>
+                <th>STATUS</th>
+                <th>CREDENTIALS</th>
+                <th class="text-right">ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let s of suppliers()">
+                <td class="td-check">
+                  <input
+                    type="checkbox"
+                    [checked]="isComparing(s.id)"
+                    (change)="toggleCompare(s.id, s.name)"
+                    title="Select to compare" />
+                </td>
+                <td>
+                  <div class="td-identity">
+                    <strong class="td-supplier-name">{{ s.name }}</strong>
+                    <span class="td-supplier-sub">{{ s.category }} &bull; <code class="font-mono">{{ s.gstin }}</code></span>
+                  </div>
+                </td>
+                <td>
+                  <span class="td-score text-blue font-bold">{{ s.trustScore }}/100</span>
+                </td>
+                <td>
+                  <span class="td-compliance text-green font-bold">{{ s.complianceScore }}%</span>
+                </td>
+                <td>
+                  <span class="td-location">{{ s.state }}</span>
+                </td>
+                <td>
+                  <span
+                    class="status-pill"
+                    [class.pill-verified]="s.status === 'Verified'"
+                    [class.pill-partial]="s.status === 'Partially Verified'"
+                    [class.pill-flagged]="s.status === 'Expired'">
+                    ● {{ s.status }}
+                  </span>
+                </td>
+                <td>
+                  <div class="td-creds">
+                    <span class="cred-badge-sm" *ngFor="let c of s.certifications | slice:0:3">{{ c }}</span>
+                  </div>
+                </td>
+                <td class="text-right">
+                  <div class="td-actions-wrap">
+                    <a [routerLink]="['/buyer/suppliers', s.id, 'passport']" class="btn-table-passport">Passport</a>
+                    <button class="btn-table-star" (click)="toggleShortlist(s)" [class.active]="s.isShortlisted" title="Toggle Shortlist">
+                      {{ s.isShortlisted ? '★ Saved' : '+ Star' }}
+                    </button>
+                    <button class="btn-table-engage" (click)="openEngagementModal(s)">Engage</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div class="empty-state-panel vp-card" *ngIf="suppliers().length === 0">
+        <div class="empty-icon-wrap">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="M21 21l-4.35-4.35" stroke-linecap="round"></path>
+          </svg>
+        </div>
+        <h3 class="empty-title">No Sovereign Suppliers Found</h3>
+        <p class="empty-sub">
+          We could not locate any sovereign-verified vendors matching all your active search criteria. Try relaxing your trust score threshold or clearing vertical filters.
+        </p>
+        <button class="btn-empty-reset" (click)="resetAllFilters()">
+          Clear All Active Filters
+        </button>
+      </div>
+    </main>
+  </div>
+
+  <!-- 5. STICKY FLOATING COMPARISON BAR -->
+  <div class="floating-compare-bar" *ngIf="selectedForCompare().length > 0">
+    <div class="compare-bar-content">
+      <div class="compare-bar-left">
+        <span class="compare-bar-count">
+          <strong>{{ selectedForCompare().length }}</strong> of 4 suppliers ready to compare:
+        </span>
+        <div class="compare-chips-list">
+          <div class="compare-supplier-chip" *ngFor="let s of getComparedSupplierObjects()">
+            <span class="chip-name">{{ s.name }}</span>
+            <button class="chip-remove-btn" (click)="toggleCompare(s.id, s.name)">&times;</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="compare-bar-right">
+        <button class="btn-compare-clear" (click)="clearCompare()">Clear</button>
+        <button class="btn-compare-exec" (click)="navigateToCompare()">
+          Compare Suppliers &rarr;
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. ENGAGEMENT / VERIFICATION REQUEST MODAL -->
+  <div class="modal-backdrop" *ngIf="selectedSupplierForEngagement()" (click)="closeEngagementModal()">
+    <div class="engagement-modal-card vp-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-badge">PROCUREMENT ACTION</span>
+          <h2 class="modal-title">Initiate Supplier Engagement &amp; Verification</h2>
+        </div>
+        <button class="modal-close-btn" (click)="closeEngagementModal()">&times;</button>
+      </div>
+
+      <div class="modal-body" *ngIf="selectedSupplierForEngagement() as s">
+        <div class="target-supplier-box">
+          <div class="ts-row">
+            <span class="ts-name">{{ s.name }}</span>
+            <span class="status-pill pill-verified">● {{ s.status }}</span>
+          </div>
+          <div class="ts-meta">
+            <span>GSTIN: <code>{{ s.gstin }}</code></span>
+            <span>&bull;</span>
+            <span>Location: {{ s.location }}</span>
+            <span>&bull;</span>
+            <span>Trust Score: <strong>{{ s.trustScore }}/100</strong></span>
+          </div>
+        </div>
+
+        <div class="modal-form-group">
+          <label class="modal-label">Select Verification &amp; Audit Scope</label>
+          <div class="scope-options">
+            <label class="scope-radio">
+              <input type="radio" name="scope" value="full" [checked]="engagementScope() === 'full'" (change)="engagementScope.set('full')" />
+              <div class="scope-info">
+                <strong>Full Sovereign Passport Verification</strong>
+                <span>Instant cryptographically signed statutory audit (MCA, GSTN, NPCI, ISO)</span>
+              </div>
+            </label>
+            <label class="scope-radio">
+              <input type="radio" name="scope" value="tax" [checked]="engagementScope() === 'tax'" (change)="engagementScope.set('tax')" />
+              <div class="scope-info">
+                <strong>Tax &amp; Regulatory Invoicing Audit</strong>
+                <span>Continuous GSTR-1 and GSTR-3B filing compliance audit</span>
+              </div>
+            </label>
+            <label class="scope-radio">
+              <input type="radio" name="scope" value="custom" [checked]="engagementScope() === 'custom'" (change)="engagementScope.set('custom')" />
+              <div class="scope-info">
+                <strong>Request Custom RFQ &amp; Supplier Onboarding</strong>
+                <span>Send direct vendor onboarding invite to supplier compliance officer</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-form-group">
+          <label class="modal-label">Instructions / Procurement Reference (Optional)</label>
+          <textarea
+            class="modal-textarea"
+            rows="3"
+            placeholder="e.g. Q4 Precision Tooling Empanelment, RFQ-2026-904"
+            [ngModel]="engagementNotes()"
+            (ngModelChange)="engagementNotes.set($event)"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-modal-cancel" (click)="closeEngagementModal()">Cancel</button>
+        <button
+          class="btn-modal-submit"
+          [disabled]="engagementSubmitting()"
+          (click)="submitEngagementRequest()">
+          {{ engagementSubmitting() ? 'Submitting...' : 'Dispatch Request' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. TOAST NOTIFICATION -->
+  <div class="toast-popup" *ngIf="toastMessage()">
+    <span class="toast-check">✓</span>
+    <span class="toast-text">{{ toastMessage() }}</span>
+  </div>
+</div>

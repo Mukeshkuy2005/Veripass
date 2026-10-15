@@ -1,0 +1,202 @@
+    <div class="sec-page">
+      <!-- 1. HERO -->
+      <section class="sec-hero">
+        <div class="container text-center">
+          <div class="badge-pill">ENTERPRISE ASSURANCE</div>
+          <h1 class="hero-title">SECURITY & TRUST</h1>
+          <p class="hero-subtitle">
+            Security is part of the architecture, not a feature added later.
+          </p>
+        </div>
+      </section>
+
+      <!-- 2. ARCHITECTURE FLOW -->
+      <section class="arch-section">
+        <div class="container">
+          <div class="section-badge text-center">SYSTEM BLUEPRINT</div>
+          <h2 class="section-title text-center">Defense-in-Depth Architecture</h2>
+          <p class="section-subtitle text-center">
+            A hardened vertical security boundary from the client browser to encrypted sovereign data storage.
+          </p>
+
+          <div class="arch-flow-card">
+            <div class="arch-stack">
+              <!-- Tier 1: User -->
+              <div class="arch-node user-node">
+                <span class="node-icon">👤</span>
+                <div class="node-meta">
+                  <span class="node-title">Client User</span>
+                  <span class="node-sub">Supplier, Buyer, or Verifier Browser</span>
+                </div>
+              </div>
+
+              <div class="arch-arrow">&darr;</div>
+
+              <!-- Tier 2: TLS -->
+              <div class="arch-node">
+                <span class="node-icon">🔒</span>
+                <div class="node-meta">
+                  <span class="node-title">HTTPS / TLS 1.3 Transmission</span>
+                  <span class="node-sub">mTLS & Certificate Pinning</span>
+                </div>
+              </div>
+
+              <div class="arch-arrow">&darr;</div>
+
+              <!-- Tier 3: Authentication -->
+              <div class="arch-node">
+                <span class="node-icon">🔑</span>
+                <div class="node-meta">
+                  <span class="node-title">Authentication Layer</span>
+                  <span class="node-sub">MFA Enforced &bull; FIDO2 / WebAuthn &bull; Zero SMS OTP for Staff</span>
+                </div>
+              </div>
+
+              <div class="arch-arrow">&darr;</div>
+
+              <!-- Tier 4: RBAC -->
+              <div class="arch-node">
+                <span class="node-icon">🛡️</span>
+                <div class="node-meta">
+                  <span class="node-title">Authorization / RBAC Engine</span>
+                  <span class="node-sub">Strict Least-Privilege Role Separation (7 Distinct Roles)</span>
+                </div>
+              </div>
+
+              <div class="arch-arrow">&darr;</div>
+
+              <!-- Tier 5: API Security -->
+              <div class="arch-node">
+                <span class="node-icon">⚡</span>
+                <div class="node-meta">
+                  <span class="node-title">API Security Gateway</span>
+                  <span class="node-sub">Rate Limiting &bull; Signature Validation &bull; WAF</span>
+                </div>
+              </div>
+
+              <div class="arch-arrow">&darr;</div>
+
+              <!-- Tier 6: Business Services -->
+              <div class="arch-node services-node">
+                <span class="node-icon">⚙️</span>
+                <div class="node-meta">
+                  <span class="node-title">Core Business Services</span>
+                  <div class="services-chips">
+                    <span class="srv-chip">Verification Engine</span>
+                    <span class="srv-chip">Document Processing</span>
+                    <span class="srv-chip">Risk & Anomaly</span>
+                    <span class="srv-chip">Passport Registry</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="arch-arrow">&darr;</div>
+
+              <!-- Tier 7: Storage -->
+              <div class="arch-node storage-node">
+                <span class="node-icon">🗄️</span>
+                <div class="node-meta">
+                  <span class="node-title">Encrypted Storage Vault</span>
+                  <span class="node-sub">AES-256 GCM at Rest &bull; SHA-256 Document Fingerprints &bull; KMS</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. FOUR SECURITY PILLARS -->
+      <section class="pillars-section">
+        <div class="container">
+          <div class="section-badge text-center">CORE ASSURANCES</div>
+          <h2 class="section-title text-center">The Four Security Pillars</h2>
+          <p class="section-subtitle text-center">
+            Technically verified protections ensuring enterprise compliance and sovereign document sanctity.
+          </p>
+
+          <div class="pillars-grid">
+            <!-- Pillar 1 -->
+            <div class="pillar-card">
+              <div class="pillar-icon">🔐</div>
+              <h3 class="pillar-title">ENCRYPTION</h3>
+              <p class="pillar-desc">
+                Data protected during transmission via TLS 1.3 and at rest using envelope encryption with AES-256 GCM.
+              </p>
+            </div>
+
+            <!-- Pillar 2 -->
+            <div class="pillar-card">
+              <div class="pillar-icon">🛡️</div>
+              <h3 class="pillar-title">ACCESS CONTROL</h3>
+              <p class="pillar-desc">
+                Role-based access controls all sensitive operations. Zero cross-tenant data leakage by design.
+              </p>
+            </div>
+
+            <!-- Pillar 3 -->
+            <div class="pillar-card">
+              <div class="pillar-icon">📋</div>
+              <h3 class="pillar-title">AUDITABILITY</h3>
+              <p class="pillar-desc">
+                Sensitive actions are recorded in immutable, append-only audit ledgers with correlation IDs and IP binding.
+              </p>
+            </div>
+
+            <!-- Pillar 4 -->
+            <div class="pillar-card">
+              <div class="pillar-icon">🔎</div>
+              <h3 class="pillar-title">VERIFICATION</h3>
+              <p class="pillar-desc">
+                Evidence and trusted sovereign sources (GSTN, MCA, CBDT, NSDL) are used for cryptographic cross-examination.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. AI SECURITY SECTION (AI ASSISTS - HUMANS DECIDE) -->
+      <section class="ai-doctrine-section">
+        <div class="container">
+          <div class="ai-doctrine-card">
+            <div class="doctrine-tag">AI GOVERNANCE DOCTRINE</div>
+            <h2 class="doctrine-title">AI ASSISTS &mdash; HUMANS DECIDE</h2>
+            <p class="doctrine-desc">
+              Veripass rejects unchecked algorithmic governance. Machine learning accelerates evidence ingestion, but licensed compliance officers sign off on every legal outcome.
+            </p>
+
+            <div class="doctrine-grid">
+              <div class="doctrine-column left-col">
+                <h4 class="col-title">What AI Does:</h4>
+                <ul class="doctrine-list">
+                  <li><span class="chk">✓</span> High-speed OCR extraction across complex document formats</li>
+                  <li><span class="chk">✓</span> Data normalization across disparate state tax schemas</li>
+                  <li><span class="chk">✓</span> Anomaly detection and tampering pattern analysis</li>
+                  <li><span class="chk">✓</span> Synthesizing multi-source composite risk signals</li>
+                </ul>
+              </div>
+
+              <div class="doctrine-column right-col">
+                <h4 class="col-title highlight-red">What AI Never Does:</h4>
+                <ul class="doctrine-list">
+                  <li><span class="cross">✕</span> Automatically approve a supplier without human oversight</li>
+                  <li><span class="cross">✕</span> Automatically reject or revoke a verified business identity</li>
+                  <li><span class="cross">✕</span> Make unilateral, irreversible verification decisions</li>
+                  <li><span class="cross">✕</span> Hide the evidence chain behind an unexplainable "black box"</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. FINAL ACTION -->
+      <section class="sec-cta-section">
+        <div class="container text-center">
+          <h3 class="sec-cta-title">Need custom enterprise security documentation?</h3>
+          <p class="sec-cta-sub">SOC-2 Type II audit reports and technical architecture briefs available under NDA.</p>
+          <a routerLink="/contact" class="btn btn-primary btn-lg">
+            Request Security Documentation &rarr;
+          </a>
+        </div>
+      </section>
+    </div>

@@ -1,0 +1,2365 @@
+    <div class="settings-view">
+      <!-- HEADER HERO -->
+      <div class="settings-header vp-card">
+        <div class="header-left">
+          <div class="tag-row">
+            <span class="view-tag">ENTERPRISE GOVERNANCE</span>
+            <span class="cert-tag">DPDP & MCA COMPLIANT</span>
+          </div>
+          <h1 class="page-title">Enterprise Settings</h1>
+          <p class="page-sub">Manage your sovereign business profile, statutory KYC, security controls, team authorizations, and API credentials.</p>
+        </div>
+        <div class="header-meta-pill">
+          <span class="pill-dot" [class.dot-paused]="accountStatus() === 'SUSPENDED'" [class.dot-terminated]="accountStatus() === 'TERMINATION_REQUESTED'">●</span>
+          <span class="pill-text font-mono">{{ displayBusinessIdNumber() }}</span>
+          <span class="pill-sep">&bull;</span>
+          <span class="pill-status" [class.text-amber]="accountStatus() === 'SUSPENDED'" [class.text-red]="accountStatus() === 'TERMINATION_REQUESTED'">
+            {{ accountStatus() === 'ACTIVE' ? 'Sovereign Active' : (accountStatus() === 'SUSPENDED' ? 'Discovery Paused' : 'Termination Pending') }}
+          </span>
+        </div>
+      </div>
+
+      <!-- SETTINGS TWO-COLUMN LAYOUT -->
+      <div class="settings-layout-grid">
+        <!-- LEFT: SETTINGS NAVIGATION TABS -->
+        <div class="vp-card settings-nav-card">
+          <nav class="settings-nav">
+            <button
+              *ngFor="let tab of tabs"
+              class="s-nav-btn"
+              [class.active]="activeTab() === tab.id"
+              (click)="selectTab(tab.id)">
+              <span class="s-icon">{{ tab.icon }}</span>
+              <div class="s-text-col">
+                <span class="s-lbl">{{ tab.label }}</span>
+                <span class="s-desc" *ngIf="tab.description">{{ tab.description }}</span>
+              </div>
+            </button>
+          </nav>
+        </div>
+
+        <!-- RIGHT: ACTIVE SETTING PANE -->
+        <div class="vp-card settings-content-card">
+          <!-- 1: BUSINESS PROFILE TAB -->
+          <div *ngIf="activeTab() === 'business-profile'" class="tab-pane">
+            <app-supplier-profile [isEmbedded]="true"></app-supplier-profile>
+          </div>
+
+          <!-- 2: IDENTITY & KYC TAB -->
+          <div *ngIf="activeTab() === 'identity-kyc'" class="tab-pane">
+            <app-supplier-identity [isEmbedded]="true"></app-supplier-identity>
+          </div>
+
+          <!-- 3: AUTHORIZED CONTACT PERSON TAB -->
+          <div *ngIf="activeTab() === 'contact'" class="tab-pane">
+            <div class="pane-header-group">
+              <div>
+                <h2 class="pane-title">Authorized Contact Person</h2>
+                <p class="pane-sub">Primary commercial representative & authorized signatory for enterprise procurement contracts, statutory verification, and buyer communications.</p>
+              </div>
+              <span class="badge-role-pill">Primary Signatory</span>
+            </div>
+
+            <!-- LIVE CONTACT PREVIEW CARD -->
+            <div class="contact-preview-card">
+              <div class="preview-avatar">
+                {{ userInitials() }}
+              </div>
+              <div class="preview-info">
+                <div class="preview-name-row">
+                  <h3 class="preview-name">{{ profile.contactPerson || 'Authorized Representative' }}</h3>
+                  <span class="preview-badge-active">● Active Representative</span>
+                </div>
+                <div class="preview-meta-row">
+                  <span class="preview-meta-item">
+                    <svg class="preview-icon" viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                      <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                      <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                    </svg>
+                    {{ profile.businessEmail || 'contact@business.in' }}
+                  </span>
+                  <span class="preview-sep">&bull;</span>
+                  <span class="preview-meta-item font-mono">
+                    <svg class="preview-icon" viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                      <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 4V3z" />
+                    </svg>
+                    {{ profile.mobile || '+91 98201 12345' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- SUCCESS NOTIFICATION -->
+            <div *ngIf="savedNotification()" class="contact-saved-alert">
+              <div class="alert-icon-circle">✓</div>
+              <div class="alert-content">
+                <strong>Contact Information Synchronized</strong>
+                <p>Changes have been persisted to the PostgreSQL database and updated reactively across the entire window (sidebar, topbar, and team directory). <span *ngIf="lastUpdatedTime()" class="alert-time">Synchronized at {{ lastUpdatedTime() }}</span></p>
+              </div>
+            </div>
+
+            <!-- EDIT FORM -->
+            <form (ngSubmit)="saveProfile()" class="contact-edit-form">
+              <div class="form-row-grid">
+                <div class="contact-form-group">
+                  <label class="contact-label" for="contactPerson">
+                    <span>Contact Person Name</span>
+                    <span class="label-req">*</span>
+                  </label>
+                  <p class="field-hint">Full legal name of the representative as recorded in official MCA / KYC registries.</p>
+                  <div class="contact-input-group">
+                    <div class="input-group-addon" aria-hidden="true" (click)="contactPersonInput.focus()">
+                      <svg class="field-icon-svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                      </svg>
+                    </div>
+                    <input
+                      #contactPersonInput
+                      id="contactPerson"
+                      type="text"
+                      [(ngModel)]="profile.contactPerson"
+                      name="contactPerson"
+                      placeholder="e.g. Authorized Signatory / Director"
+                      class="contact-input-field"
+                      required />
+                  </div>
+                </div>
+
+                <div class="contact-form-group">
+                  <label class="contact-label" for="businessEmail">
+                    <span>Official Business Email</span>
+                    <span class="label-req">*</span>
+                  </label>
+                  <p class="field-hint">Primary inbox for procurement inquiries, RFQs, and cryptographic consent requests.</p>
+                  <div class="contact-input-group">
+                    <div class="input-group-addon" aria-hidden="true" (click)="businessEmailInput.focus()">
+                      <svg class="field-icon-svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                      </svg>
+                    </div>
+                    <input
+                      #businessEmailInput
+                      id="businessEmail"
+                      type="email"
+                      [(ngModel)]="profile.businessEmail"
+                      name="businessEmail"
+                      placeholder="e.g. rajesh@abcmfg.in"
+                      class="contact-input-field"
+                      required />
+                  </div>
+                </div>
+
+                <div class="contact-form-group full-width">
+                  <label class="contact-label" for="mobile">
+                    <span>Direct Mobile Number</span>
+                    <span class="label-optional">(Recommended for SMS &amp; OTP verification)</span>
+                  </label>
+                  <p class="field-hint">Used for 2-factor verification when authorizing passport disclosures to enterprise buyers.</p>
+                  <div class="contact-input-group">
+                    <div class="input-group-addon" aria-hidden="true" (click)="mobileInput.focus()">
+                      <svg class="field-icon-svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 4V3z" />
+                      </svg>
+                    </div>
+                    <input
+                      #mobileInput
+                      id="mobile"
+                      type="tel"
+                      [(ngModel)]="profile.mobile"
+                      name="mobile"
+                      placeholder="+91 98201 12345"
+                      class="contact-input-field font-mono" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="contact-form-footer">
+                <button type="submit" class="btn-save-contact" [disabled]="saving()">
+                  <span *ngIf="saving()" class="btn-spinner"></span>
+                  <span>{{ saving() ? 'Saving to Database...' : 'Save & Synchronize Contact' }}</span>
+                </button>
+                <button type="button" class="btn-reset-contact" (click)="resetContactForm()" [disabled]="saving()">
+                  Reset to Current
+                </button>
+              </div>
+            </form>
+
+            <!-- SOVEREIGN AUDIT NOTICE -->
+            <div class="contact-security-box">
+              <div class="security-shield-icon">🛡️</div>
+              <div class="security-text">
+                <strong>Sovereign DPDP Audit Assurance</strong>
+                <p>Updates to your authorized representative are immutably logged in the platform audit ledger. Connected enterprise buyers with active passport grants will receive verified updates upon their next synchronization cycle.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4: SECURITY & SESSIONS TAB -->
+          <div *ngIf="activeTab() === 'security'" class="tab-pane security-pane">
+            <div class="pane-header-group">
+              <div>
+                <h2 class="pane-title">Security &amp; Sessions</h2>
+                <p class="pane-sub">Cryptographic credentials, multi-factor authentication (MFA), and enterprise device authorization controls.</p>
+              </div>
+              <span class="badge-role-pill">Argon2id Sovereign Encryption</span>
+            </div>
+
+            <!-- Global Action / Notice Banner -->
+            <div *ngIf="sessionNotice()" class="contact-saved-alert mb-4">
+              <div class="alert-icon-circle">✓</div>
+              <div class="alert-content">
+                <strong>Security Policy Synchronized</strong>
+                <p>{{ sessionNotice() }}</p>
+              </div>
+            </div>
+
+            <!-- SECURITY CONTROLS CARDS -->
+            <div class="sec-cards-grid">
+              <!-- CARD 1: ACCOUNT PASSWORD -->
+              <div class="sec-card">
+                <div class="sec-card-header">
+                  <div class="sec-card-icon blue">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="22" height="22">
+                      <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+                  <div class="sec-card-titles">
+                    <div class="sec-title-row">
+                      <h3 class="sec-card-title">Account Password</h3>
+                      <span class="sec-badge-pill green">● Protected</span>
+                    </div>
+                    <p class="sec-card-desc">Sovereign cryptographic key derivation protecting MCA &amp; statutory records.</p>
+                  </div>
+                </div>
+
+                <div class="sec-card-details">
+                  <div class="detail-row">
+                    <span class="detail-lbl">Algorithm</span>
+                    <span class="detail-val font-mono">Argon2id (m=65536, t=3, p=4)</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-lbl">Complexity Policy</span>
+                    <span class="detail-val">Min. 8 chars, numbers &amp; symbols</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-lbl">Token Invalidation</span>
+                    <span class="detail-val text-blue">Auto-rotates active session tokens</span>
+                  </div>
+                </div>
+
+                <div class="sec-card-action">
+                  <button type="button" class="btn-sec-action btn-blue" (click)="openChangePasswordModal()">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                    <span>Change Password</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- CARD 2: MULTI-FACTOR AUTHENTICATION -->
+              <div class="sec-card">
+                <div class="sec-card-header">
+                  <div class="sec-card-icon emerald">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="22" height="22">
+                      <path fill-rule="evenodd" d="M7 2a2 2 0 00-2 2v12a2 2 0 002 2h6a2 2 0 002-2V4a2 2 0 00-2-2H7zm3 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+                  <div class="sec-card-titles">
+                    <div class="sec-title-row">
+                      <h3 class="sec-card-title">Multi-Factor Authentication (MFA)</h3>
+                      <span class="sec-badge-pill" [class.green]="mfaEnabled()" [class.amber]="!mfaEnabled()">
+                        {{ mfaEnabled() ? '● Enabled • Gmail OTP' : '○ Disabled' }}
+                      </span>
+                    </div>
+                    <p class="sec-card-desc">Secondary verification required for portal sign-in and passport disclosures.</p>
+                  </div>
+                </div>
+
+                <div class="sec-card-details">
+                  <div class="detail-row">
+                    <span class="detail-lbl">Primary Channel</span>
+                    <span class="detail-val">Gmail Security OTP ({{ profile.businessEmail || 'supplier@veripass.in' }})</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-lbl">Authenticator App</span>
+                    <span class="detail-val text-green">TOTP Enabled (Google / MS Authenticator)</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-lbl">Step-Up Challenge</span>
+                    <span class="detail-val">Enforced on login &amp; statutory updates</span>
+                  </div>
+                </div>
+
+                <div class="sec-card-action">
+                  <button type="button" class="btn-sec-action btn-emerald" (click)="openMfaModal()">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                      <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Manage MFA Settings</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ACTIVE SESSIONS & DEVICE REGISTRY -->
+            <div class="sec-sessions-container">
+              <div class="sessions-header">
+                <div>
+                  <h3 class="sessions-title">Authorized Sessions &amp; Active Devices</h3>
+                  <p class="sessions-sub">Devices currently authenticated to your organization workspace. Revoke unrecognized endpoints immediately.</p>
+                </div>
+                <button type="button" class="btn-revoke-all" (click)="revokeAllOtherSessions()">
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                  </svg>
+                  <span>Revoke All Other Devices</span>
+                </button>
+              </div>
+
+              <div class="sessions-cards-list">
+                <div *ngFor="let session of activeSessions()" class="session-card" [class.current-device]="session.isCurrent">
+                  <div class="sess-device-icon" [class.current]="session.isCurrent">
+                    <svg *ngIf="session.type === 'desktop'" viewBox="0 0 20 20" fill="currentColor" width="22" height="22">
+                      <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.804A1 1 0 0113 18H7a1 1 0 01-.707-1.707l.804-.804L7.22 15H5a2 2 0 01-2-2V5zm5.771 7H5V5h10v7H8.771z" clip-rule="evenodd" />
+                    </svg>
+                    <svg *ngIf="session.type === 'mobile'" viewBox="0 0 20 20" fill="currentColor" width="22" height="22">
+                      <path fill-rule="evenodd" d="M7 2a2 2 0 00-2 2v12a2 2 0 002 2h6a2 2 0 002-2V4a2 2 0 00-2-2H7zm3 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                    </svg>
+                    <svg *ngIf="session.type === 'laptop'" viewBox="0 0 20 20" fill="currentColor" width="22" height="22">
+                      <path fill-rule="evenodd" d="M2 5a2 2 0 012-2h12a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3 1a1 1 0 000 2h10a1 1 0 100-2H5zM2 15a1 1 0 011-1h14a1 1 0 011 1v1a1 1 0 01-1 1H3a1 1 0 01-1-1v-1z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+
+                  <div class="sess-info-body">
+                    <div class="sess-name-row">
+                      <strong class="sess-device-title">{{ session.device }}</strong>
+                      <span *ngIf="session.isCurrent" class="badge-this-device">● Current Device (Active)</span>
+                      <span *ngIf="!session.isCurrent" class="badge-remote-device">{{ session.lastActive }}</span>
+                    </div>
+                    <div class="sess-specs-row">
+                      <span><strong>IP:</strong> {{ session.ip }}</span>
+                      <span class="sep">&bull;</span>
+                      <span><strong>Location:</strong> {{ session.location }}</span>
+                      <span class="sep">&bull;</span>
+                      <span><strong>OS:</strong> {{ session.os }}</span>
+                    </div>
+                  </div>
+
+                  <div class="sess-action-cell">
+                    <span *ngIf="session.isCurrent" class="current-label">Active Session</span>
+                    <button *ngIf="!session.isCurrent" type="button" class="btn-revoke-single" (click)="revokeSingleSession(session.id)">
+                      Revoke
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECURITY AUDIT FOOTER NOTICE -->
+            <div class="contact-security-box mt-4">
+              <div class="security-shield-icon">🛡️</div>
+              <div class="security-text">
+                <strong>DPDP Sovereign Audit Assurance</strong>
+                <p>Every credential alteration, authentication attempt, and session revocation is cryptographically signed and committed to the immutable platform audit ledger.</p>
+              </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- MODAL 1: CHANGE PASSWORD DIALOG                -->
+            <!-- ============================================== -->
+            <div *ngIf="showPasswordModal()" class="sec-modal-backdrop" (click)="closeChangePasswordModal()">
+              <div class="sec-modal-card" (click)="$event.stopPropagation()">
+                <div class="sec-modal-header">
+                  <div class="modal-icon-badge blue">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="22" height="22">
+                      <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+                  <div class="modal-title-col">
+                    <h3 class="sec-modal-title">Change Account Password</h3>
+                    <p class="sec-modal-sub">Update your sovereign password. Protected with Argon2id hash encryption.</p>
+                  </div>
+                  <button type="button" class="btn-modal-close" (click)="closeChangePasswordModal()">&times;</button>
+                </div>
+
+                <!-- Error Alert inside modal -->
+                <div *ngIf="passwordError()" class="alert-banner alert-danger mb-3">
+                  <span class="alert-icon">⚠️</span>
+                  <span class="alert-text">{{ passwordError() }}</span>
+                </div>
+
+                <!-- Success Alert inside modal -->
+                <div *ngIf="passwordSuccess()" class="alert-banner alert-success mb-3">
+                  <span class="alert-icon">✓</span>
+                  <span class="alert-text">{{ passwordSuccess() }}</span>
+                </div>
+
+                <form (ngSubmit)="submitChangePassword()" class="modal-form">
+                  <!-- Current Password -->
+                  <div class="modal-form-group">
+                    <label for="currentPassword">Current Password <span class="req">*</span></label>
+                    <div class="modal-input-wrap">
+                      <input
+                        id="currentPassword"
+                        [type]="showCurrentPass() ? 'text' : 'password'"
+                        [(ngModel)]="passwordForm.currentPassword"
+                        name="currentPassword"
+                        placeholder="Enter your current password"
+                        class="modal-input"
+                        required />
+                      <button type="button" class="modal-eye-btn" (click)="showCurrentPass.set(!showCurrentPass())">
+                        {{ showCurrentPass() ? '👁️' : '👁' }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- New Password -->
+                  <div class="modal-form-group">
+                    <label for="newPassword">New Password <span class="req">*</span></label>
+                    <div class="modal-input-wrap">
+                      <input
+                        id="newPassword"
+                        [type]="showNewPass() ? 'text' : 'password'"
+                        [(ngModel)]="passwordForm.newPassword"
+                        name="newPassword"
+                        placeholder="Minimum 8 characters with letters &amp; numbers"
+                        class="modal-input"
+                        required />
+                      <button type="button" class="modal-eye-btn" (click)="showNewPass.set(!showNewPass())">
+                        {{ showNewPass() ? '👁️' : '👁' }}
+                      </button>
+                    </div>
+                    <div class="password-reqs">
+                      <span [class.valid]="passwordForm.newPassword.length >= 8">● Min. 8 characters</span>
+                      <span [class.valid]="passwordForm.newPassword !== passwordForm.currentPassword && passwordForm.newPassword.length > 0">● Different from current</span>
+                    </div>
+                  </div>
+
+                  <!-- Confirm Password -->
+                  <div class="modal-form-group">
+                    <label for="confirmPassword">Confirm New Password <span class="req">*</span></label>
+                    <div class="modal-input-wrap">
+                      <input
+                        id="confirmPassword"
+                        [type]="showConfirmPass() ? 'text' : 'password'"
+                        [(ngModel)]="passwordForm.confirmPassword"
+                        name="confirmPassword"
+                        placeholder="Re-enter your new password"
+                        class="modal-input"
+                        required />
+                      <button type="button" class="modal-eye-btn" (click)="showConfirmPass.set(!showConfirmPass())">
+                        {{ showConfirmPass() ? '👁️' : '👁' }}
+                      </button>
+                    </div>
+                    <div *ngIf="passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword" class="text-danger-hint">
+                      Passwords do not match.
+                    </div>
+                  </div>
+
+                  <div class="sec-modal-footer">
+                    <button type="button" class="btn-cancel" (click)="closeChangePasswordModal()" [disabled]="passwordLoading()">Cancel</button>
+                    <button type="submit" class="btn-confirm-save" [disabled]="passwordLoading() || !passwordForm.currentPassword || !passwordForm.newPassword">
+                      <span *ngIf="passwordLoading()" class="btn-spinner"></span>
+                      <span>{{ passwordLoading() ? 'Updating Hash...' : 'Update & Encrypt Password' }}</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- MODAL 2: MANAGE MFA DIALOG                     -->
+            <!-- ============================================== -->
+            <div *ngIf="showMfaModal()" class="sec-modal-backdrop" (click)="closeMfaModal()">
+              <div class="sec-modal-card mfa-modal" (click)="$event.stopPropagation()">
+                <div class="sec-modal-header">
+                  <div class="modal-icon-badge emerald">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="22" height="22">
+                      <path fill-rule="evenodd" d="M7 2a2 2 0 00-2 2v12a2 2 0 002 2h6a2 2 0 002-2V4a2 2 0 00-2-2H7zm3 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+                  <div class="modal-title-col">
+                    <h3 class="sec-modal-title">Multi-Factor Authentication (MFA)</h3>
+                    <p class="sec-modal-sub">Configure two-step verification channels for sign-in and passport authorization.</p>
+                  </div>
+                  <button type="button" class="btn-modal-close" (click)="closeMfaModal()">&times;</button>
+                </div>
+
+                <!-- Error / Success banners inside modal -->
+                <div *ngIf="mfaError()" class="alert-banner alert-danger mb-3">
+                  <span class="alert-icon">⚠️</span>
+                  <span class="alert-text">{{ mfaError() }}</span>
+                </div>
+                <div *ngIf="mfaSuccess()" class="alert-banner alert-success mb-3">
+                  <span class="alert-icon">✓</span>
+                  <span class="alert-text">{{ mfaSuccess() }}</span>
+                </div>
+
+                <!-- MFA Master Toggle Row -->
+                <div class="mfa-master-toggle-box">
+                  <div class="mfa-toggle-info">
+                    <strong>Require 2-Factor Authentication</strong>
+                    <span>Enforce secondary security verification on sign-in and sensitive data exports</span>
+                  </div>
+                  <label class="switch-ui">
+                    <input type="checkbox" [checked]="mfaEnabled()" (change)="mfaEnabled.set(!mfaEnabled())" />
+                    <span class="slider-ui round"></span>
+                  </label>
+                </div>
+
+                <!-- MFA CHANNELS -->
+                <div class="mfa-channels-list" [class.disabled-opacity]="!mfaEnabled()">
+                  <!-- Channel 1: Gmail OTP -->
+                  <div class="mfa-channel-card active">
+                    <div class="ch-left">
+                      <span class="ch-icon">✉️</span>
+                      <div>
+                        <strong>Registered Business Gmail OTP (Primary Channel)</strong>
+                        <span class="ch-sub">Delivers 6-digit one-time security codes directly to your registered Gmail address</span>
+                        <div class="verified-phone-pill">
+                          <span>✓ Target Gmail: <strong>{{ profile.businessEmail || 'supplier@veripass.in' }}</strong></span>
+                        </div>
+
+                        <!-- Test Gmail OTP Row -->
+                        <div class="totp-test-row mt-3">
+                          <button type="button" class="btn-verify-totp" (click)="sendTestGmailOtp()" [disabled]="sendingGmailOtp()">
+                            {{ sendingGmailOtp() ? 'Dispatching...' : (gmailOtpSent() ? 'Resend to Gmail' : 'Send Code to Gmail') }}
+                          </button>
+                          <input
+                            type="text"
+                            maxlength="6"
+                            placeholder="6-digit Gmail code"
+                            [(ngModel)]="testGmailOtpCode"
+                            class="totp-input font-mono" />
+                          <button type="button" class="btn-verify-totp" (click)="verifyGmailOtp()" [disabled]="testGmailOtpCode().length !== 6">
+                            {{ gmailOtpVerified() ? '✓ Verified' : 'Verify' }}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <span class="badge-status-on">● Active</span>
+                  </div>
+
+                  <!-- Channel 2: Authenticator App (TOTP) -->
+                  <div class="mfa-channel-card">
+                    <div class="ch-left">
+                      <span class="ch-icon">🔐</span>
+                      <div>
+                        <strong>Authenticator App (TOTP)</strong>
+                        <span class="ch-sub">Google Authenticator, Microsoft Authenticator, or Duo</span>
+                        
+                        <!-- Secret Key / Setup details -->
+                        <div class="totp-setup-box mt-2">
+                          <span class="totp-label">Setup Secret Key:</span>
+                          <code class="totp-secret font-mono">{{ totpSecret }}</code>
+                        </div>
+
+                        <!-- Test TOTP Code -->
+                        <div class="totp-test-row mt-2">
+                          <input
+                            type="text"
+                            maxlength="6"
+                            placeholder="Enter 6-digit code"
+                            [(ngModel)]="testOtpCode"
+                            class="totp-input font-mono" />
+                          <button type="button" class="btn-verify-totp" (click)="verifyTotpCode()" [disabled]="testOtpCode().length !== 6">
+                            {{ otpVerified() ? '✓ Verified' : 'Verify Code' }}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <span class="badge-status-on" *ngIf="otpVerified()">● Linked</span>
+                  </div>
+                </div>
+
+                <div class="sec-modal-footer">
+                  <button type="button" class="btn-cancel" (click)="closeMfaModal()" [disabled]="mfaLoading()">Close</button>
+                  <button type="button" class="btn-confirm-save emerald" (click)="saveMfaSettings(mfaEnabled())" [disabled]="mfaLoading()">
+                    <span *ngIf="mfaLoading()" class="btn-spinner"></span>
+                    <span>{{ mfaLoading() ? 'Saving Configuration...' : 'Save MFA Settings' }}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5: NOTIFICATIONS PREFERENCES -->
+          <div *ngIf="activeTab() === 'notifications'" class="tab-pane">
+            <div class="np-header-container">
+              <div>
+                <h2 class="pane-title">Notification Preferences</h2>
+                <p class="pane-sub">Configure your enterprise alert channels, statutory watchtower reminders, and communication dispatch schedules.</p>
+              </div>
+              <div class="np-header-actions">
+                <button type="button" class="btn-test-alert" (click)="sendTestAlert()" [disabled]="testAlertSending()">
+                  <span *ngIf="testAlertSending()" class="btn-spinner-sm"></span>
+                  <span *ngIf="!testAlertSending()">⚡ Send Test Alert</span>
+                </button>
+                <button type="button" class="btn-save-notif-top" (click)="saveNotificationPreferences()" [disabled]="savingNotifPrefs()">
+                  <span *ngIf="savingNotifPrefs()" class="btn-spinner-sm"></span>
+                  <span *ngIf="!savingNotifPrefs()">Save Changes</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Toast / Success & Alert Banners -->
+            <div *ngIf="notifPrefsSaved()" class="np-banner np-banner-success">
+              <span class="banner-icon">✓</span>
+              <div class="banner-text">
+                <strong>Preferences Synchronized!</strong>
+                <span>{{ notifPrefsMessage() || 'Your notification channels and delivery frequencies have been updated in the sovereign database.' }}</span>
+              </div>
+              <span *ngIf="notifLastSavedAt()" class="banner-time">Saved at {{ notifLastSavedAt() }}</span>
+            </div>
+
+            <div *ngIf="testAlertSuccess()" class="np-banner np-banner-info">
+              <span class="banner-icon">🔔</span>
+              <div class="banner-text">
+                <strong>Test Alert Dispatched!</strong>
+                <span>{{ testAlertSuccess() }}</span>
+              </div>
+            </div>
+
+            <div *ngIf="notifPrefsError()" class="np-banner np-banner-error">
+              <span class="banner-icon">⚠️</span>
+              <div class="banner-text">
+                <strong>Update Error</strong>
+                <span>{{ notifPrefsError() }}</span>
+              </div>
+            </div>
+
+            <!-- Channel Endpoints Status Grid -->
+            <div class="np-channels-grid">
+              <div class="np-channel-card">
+                <div class="channel-card-top">
+                  <div class="channel-icon-circle email">✉️</div>
+                  <span class="channel-badge verified">● TLS 1.3 Strict</span>
+                </div>
+                <div class="channel-card-body">
+                  <span class="channel-label">Primary Email Dispatch</span>
+                  <strong class="channel-val" [title]="notifPrefs().emailDeliveryAddress">{{ notifPrefs().emailDeliveryAddress }}</strong>
+                  <span class="channel-hint">Enterprise inbox for official notices</span>
+                </div>
+              </div>
+
+              <div class="np-channel-card">
+                <div class="channel-card-top">
+                  <div class="channel-icon-circle sms">📱</div>
+                  <span class="channel-badge dlt">● TRAI DLT Registered</span>
+                </div>
+                <div class="channel-card-body">
+                  <span class="channel-label">SMS & WhatsApp Gateway</span>
+                  <strong class="channel-val">{{ notifPrefs().phoneDeliveryNumber }}</strong>
+                  <span class="channel-hint">Direct authorized signatory phone</span>
+                </div>
+              </div>
+
+              <div class="np-channel-card">
+                <div class="channel-card-top">
+                  <div class="channel-icon-circle push">🔔</div>
+                  <span class="channel-badge active">● Real-time Active</span>
+                </div>
+                <div class="channel-card-body">
+                  <span class="channel-label">Watchtower Push Engine</span>
+                  <strong class="channel-val">In-App Notification Feed</strong>
+                  <span class="channel-hint">Real-time alerts on dashboard login</span>
+                </div>
+              </div>
+
+              <div class="np-channel-card">
+                <div class="channel-card-top">
+                  <div class="channel-icon-circle cadence">⏱️</div>
+                  <span class="channel-badge cadence-badge">{{ notifPrefs().digestFrequency }}</span>
+                </div>
+                <div class="channel-card-body">
+                  <span class="channel-label">Delivery Cadence</span>
+                  <strong class="channel-val">{{ notifPrefs().digestFrequency === 'INSTANT' ? 'Real-Time Dispatches' : notifPrefs().digestFrequency === 'DAILY_DIGEST' ? 'Daily Executive Digest' : 'Weekly Summary' }}</strong>
+                  <span class="channel-hint">Configured notification frequency</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Presets Bar -->
+            <div class="np-presets-bar">
+              <div class="presets-intro">
+                <span class="presets-label">⚡ Quick Policy Presets:</span>
+                <span class="presets-desc">Select an enterprise configuration baseline</span>
+              </div>
+              <div class="presets-buttons">
+                <button type="button" class="preset-pill" [class.active]="selectedPreset() === 'recommended'" (click)="applyPreset('recommended')">
+                  ⭐ Recommended Sovereign Policy
+                </button>
+                <button type="button" class="preset-pill" [class.active]="selectedPreset() === 'minimal'" (click)="applyPreset('minimal')">
+                  🛡️ Critical & Expirations Only
+                </button>
+                <button type="button" class="preset-pill" [class.active]="selectedPreset() === 'all'" (click)="applyPreset('all')">
+                  🚀 Full Velocity (All Channels)
+                </button>
+                <span *ngIf="selectedPreset() === 'custom'" class="preset-custom-tag">● Custom Configuration</span>
+              </div>
+            </div>
+
+            <!-- Notification Channels Matrix Table -->
+            <div class="np-matrix-card">
+              <div class="np-table-header-bar">
+                <div class="table-info">
+                  <h3>Alert Categories & Delivery Matrix</h3>
+                  <p>Customize which channels receive dispatches for each statutory event category.</p>
+                </div>
+                <div class="table-legend">
+                  <span class="legend-item"><span class="badge-dot critical"></span> Critical / Sovereign</span>
+                  <span class="legend-item"><span class="badge-dot standard"></span> Standard</span>
+                  <span class="legend-item"><span class="badge-dot info"></span> Informational</span>
+                </div>
+              </div>
+
+              <div class="np-table-responsive">
+                <table class="np-matrix-table">
+                  <thead>
+                    <tr>
+                      <th class="col-category">Alert Category</th>
+                      <th class="col-channel">
+                        <div class="th-channel-header" (click)="toggleMasterChannel('email')" title="Click to toggle Email for all categories">
+                          <span class="ch-icon">✉️</span>
+                          <span class="ch-name">Email</span>
+                          <span class="ch-toggle-hint">Toggle All</span>
+                        </div>
+                      </th>
+                      <th class="col-channel">
+                        <div class="th-channel-header" (click)="toggleMasterChannel('sms')" title="Click to toggle SMS for all categories">
+                          <span class="ch-icon">📱</span>
+                          <span class="ch-name">SMS</span>
+                          <span class="ch-toggle-hint">Toggle All</span>
+                        </div>
+                      </th>
+                      <th class="col-channel">
+                        <div class="th-channel-header" (click)="toggleMasterChannel('push')" title="Click to toggle Push for all categories">
+                          <span class="ch-icon">🔔</span>
+                          <span class="ch-name">Push</span>
+                          <span class="ch-toggle-hint">Toggle All</span>
+                        </div>
+                      </th>
+                      <th class="col-channel">
+                        <div class="th-channel-header" (click)="toggleMasterChannel('whatsapp')" title="Click to toggle WhatsApp for all categories">
+                          <span class="ch-icon">💬</span>
+                          <span class="ch-name">WhatsApp</span>
+                          <span class="ch-toggle-hint">Toggle All</span>
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let cat of notifPrefs().categories" class="np-category-row" [class.critical-row]="cat.badge === 'CRITICAL'">
+                      <td class="col-category">
+                        <div class="cat-content">
+                          <div class="cat-icon-wrap" [ngClass]="cat.id">
+                            <span *ngIf="cat.id === 'compliance'">🛡️</span>
+                            <span *ngIf="cat.id === 'verification'">🪪</span>
+                            <span *ngIf="cat.id === 'procurement'">💼</span>
+                            <span *ngIf="cat.id === 'security'">🔒</span>
+                            <span *ngIf="cat.id === 'trust_score'">📈</span>
+                            <span *ngIf="cat.id === 'industry'">📰</span>
+                          </div>
+                          <div class="cat-text">
+                            <div class="cat-title-row">
+                              <strong>{{ cat.name }}</strong>
+                              <span class="np-badge" [ngClass]="'badge-' + cat.badge.toLowerCase()">{{ cat.badge }}</span>
+                            </div>
+                            <span class="cat-desc">{{ cat.description }}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="col-channel">
+                        <label class="np-switch" [title]="'Toggle Email for ' + cat.name">
+                          <input type="checkbox" [checked]="cat.email" (change)="toggleCategoryChannel(cat.id, 'email')" />
+                          <span class="np-slider"></span>
+                        </label>
+                      </td>
+                      <td class="col-channel">
+                        <label class="np-switch" [title]="'Toggle SMS for ' + cat.name">
+                          <input type="checkbox" [checked]="cat.sms" (change)="toggleCategoryChannel(cat.id, 'sms')" />
+                          <span class="np-slider"></span>
+                        </label>
+                      </td>
+                      <td class="col-channel">
+                        <label class="np-switch" [title]="'Toggle Push for ' + cat.name">
+                          <input type="checkbox" [checked]="cat.push" (change)="toggleCategoryChannel(cat.id, 'push')" />
+                          <span class="np-slider"></span>
+                        </label>
+                      </td>
+                      <td class="col-channel">
+                        <label class="np-switch" [title]="'Toggle WhatsApp for ' + cat.name">
+                          <input type="checkbox" [checked]="cat.whatsapp" (change)="toggleCategoryChannel(cat.id, 'whatsapp')" />
+                          <span class="np-slider"></span>
+                        </label>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Delivery Governance & Policy Options -->
+            <div class="np-governance-grid">
+              <!-- Dispatch Cadence Card -->
+              <div class="gov-card">
+                <div class="gov-card-header">
+                  <div class="gov-icon">⏱️</div>
+                  <div>
+                    <h4>Dispatch Cadence & Frequency</h4>
+                    <p>Select how non-emergency notifications are batched and dispatched.</p>
+                  </div>
+                </div>
+                <div class="gov-card-body">
+                  <div class="frequency-options">
+                    <label class="freq-option" [class.selected]="notifPrefs().digestFrequency === 'INSTANT'">
+                      <input type="radio" name="digestFrequency" value="INSTANT" [(ngModel)]="notifPrefs().digestFrequency" (change)="selectedPreset.set('custom')" />
+                      <div class="freq-content">
+                        <strong>Instant Real-Time Dispatches (Recommended)</strong>
+                        <span>Immediate delivery as soon as watchtower alerts or buyer inquiries trigger.</span>
+                      </div>
+                    </label>
+
+                    <label class="freq-option" [class.selected]="notifPrefs().digestFrequency === 'DAILY_DIGEST'">
+                      <input type="radio" name="digestFrequency" value="DAILY_DIGEST" [(ngModel)]="notifPrefs().digestFrequency" (change)="selectedPreset.set('custom')" />
+                      <div class="freq-content">
+                        <strong>Daily Executive Digest (09:00 AM IST)</strong>
+                        <span>Consolidates daily compliance status and buyer views into a single morning briefing.</span>
+                      </div>
+                    </label>
+
+                    <label class="freq-option" [class.selected]="notifPrefs().digestFrequency === 'WEEKLY_SUMMARY'">
+                      <input type="radio" name="digestFrequency" value="WEEKLY_SUMMARY" [(ngModel)]="notifPrefs().digestFrequency" (change)="selectedPreset.set('custom')" />
+                      <div class="freq-content">
+                        <strong>Weekly Compliance Summary (Mondays)</strong>
+                        <span>Weekly digest of passport interactions and upcoming statutory deadlines.</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quiet Hours & Emergency Rules -->
+              <div class="gov-card">
+                <div class="gov-card-header">
+                  <div class="gov-icon">🛡️</div>
+                  <div>
+                    <h4>Compliance & Escalation Policies</h4>
+                    <p>Sovereign statutory rules and privacy guardrails for message delivery.</p>
+                  </div>
+                </div>
+                <div class="gov-card-body">
+                  <div class="policy-toggle-item">
+                    <div class="policy-info">
+                      <strong>TRAI & DPDP Act Quiet Hours (22:00 – 08:00 IST)</strong>
+                      <span>Mutes non-urgent SMS & WhatsApp transmissions during nighttime hours to respect commercial privacy statutes.</span>
+                    </div>
+                    <label class="np-switch">
+                      <input type="checkbox" [(ngModel)]="notifPrefs().quietHoursEnabled" (change)="selectedPreset.set('custom')" />
+                      <span class="np-slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="policy-toggle-item">
+                    <div class="policy-info">
+                      <strong>Critical Expiry Auto-Escalation (&lt; 7 Days)</strong>
+                      <span>Automatically sends urgent SMS and alerts to secondary authorized personnel if a statutory certificate is within 7 days of expiration.</span>
+                    </div>
+                    <label class="np-switch">
+                      <input type="checkbox" [(ngModel)]="notifPrefs().autoEscalateCritical" (change)="selectedPreset.set('custom')" />
+                      <span class="np-slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="dlt-compliance-box">
+                    <div class="dlt-badge">✓ DLT Principle 2026 Compliant</div>
+                    <p>Transactional SMS dispatches are delivered via certified Sovereign Enterprise Headers (e.g. <code>VERIPS-TR</code>) registered with the Telecom Regulatory Authority of India.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom Sticky Action Bar -->
+            <div class="np-action-bar">
+              <div class="action-bar-left">
+                <button type="button" class="btn-action-ghost" (click)="resetNotificationDefaults()">
+                  ↺ Reset Defaults
+                </button>
+                <button type="button" class="btn-action-secondary" (click)="sendTestAlert()" [disabled]="testAlertSending()">
+                  <span *ngIf="testAlertSending()" class="btn-spinner-sm"></span>
+                  <span>{{ testAlertSending() ? 'Sending Test...' : '⚡ Send Test Notification' }}</span>
+                </button>
+                <span *ngIf="notifLastSavedAt()" class="last-saved-tag">
+                  ✓ Synchronized at {{ notifLastSavedAt() }}
+                </span>
+              </div>
+              <div class="action-bar-right">
+                <button type="button" class="btn-action-primary" (click)="saveNotificationPreferences()" [disabled]="savingNotifPrefs()">
+                  <span *ngIf="savingNotifPrefs()" class="btn-spinner-sm"></span>
+                  <span *ngIf="!savingNotifPrefs()">✓ Save Preferences</span>
+                  <span *ngIf="savingNotifPrefs()">Saving to Database...</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 6: PRIVACY & VISIBILITY (CLEAN ENTERPRISE DESIGN) -->
+          <div *ngIf="activeTab() === 'privacy'" class="tab-pane pv-pane">
+            <!-- Header -->
+            <div class="pv-header">
+              <div>
+                <h2 class="pane-title">Privacy & Visibility</h2>
+                <p class="pane-sub">
+                  Configure directory discoverability for your Business Passport and define granular disclosure levels for verified enterprise buyers.
+                </p>
+              </div>
+              <div class="pv-header-actions">
+                <button type="button"
+                        class="btn-enterprise-primary"
+                        (click)="savePrivacyPreferences()"
+                        [disabled]="savingPrivacy()">
+                  <span *ngIf="savingPrivacy()" class="btn-spinner-sm"></span>
+                  <span *ngIf="!savingPrivacy() && hasUnsavedPrivacyChanges()" class="unsaved-indicator">●</span>
+                  <span *ngIf="!savingPrivacy()">✓ Save Changes</span>
+                  <span *ngIf="savingPrivacy()">Saving...</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Feedback Banners -->
+            <div *ngIf="privacySaved()" class="pv-alert pv-alert-success">
+              <span class="alert-icon">✓</span>
+              <div class="alert-body">
+                <strong>Settings Saved</strong>
+                <span>{{ privacyMessage() || 'Your privacy & disclosure preferences have been updated.' }}</span>
+              </div>
+              <span *ngIf="privacyLastSavedAt()" class="alert-meta">Saved at {{ privacyLastSavedAt() }}</span>
+            </div>
+
+            <div *ngIf="privacyError()" class="pv-alert pv-alert-error">
+              <span class="alert-icon">⚠️</span>
+              <div class="alert-body">
+                <strong>Error Saving Settings</strong>
+                <span>{{ privacyError() }}</span>
+              </div>
+            </div>
+
+            <!-- 1. PASSPORT DIRECTORY VISIBILITY -->
+            <div class="pv-card">
+              <div class="pv-card-header">
+                <div>
+                  <h3 class="pv-card-title">Passport Directory Visibility</h3>
+                  <p class="pv-card-desc">Determine who can find and view your organization's Business Passport across the VeriPass network.</p>
+                </div>
+              </div>
+
+              <div class="pv-card-body">
+                <div class="visibility-options-list">
+                  <label class="visibility-option-item"
+                         [class.selected]="privacyPrefs().profileVisibility === 'PUBLIC'"
+                         (click)="setMasterProfileVisibility('PUBLIC')">
+                    <div class="radio-indicator">
+                      <span class="radio-dot"></span>
+                    </div>
+                    <div class="option-content">
+                      <div class="option-header-row">
+                        <strong class="option-title">Public Directory (Recommended)</strong>
+                        <span class="option-badge recommended">Standard</span>
+                      </div>
+                      <p class="option-text">
+                        Published to the VeriPass directory and searchable by enterprise buyers. Displays public verified badges, company identity, and allowed statutory disclosures.
+                      </p>
+                    </div>
+                  </label>
+
+                  <label class="visibility-option-item"
+                         [class.selected]="privacyPrefs().profileVisibility === 'VERIFIED_BUYERS'"
+                         (click)="setMasterProfileVisibility('VERIFIED_BUYERS')">
+                    <div class="radio-indicator">
+                      <span class="radio-dot"></span>
+                    </div>
+                    <div class="option-content">
+                      <div class="option-header-row">
+                        <strong class="option-title">Verified Enterprise Buyers Only</strong>
+                        <span class="option-badge restricted">Gated</span>
+                      </div>
+                      <p class="option-text">
+                        Hidden from general search and unauthenticated visitors. Only verified procurement teams with authenticated corporate accounts can access.
+                      </p>
+                    </div>
+                  </label>
+
+                  <label class="visibility-option-item"
+                         [class.selected]="privacyPrefs().profileVisibility === 'PRIVATE'"
+                         (click)="setMasterProfileVisibility('PRIVATE')">
+                    <div class="radio-indicator">
+                      <span class="radio-dot"></span>
+                    </div>
+                    <div class="option-content">
+                      <div class="option-header-row">
+                        <strong class="option-title">Private / Unlisted</strong>
+                        <span class="option-badge confidential">Invite Only</span>
+                      </div>
+                      <p class="option-text">
+                        Hidden from all directories. Accessible solely by sharing your direct link or through explicit buyer onboarding invitations.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                <!-- Public Link Box -->
+                <div class="passport-link-group">
+                  <div class="link-label-col">
+                    <span class="link-label">Public Passport Link</span>
+                    <span class="link-hint">Share this URL directly with enterprise buyers or RFP issuers.</span>
+                  </div>
+                  <div class="link-input-wrap">
+                    <code class="link-url-display font-mono">veripass.in/p/{{ currentProfile()?.businessIdNumber?.toLowerCase() || 'vp-in-supplier' }}</code>
+                    <button type="button" class="btn-copy-link" (click)="copyPassportLink()">
+                      {{ copiedPassportLink() ? '✓ Copied' : '📋 Copy Link' }}
+                    </button>
+                    <a [routerLink]="['/passport', currentProfile()?.businessIdNumber || 'default']"
+                       target="_blank"
+                       class="btn-open-link"
+                       title="Open live passport in new tab">
+                      ↗ View
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. CREDENTIAL DISCLOSURE LEVELS -->
+            <div class="pv-card">
+              <div class="pv-card-header pv-table-card-header">
+                <div>
+                  <h3 class="pv-card-title">Credential Disclosure Levels</h3>
+                  <p class="pv-card-desc">Define granular access clearance for each statutory, tax, governance, and audit record.</p>
+                </div>
+                <!-- Clean Preset & Search Toolbar -->
+                <div class="pv-table-controls">
+                  <!-- Presets -->
+                  <div class="preset-pill-group">
+                    <span class="preset-group-label">Apply Baseline:</span>
+                    <button type="button"
+                            class="btn-preset-pill"
+                            [class.active]="selectedPrivacyPreset() === 'recommended'"
+                            (click)="applyPrivacyPreset('recommended')">
+                      Recommended
+                    </button>
+                    <button type="button"
+                            class="btn-preset-pill"
+                            [class.active]="selectedPrivacyPreset() === 'open'"
+                            (click)="applyPrivacyPreset('open')">
+                      Full Exposure
+                    </button>
+                    <button type="button"
+                            class="btn-preset-pill"
+                            [class.active]="selectedPrivacyPreset() === 'stealth'"
+                            (click)="applyPrivacyPreset('stealth')">
+                      Strict NDA
+                    </button>
+                  </div>
+
+                  <!-- Quick Search -->
+                  <div class="table-search-box">
+                    <span class="search-glyph">🔍</span>
+                    <input type="text"
+                           class="search-input"
+                           placeholder="Filter credentials..."
+                           [(ngModel)]="privacySearchQuery" />
+                    <button *ngIf="privacySearchQuery()"
+                            type="button"
+                            class="btn-clear"
+                            (click)="privacySearchQuery.set('')">✕</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="pv-table-responsive">
+                <table class="pv-data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 48%;">Credential</th>
+                      <th style="width: 24%;">Category</th>
+                      <th style="width: 28%; text-align: right;">Access Permission</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let attr of filteredAttributes()" [class.row-locked]="attr.locked">
+                      <!-- Col 1: Name & Desc -->
+                      <td>
+                        <div class="credential-info-cell">
+                          <span class="cred-icon">{{ attr.icon || '📄' }}</span>
+                          <div class="cred-text">
+                            <div class="cred-title-row">
+                              <strong class="cred-name">{{ attr.name }}</strong>
+                              <span *ngIf="attr.locked" class="cred-locked-badge" title="Required to be public under statutory regulations">
+                                🔒 Mandatory Public
+                              </span>
+                            </div>
+                            <span class="cred-desc">{{ attr.description }}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <!-- Col 2: Category -->
+                      <td>
+                        <span class="category-pill">{{ attr.category }}</span>
+                      </td>
+
+                      <!-- Col 3: Segmented Control -->
+                      <td style="text-align: right;">
+                        <div class="segmented-control" [class.locked]="attr.locked">
+                          <button type="button"
+                                  class="seg-btn public"
+                                  [class.active]="attr.visibility === 'PUBLIC'"
+                                  (click)="setAttributeVisibility(attr, 'PUBLIC')">
+                            🌐 Public
+                          </button>
+                          <button type="button"
+                                  class="seg-btn buyers"
+                                  [class.active]="attr.visibility === 'VERIFIED_BUYERS'"
+                                  [disabled]="attr.locked"
+                                  (click)="setAttributeVisibility(attr, 'VERIFIED_BUYERS')">
+                            🏢 Buyers
+                          </button>
+                          <button type="button"
+                                  class="seg-btn private"
+                                  [class.active]="attr.visibility === 'PRIVATE'"
+                                  [disabled]="attr.locked"
+                                  (click)="setAttributeVisibility(attr, 'PRIVATE')">
+                            🔒 Private
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr *ngIf="filteredAttributes().length === 0">
+                      <td colspan="3" class="table-empty-row">
+                        <span>No credentials matching "{{ privacySearchQuery() }}"</span>
+                        <button type="button" class="btn-link-reset" (click)="privacySearchQuery.set('')">Clear filter</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 3. DATA PROTECTION & ACCESS SAFEGUARDS -->
+            <div class="pv-card">
+              <div class="pv-card-header">
+                <div>
+                  <h3 class="pv-card-title">Data Protection & Access Safeguards</h3>
+                  <p class="pv-card-desc">Automated masking and enterprise security policies for incoming buyer inquiries.</p>
+                </div>
+              </div>
+
+              <div class="safeguards-list">
+                <div class="safeguard-item">
+                  <div class="safeguard-info">
+                    <strong class="safeguard-title">Mask Corporate PAN on Public Views</strong>
+                    <p class="safeguard-desc">Displays <code class="font-mono">******1234F</code> to unauthenticated public visitors. Unmasked PAN is revealed strictly to verified enterprise procurement teams.</p>
+                  </div>
+                  <label class="np-switch">
+                    <input type="checkbox" [(ngModel)]="privacyPrefs().maskPanPublic" (change)="onPrivacyRuleToggle()" />
+                    <span class="np-slider"></span>
+                  </label>
+                </div>
+
+                <div class="safeguard-item">
+                  <div class="safeguard-info">
+                    <strong class="safeguard-title">Conceal Banking & Penny-Drop Details</strong>
+                    <p class="safeguard-desc">Masks bank account numbers and penny verification logs from public directory endpoints.</p>
+                  </div>
+                  <label class="np-switch">
+                    <input type="checkbox" [(ngModel)]="privacyPrefs().maskBankDetails" (change)="onPrivacyRuleToggle()" />
+                    <span class="np-slider"></span>
+                  </label>
+                </div>
+
+                <div class="safeguard-item">
+                  <div class="safeguard-info">
+                    <strong class="safeguard-title">Require Mutual Digital NDA for Audit Reports</strong>
+                    <p class="safeguard-desc">Prospective buyers must accept an enforceable digital non-disclosure agreement before downloading accredited lab certificates and factory audit reports.</p>
+                  </div>
+                  <label class="np-switch">
+                    <input type="checkbox" [(ngModel)]="privacyPrefs().requireNdaForAuditReports" (change)="onPrivacyRuleToggle()" />
+                    <span class="np-slider"></span>
+                  </label>
+                </div>
+
+                <div class="safeguard-item">
+                  <div class="safeguard-info">
+                    <strong class="safeguard-title">Auto-Approve Verified Enterprise Portals</strong>
+                    <p class="safeguard-desc">Instantly grant credential access to verified Fortune 500, PSU, and OEM procurement portals without requiring manual administrative approval.</p>
+                  </div>
+                  <label class="np-switch">
+                    <input type="checkbox" [(ngModel)]="privacyPrefs().autoApproveTier1" (change)="onPrivacyRuleToggle()" />
+                    <span class="np-slider"></span>
+                  </label>
+                </div>
+
+                <div class="safeguard-item">
+                  <div class="safeguard-info">
+                    <strong class="safeguard-title">Search Engine Indexing & B2B Discovery</strong>
+                    <p class="safeguard-desc">Allow verified search crawlers (Google, Bing) and trade portals to index your public passport page for new supplier discovery.</p>
+                  </div>
+                  <label class="np-switch">
+                    <input type="checkbox" [(ngModel)]="privacyPrefs().searchEngineIndexing" (change)="onPrivacyRuleToggle()" />
+                    <span class="np-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom Sticky / Action Bar -->
+            <div class="pv-bottom-bar">
+              <div class="bottom-left">
+                <button type="button" class="btn-enterprise-ghost" (click)="resetPrivacyDefaults()">
+                  ↺ Reset Defaults
+                </button>
+                <span *ngIf="privacyLastSavedAt()" class="bottom-sync-text">
+                  ✓ Synchronized at {{ privacyLastSavedAt() }}
+                </span>
+                <span *ngIf="!privacyLastSavedAt() && !hasUnsavedPrivacyChanges()" class="bottom-sync-text">
+                  ✓ Database current
+                </span>
+                <span *ngIf="hasUnsavedPrivacyChanges()" class="bottom-dirty-text">
+                  ● Unsaved changes pending
+                </span>
+              </div>
+              <div class="bottom-right">
+                <button type="button"
+                        class="btn-enterprise-primary"
+                        (click)="savePrivacyPreferences()"
+                        [disabled]="savingPrivacy()">
+                  <span *ngIf="savingPrivacy()" class="btn-spinner-sm"></span>
+                  <span *ngIf="!savingPrivacy()">✓ Save Changes</span>
+                  <span *ngIf="savingPrivacy()">Saving...</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 7: TEAM MEMBERS & ACCESS GOVERNANCE (ENTERPRISE REDESIGN) -->
+          <div *ngIf="activeTab() === 'team'" class="tab-pane team-pane">
+            <!-- Header -->
+            <div class="team-header">
+              <div>
+                <h2 class="pane-title">Team Members &amp; Access Governance</h2>
+                <p class="pane-sub">
+                  Manage corporate collaborators, assign role-based access control (RBAC), and audit administrative permissions across your organization.
+                </p>
+              </div>
+              <div class="team-header-actions">
+                <button type="button" class="btn-enterprise-primary" (click)="openInviteModal()">
+                  + Invite Member
+                </button>
+              </div>
+            </div>
+
+            <!-- Feedback Notice -->
+            <div *ngIf="teamNotice()" class="team-alert team-alert-info">
+              <span class="alert-icon">ℹ️</span>
+              <div class="alert-body">
+                <span>{{ teamNotice() }}</span>
+              </div>
+              <button type="button" class="btn-alert-dismiss" (click)="teamNotice.set(null)">✕</button>
+            </div>
+
+            <!-- Stats Ribbon -->
+            <div class="team-stats-ribbon">
+              <div class="team-stat-card">
+                <div class="stat-number">{{ totalTeamCount() }}</div>
+                <div class="stat-label">Total Organization Seats</div>
+              </div>
+              <div class="team-stat-card">
+                <div class="stat-number text-green">{{ activeTeamCount() }}</div>
+                <div class="stat-label">Active Collaborators</div>
+              </div>
+              <div class="team-stat-card">
+                <div class="stat-number text-amber">{{ pendingInviteCount() }}</div>
+                <div class="stat-label">Pending Invitations</div>
+              </div>
+              <div class="team-stat-card">
+                <div class="stat-number text-blue">5</div>
+                <div class="stat-label">RBAC Privilege Tiers</div>
+              </div>
+            </div>
+
+            <!-- Main Members Card -->
+            <div class="team-card">
+              <!-- Filter & Search Toolbar -->
+              <div class="team-card-header">
+                <div class="team-filter-controls">
+                  <!-- Search -->
+                  <div class="team-search-box">
+                    <span class="search-glyph">🔍</span>
+                    <input type="text"
+                           class="search-input"
+                           placeholder="Search members by name, email, department..."
+                           [(ngModel)]="teamSearchQuery" />
+                    <button *ngIf="teamSearchQuery()"
+                            type="button"
+                            class="btn-clear"
+                            (click)="teamSearchQuery.set('')">✕</button>
+                  </div>
+
+                  <!-- Role Filter -->
+                  <div class="team-filter-select-wrap">
+                    <label class="filter-label">Role:</label>
+                    <select class="filter-select" [(ngModel)]="teamRoleFilter">
+                      <option value="ALL">All Roles</option>
+                      <option value="ADMIN">Primary Administrator</option>
+                      <option value="COMPLIANCE">Compliance Manager</option>
+                      <option value="OPERATIONS">Operations & Plant Lead</option>
+                      <option value="FINANCE">Finance & Invoicing</option>
+                      <option value="VIEWER">Auditor (Read-Only)</option>
+                    </select>
+                  </div>
+
+                  <!-- Status Filter -->
+                  <div class="team-status-pills">
+                    <button type="button"
+                            class="btn-status-pill"
+                            [class.active]="teamStatusFilter() === 'ALL'"
+                            (click)="teamStatusFilter.set('ALL')">
+                      All
+                    </button>
+                    <button type="button"
+                            class="btn-status-pill"
+                            [class.active]="teamStatusFilter() === 'ACTIVE'"
+                            (click)="teamStatusFilter.set('ACTIVE')">
+                      Active
+                    </button>
+                    <button type="button"
+                            class="btn-status-pill"
+                            [class.active]="teamStatusFilter() === 'INVITED'"
+                            (click)="teamStatusFilter.set('INVITED')">
+                      Pending
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Members Table -->
+              <div class="team-table-responsive">
+                <table class="team-data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 32%;">Member</th>
+                      <th style="width: 20%;">Role &amp; Privilege</th>
+                      <th style="width: 18%;">Department</th>
+                      <th style="width: 14%;">Access Status</th>
+                      <th style="width: 16%; text-align: right;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let member of filteredTeamMembers()" [class.row-current-user]="isCurrentUser(member)">
+                      <!-- Col 1: Member -->
+                      <td>
+                        <div class="member-identity-cell">
+                          <div class="member-avatar" [style.background]="getMemberAvatarBg(member.fullName)">
+                            {{ getMemberInitials(member.fullName) }}
+                          </div>
+                          <div class="member-names">
+                            <div class="member-name-row">
+                              <strong class="member-name">{{ member.fullName }}</strong>
+                              <span *ngIf="isCurrentUser(member)" class="badge-you">You</span>
+                            </div>
+                            <span class="member-email">{{ member.email }}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <!-- Col 2: Role Badge & Desc -->
+                      <td>
+                        <div class="role-cell-wrap">
+                          <span class="member-role-badge" [ngClass]="getRoleBadgeClass(member.role)">
+                            {{ getRoleLabel(member.role) }}
+                          </span>
+                        </div>
+                      </td>
+
+                      <!-- Col 3: Department -->
+                      <td>
+                        <span class="dept-text">{{ member.department || getRoleDepartment(member.role) }}</span>
+                      </td>
+
+                      <!-- Col 4: Status -->
+                      <td>
+                        <span *ngIf="member.status === 'ACTIVE'" class="member-status-pill status-active">
+                          <span class="status-pulse-dot"></span> Active
+                        </span>
+                        <span *ngIf="member.status === 'INVITED'" class="member-status-pill status-invited">
+                          <span class="status-pulse-dot amber"></span> Pending Invite
+                        </span>
+                        <span *ngIf="member.status === 'SUSPENDED'" class="member-status-pill status-suspended">
+                          Suspended
+                        </span>
+                      </td>
+
+                      <!-- Col 5: Actions -->
+                      <td style="text-align: right;">
+                        <div class="member-actions-row">
+                          <button *ngIf="member.status === 'INVITED'"
+                                  type="button"
+                                  class="btn-row-action resend"
+                                  title="Resend invitation email"
+                                  [disabled]="resendingInviteId() === member.memberId"
+                                  (click)="resendInvite(member)">
+                            {{ resendingInviteId() === member.memberId ? 'Sending...' : '✉ Resend' }}
+                          </button>
+
+                          <button type="button"
+                                  class="btn-row-action edit"
+                                  title="Change access role"
+                                  (click)="openEditRoleModal(member)">
+                            Change Role
+                          </button>
+
+                          <button *ngIf="!isCurrentUser(member)"
+                                  type="button"
+                                  class="btn-row-action remove"
+                                  title="Revoke member access"
+                                  (click)="openDeleteMemberModal(member)">
+                            Revoke
+                          </button>
+
+                          <span *ngIf="isCurrentUser(member)" class="primary-owner-tag" title="Primary owner credentials cannot be revoked">
+                            Owner
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <!-- Empty State -->
+                    <tr *ngIf="filteredTeamMembers().length === 0">
+                      <td colspan="5" class="table-empty-row">
+                        <div class="team-empty-box">
+                          <span class="empty-icon">👥</span>
+                          <strong>No team members found</strong>
+                          <p *ngIf="teamSearchQuery() || teamRoleFilter() !== 'ALL' || teamStatusFilter() !== 'ALL'">
+                            No members match your current filters.
+                          </p>
+                          <p *ngIf="!teamSearchQuery() && teamRoleFilter() === 'ALL' && teamStatusFilter() === 'ALL'">
+                            Your organization has no active members yet.
+                          </p>
+                          <div class="empty-actions">
+                            <button *ngIf="teamSearchQuery() || teamRoleFilter() !== 'ALL' || teamStatusFilter() !== 'ALL'"
+                                    type="button"
+                                    class="btn-link-reset"
+                                    (click)="teamSearchQuery.set(''); teamRoleFilter.set('ALL'); teamStatusFilter.set('ALL')">
+                              Clear all filters
+                            </button>
+                            <button type="button" class="btn-enterprise-primary" (click)="openInviteModal()">
+                              + Invite First Colleague
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- RBAC Privilege Reference Guide -->
+            <div class="team-card rbac-guide-card">
+              <div class="pv-card-header">
+                <h3 class="pv-card-title">Enterprise Role-Based Access Control (RBAC) Reference</h3>
+                <p class="pv-card-desc">Understand governance boundaries and statutory credential privileges per authorization tier.</p>
+              </div>
+              <div class="rbac-grid">
+                <div class="rbac-role-card" *ngFor="let role of availableRoles">
+                  <div class="rbac-card-header">
+                    <span class="member-role-badge" [ngClass]="role.badgeClass">{{ role.name }}</span>
+                  </div>
+                  <p class="rbac-card-desc">{{ role.description }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- MODAL 1: INVITE MEMBER -->
+            <div *ngIf="showInviteModal()" class="pv-modal-backdrop" (click)="closeInviteModal()">
+              <div class="pv-modal-dialog" (click)="$event.stopPropagation()">
+                <div class="pv-modal-header">
+                  <div class="modal-title-wrap">
+                    <span class="modal-glyph">✉️</span>
+                    <div>
+                      <h3 class="pv-modal-title">Invite Organization Member</h3>
+                      <p class="pv-modal-sub">Collaborators will receive a secure invitation link to join your organization.</p>
+                    </div>
+                  </div>
+                  <button type="button" class="btn-modal-close" (click)="closeInviteModal()">✕</button>
+                </div>
+
+                <div class="pv-modal-body">
+                  <!-- Feedback in modal -->
+                  <div *ngIf="inviteError()" class="pv-modal-alert alert-error">
+                    <span>⚠️ {{ inviteError() }}</span>
+                  </div>
+                  <div *ngIf="inviteSuccess()" class="pv-modal-alert alert-success">
+                    <span>✓ {{ inviteSuccess() }}</span>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Corporate Email Address <span class="required">*</span></label>
+                    <input type="email"
+                           class="form-input"
+                           placeholder="colleague@yourcompany.com"
+                           [(ngModel)]="inviteForm.email" />
+                    <span class="form-hint">Must match your organization's authorized corporate domain.</span>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input type="text"
+                           class="form-input"
+                           placeholder="e.g. Team Member Name"
+                           [(ngModel)]="inviteForm.fullName" />
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Organizational Role &amp; Access Tier <span class="required">*</span></label>
+                    <div class="role-selector-cards">
+                      <label *ngFor="let r of availableRoles"
+                             class="role-selector-item"
+                             [class.selected]="inviteForm.roleName === r.id"
+                             (click)="onInviteRoleChange(r.id)">
+                        <div class="role-selector-radio">
+                          <span class="radio-dot" *ngIf="inviteForm.roleName === r.id"></span>
+                        </div>
+                        <div class="role-selector-info">
+                          <div class="role-title-row">
+                            <span class="role-title">{{ r.name }}</span>
+                            <span class="member-role-badge" [ngClass]="r.badgeClass">{{ r.id }}</span>
+                          </div>
+                          <span class="role-scope">{{ r.description }}</span>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pv-modal-footer">
+                  <button type="button" class="btn-enterprise-ghost" (click)="closeInviteModal()">Cancel</button>
+                  <button type="button"
+                          class="btn-enterprise-primary"
+                          [disabled]="invitingMember() || !inviteForm.email"
+                          (click)="submitInvite()">
+                    <span *ngIf="invitingMember()" class="btn-spinner-sm"></span>
+                    <span *ngIf="!invitingMember()">Dispatch Invitation</span>
+                    <span *ngIf="invitingMember()">Sending...</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- MODAL 2: CHANGE ROLE -->
+            <div *ngIf="showEditRoleModal()" class="pv-modal-backdrop" (click)="closeEditRoleModal()">
+              <div class="pv-modal-dialog" (click)="$event.stopPropagation()">
+                <div class="pv-modal-header">
+                  <div class="modal-title-wrap">
+                    <span class="modal-glyph">🛡️</span>
+                    <div>
+                      <h3 class="pv-modal-title">Change Member Role</h3>
+                      <p class="pv-modal-sub">
+                        Update privileges for <strong>{{ memberToEdit()?.fullName }}</strong> ({{ memberToEdit()?.email }}).
+                      </p>
+                    </div>
+                  </div>
+                  <button type="button" class="btn-modal-close" (click)="closeEditRoleModal()">✕</button>
+                </div>
+
+                <div class="pv-modal-body">
+                  <div class="form-group">
+                    <label class="form-label">Assign New Access Tier</label>
+                    <div class="role-selector-cards">
+                      <label *ngFor="let r of availableRoles"
+                             class="role-selector-item"
+                             [class.selected]="editRoleSelection() === r.id"
+                             (click)="editRoleSelection.set(r.id)">
+                        <div class="role-selector-radio">
+                          <span class="radio-dot" *ngIf="editRoleSelection() === r.id"></span>
+                        </div>
+                        <div class="role-selector-info">
+                          <div class="role-title-row">
+                            <span class="role-title">{{ r.name }}</span>
+                            <span class="member-role-badge" [ngClass]="r.badgeClass">{{ r.id }}</span>
+                          </div>
+                          <span class="role-scope">{{ r.description }}</span>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pv-modal-footer">
+                  <button type="button" class="btn-enterprise-ghost" (click)="closeEditRoleModal()">Cancel</button>
+                  <button type="button"
+                          class="btn-enterprise-primary"
+                          [disabled]="updatingRole()"
+                          (click)="submitUpdateRole()">
+                    <span *ngIf="updatingRole()" class="btn-spinner-sm"></span>
+                    <span *ngIf="!updatingRole()">Save Role Changes</span>
+                    <span *ngIf="updatingRole()">Updating...</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- MODAL 3: DELETE / REVOKE CONFIRMATION -->
+            <div *ngIf="showDeleteMemberModal()" class="pv-modal-backdrop" (click)="closeDeleteMemberModal()">
+              <div class="pv-modal-dialog pv-modal-sm" (click)="$event.stopPropagation()">
+                <div class="pv-modal-header danger-header">
+                  <div class="modal-title-wrap">
+                    <span class="modal-glyph text-red">⚠️</span>
+                    <div>
+                      <h3 class="pv-modal-title">Revoke Member Access</h3>
+                      <p class="pv-modal-sub">Confirm removal of organization credentials.</p>
+                    </div>
+                  </div>
+                  <button type="button" class="btn-modal-close" (click)="closeDeleteMemberModal()">✕</button>
+                </div>
+
+                <div class="pv-modal-body">
+                  <div class="danger-confirm-box">
+                    <p>
+                      Are you sure you want to revoke all access for <strong>{{ memberToDelete()?.fullName }}</strong> ({{ memberToDelete()?.email }})?
+                    </p>
+                    <p class="danger-subtext">
+                      This user's active session tokens will be terminated immediately. They will lose access to your sovereign passport and compliance records.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="pv-modal-footer">
+                  <button type="button" class="btn-enterprise-ghost" (click)="closeDeleteMemberModal()">Cancel</button>
+                  <button type="button"
+                          class="btn-danger-primary"
+                          [disabled]="deletingMember()"
+                          (click)="confirmDeleteMember()">
+                    <span *ngIf="deletingMember()" class="btn-spinner-sm"></span>
+                    <span *ngIf="!deletingMember()">Revoke Access Immediately</span>
+                    <span *ngIf="deletingMember()">Revoking...</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 8: DEVELOPER & API ACCESS (ENTERPRISE REDESIGN) -->
+          <div *ngIf="activeTab() === 'api'" class="tab-pane api-pane">
+            <!-- Header -->
+            <div class="api-header">
+              <div>
+                <h2 class="pane-title">Developer &amp; REST API Access</h2>
+                <p class="pane-sub">
+                  Generate and manage cryptographic API keys to connect VeriPass with your ERP, SAP, or procurement microservices.
+                </p>
+              </div>
+              <div class="api-header-actions">
+                <button type="button" class="btn-enterprise-primary" (click)="openCreateKeyModal()">
+                  + Create API Key
+                </button>
+              </div>
+            </div>
+
+            <!-- Feedback Notice -->
+            <div *ngIf="apiKeyNotice()" class="team-alert team-alert-info">
+              <span class="alert-icon">ℹ️</span>
+              <div class="alert-body">
+                <span>{{ apiKeyNotice() }}</span>
+              </div>
+              <button type="button" class="btn-alert-dismiss" (click)="apiKeyNotice.set(null)">✕</button>
+            </div>
+
+            <!-- Stats Ribbon -->
+            <div class="team-stats-ribbon">
+              <div class="team-stat-card">
+                <div class="stat-number">{{ totalKeysCount() }}</div>
+                <div class="stat-label">Total API Credentials</div>
+              </div>
+              <div class="team-stat-card">
+                <div class="stat-number text-green">{{ activeProductionKeysCount() }}</div>
+                <div class="stat-label">Active Production Keys</div>
+              </div>
+              <div class="team-stat-card">
+                <div class="stat-number text-blue">{{ activeTestKeysCount() }}</div>
+                <div class="stat-label">Sandbox / Test Keys</div>
+              </div>
+              <div class="team-stat-card">
+                <div class="stat-number text-green">
+                  <span class="status-pulse-dot" style="display:inline-block; vertical-align:middle; margin-right:4px;"></span> 99.98%
+                </div>
+                <div class="stat-label">API Gateway SLA</div>
+              </div>
+            </div>
+
+            <!-- Main API Keys Card -->
+            <div class="team-card">
+              <div class="team-card-header">
+                <div class="team-filter-controls">
+                  <!-- Search -->
+                  <div class="team-search-box">
+                    <span class="search-glyph">🔍</span>
+                    <input type="text"
+                           class="search-input"
+                           placeholder="Filter keys by label, prefix, or scope..."
+                           [(ngModel)]="apiKeySearchQuery" />
+                    <button *ngIf="apiKeySearchQuery()"
+                            type="button"
+                            class="btn-clear"
+                            (click)="apiKeySearchQuery.set('')">✕</button>
+                  </div>
+
+                  <!-- Env Filter Pills -->
+                  <div class="team-status-pills">
+                    <button type="button"
+                            class="btn-status-pill"
+                            [class.active]="apiKeyEnvFilter() === 'ALL'"
+                            (click)="apiKeyEnvFilter.set('ALL')">
+                      All Keys
+                    </button>
+                    <button type="button"
+                            class="btn-status-pill"
+                            [class.active]="apiKeyEnvFilter() === 'PRODUCTION'"
+                            (click)="apiKeyEnvFilter.set('PRODUCTION')">
+                      Production
+                    </button>
+                    <button type="button"
+                            class="btn-status-pill"
+                            [class.active]="apiKeyEnvFilter() === 'TEST'"
+                            (click)="apiKeyEnvFilter.set('TEST')">
+                      Sandbox
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Keys Table -->
+              <div class="team-table-responsive">
+                <table class="team-data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 28%;">Key Label &amp; Token</th>
+                      <th style="width: 14%;">Environment</th>
+                      <th style="width: 24%;">Granted Scopes</th>
+                      <th style="width: 16%;">Created / Activity</th>
+                      <th style="width: 18%; text-align: right;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let key of filteredApiKeys()" [class.row-revoked]="key.status === 'REVOKED'">
+                      <!-- Col 1: Label & Masked Key -->
+                      <td>
+                        <div class="key-identity-cell">
+                          <div class="key-name-row">
+                            <strong class="key-name">{{ key.name }}</strong>
+                            <span *ngIf="key.status === 'REVOKED'" class="badge-revoked">Revoked</span>
+                          </div>
+                          <div class="key-token-row">
+                            <code class="key-masked font-mono">{{ key.maskedKey }}</code>
+                            <button type="button"
+                                    class="btn-copy-mini"
+                                    title="Copy key prefix"
+                                    (click)="copyTextToClipboard(key.keyPrefix, 'Key prefix')">
+                              📋
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+
+                      <!-- Col 2: Environment -->
+                      <td>
+                        <span *ngIf="key.environment === 'PRODUCTION'" class="env-badge env-prod">
+                          ● Production
+                        </span>
+                        <span *ngIf="key.environment === 'TEST'" class="env-badge env-test">
+                          ● Sandbox
+                        </span>
+                      </td>
+
+                      <!-- Col 3: Scopes -->
+                      <td>
+                        <div class="scopes-wrap">
+                          <span *ngFor="let sc of key.scopes" class="scope-pill" [ngClass]="getScopeBadgeClass(sc)">
+                            {{ sc }}
+                          </span>
+                        </div>
+                      </td>
+
+                      <!-- Col 4: Created & Last Used -->
+                      <td>
+                        <div class="key-date-cell">
+                          <span class="key-date-created">Created {{ formatDate(key.createdAt) }}</span>
+                          <span *ngIf="key.lastUsedAt" class="key-date-used">Last used {{ formatDate(key.lastUsedAt) }}</span>
+                          <span *ngIf="!key.lastUsedAt" class="key-date-used text-muted">Never used</span>
+                        </div>
+                      </td>
+
+                      <!-- Col 5: Actions -->
+                      <td style="text-align: right;">
+                        <div class="member-actions-row">
+                          <button *ngIf="key.status === 'ACTIVE'"
+                                  type="button"
+                                  class="btn-row-action resend"
+                                  title="Roll / regenerate secret"
+                                  (click)="rollKey(key)">
+                            Roll
+                          </button>
+
+                          <button *ngIf="key.status === 'ACTIVE'"
+                                  type="button"
+                                  class="btn-row-action remove"
+                                  title="Revoke key access"
+                                  (click)="openRevokeKeyModal(key)">
+                            Revoke
+                          </button>
+
+                          <button type="button"
+                                  class="btn-row-action"
+                                  title="Delete key record"
+                                  (click)="deleteKey(key)">
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <!-- Empty State -->
+                    <tr *ngIf="filteredApiKeys().length === 0">
+                      <td colspan="5" class="table-empty-row">
+                        <div class="team-empty-box">
+                          <span class="empty-icon">🔑</span>
+                          <strong>No API keys found</strong>
+                          <p *ngIf="apiKeySearchQuery() || apiKeyEnvFilter() !== 'ALL'">
+                            No keys match your current filter criteria.
+                          </p>
+                          <p *ngIf="!apiKeySearchQuery() && apiKeyEnvFilter() === 'ALL'">
+                            No active API keys created yet. Generate a secure key to automate integrations.
+                          </p>
+                          <div class="empty-actions">
+                            <button *ngIf="apiKeySearchQuery() || apiKeyEnvFilter() !== 'ALL'"
+                                    type="button"
+                                    class="btn-link-reset"
+                                    (click)="apiKeySearchQuery.set(''); apiKeyEnvFilter.set('ALL')">
+                              Clear filters
+                            </button>
+                            <button type="button" class="btn-enterprise-primary" (click)="openCreateKeyModal()">
+                              + Create New API Key
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Quickstart & Documentation Card -->
+            <div class="team-card api-quickstart-card">
+              <div class="pv-card-header">
+                <div>
+                  <h3 class="pv-card-title">Integration Quickstart &amp; Authentication</h3>
+                  <p class="pv-card-desc">Authenticate API requests by passing your generated secret in the <code>X-API-Key</code> request header.</p>
+                </div>
+              </div>
+              <div class="quickstart-body">
+                <div class="code-snippet-box">
+                  <div class="code-snippet-header">
+                    <span class="code-lang-tag">cURL</span>
+                    <button type="button"
+                            class="btn-code-copy"
+                            (click)="copyTextToClipboard('curl -X GET https://api.veripass.in/v1/passport/' + (currentProfile()?.businessIdNumber?.toLowerCase() || 'vp-in-supplier') + ' -H &quot;X-API-Key: YOUR_API_KEY&quot;', 'cURL snippet')">
+                      📋 Copy
+                    </button>
+                  </div>
+                  <pre class="code-content font-mono"><code>curl -X GET "https://api.veripass.in/v1/passport/{{ currentProfile()?.businessIdNumber?.toLowerCase() || 'vp-in-supplier' }}" \
+  -H "X-API-Key: vp_live_sk_••••••••••••••••" \
+  -H "Accept: application/json"</code></pre>
+                </div>
+
+                <div class="quickstart-meta-row">
+                  <div class="meta-item">
+                    <span class="meta-label">Base URL:</span>
+                    <code class="meta-code font-mono">https://api.veripass.in/v1</code>
+                  </div>
+                  <div class="meta-item">
+                    <span class="meta-label">Rate Limit:</span>
+                    <span class="meta-val">10,000 requests / minute</span>
+                  </div>
+                  <div class="meta-item">
+                    <span class="meta-label">Format:</span>
+                    <span class="meta-val">JSON (RFC 8259)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- MODAL: CREATE / DISTRIBUTE API KEY -->
+            <div *ngIf="showCreateKeyModal()" class="pv-modal-backdrop" (click)="closeCreateKeyModal()">
+              <div class="pv-modal-dialog" (click)="$event.stopPropagation()">
+                <!-- Case 1: Form state -->
+                <ng-container *ngIf="!createdKeyResult()">
+                  <div class="pv-modal-header">
+                    <div class="modal-title-wrap">
+                      <span class="modal-glyph">🔑</span>
+                      <div>
+                        <h3 class="pv-modal-title">Create API Credential</h3>
+                        <p class="pv-modal-sub">Generate a secret key to authenticate programmatic requests.</p>
+                      </div>
+                    </div>
+                    <button type="button" class="btn-modal-close" (click)="closeCreateKeyModal()">✕</button>
+                  </div>
+
+                  <div class="pv-modal-body">
+                    <div class="form-group">
+                      <label class="form-label">Key Name / Client Description <span class="required">*</span></label>
+                      <input type="text"
+                             class="form-input"
+                             placeholder="e.g. SAP S/4HANA Sync, Warehouse Service"
+                             [(ngModel)]="createKeyForm.name" />
+                      <span class="form-hint">A descriptive label to identify this client integration.</span>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Environment</label>
+                      <div class="segmented-control w-full">
+                        <button type="button"
+                                class="seg-btn public flex-1"
+                                [class.active]="createKeyForm.environment === 'PRODUCTION'"
+                                (click)="createKeyForm.environment = 'PRODUCTION'">
+                          🛡️ Production (Live)
+                        </button>
+                        <button type="button"
+                                class="seg-btn buyers flex-1"
+                                [class.active]="createKeyForm.environment === 'TEST'"
+                                (click)="createKeyForm.environment = 'TEST'">
+                          🧪 Sandbox (Test)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Expiration Policy</label>
+                      <select class="filter-select w-full" [(ngModel)]="createKeyForm.expiresInDays">
+                        <option [ngValue]="null">Never Expires (Recommended for background daemons)</option>
+                        <option [ngValue]="30">30 Days</option>
+                        <option [ngValue]="90">90 Days</option>
+                        <option [ngValue]="365">1 Year</option>
+                      </select>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Granted Permission Scopes <span class="required">*</span></label>
+                      <div class="role-selector-cards">
+                        <label *ngFor="let sc of availableScopes"
+                               class="role-selector-item"
+                               [class.selected]="isScopeSelected(sc.id)"
+                               (click)="toggleScope(sc.id)">
+                          <div class="role-selector-radio">
+                            <span class="radio-dot" *ngIf="isScopeSelected(sc.id)"></span>
+                          </div>
+                          <div class="role-selector-info">
+                            <div class="role-title-row">
+                              <span class="role-title">{{ sc.name }}</span>
+                              <code class="scope-pill font-mono" [ngClass]="sc.badgeClass">{{ sc.id }}</code>
+                            </div>
+                            <span class="role-scope">{{ sc.description }}</span>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="pv-modal-footer">
+                    <button type="button" class="btn-enterprise-ghost" (click)="closeCreateKeyModal()">Cancel</button>
+                    <button type="button"
+                            class="btn-enterprise-primary"
+                            [disabled]="creatingKey()"
+                            (click)="submitCreateApiKey()">
+                      <span *ngIf="creatingKey()" class="btn-spinner-sm"></span>
+                      <span *ngIf="!creatingKey()">Generate Secret Key</span>
+                      <span *ngIf="creatingKey()">Generating...</span>
+                    </button>
+                  </div>
+                </ng-container>
+
+                <!-- Case 2: Generated Key Distribution state -->
+                <ng-container *ngIf="createdKeyResult()">
+                  <div class="pv-modal-header" style="background: #F0FDF4; border-bottom-color: #BBF7D0;">
+                    <div class="modal-title-wrap">
+                      <span class="modal-glyph" style="color: #16A34A;">✓</span>
+                      <div>
+                        <h3 class="pv-modal-title" style="color: #14532D;">API Secret Key Generated</h3>
+                        <p class="pv-modal-sub" style="color: #15803D;">Your key has been generated and is ready to distribute.</p>
+                      </div>
+                    </div>
+                    <button type="button" class="btn-modal-close" (click)="closeCreateKeyModal()">✕</button>
+                  </div>
+
+                  <div class="pv-modal-body">
+                    <!-- Critical Security Warning Banner -->
+                    <div class="pv-alert pv-alert-error" style="margin-bottom: 18px;">
+                      <span class="alert-icon">⚠️</span>
+                      <div class="alert-body">
+                        <strong>Save your secret key now</strong>
+                        <span>For your security, this secret key will <strong>never be shown again</strong>. If you lose it, you will need to roll or generate a new key.</span>
+                      </div>
+                    </div>
+
+                    <!-- Secret Key Box with Copy -->
+                    <div class="form-group">
+                      <label class="form-label">Secret API Key Token (Copy to Distribute)</label>
+                      <div class="secret-token-box">
+                        <code class="secret-token-text font-mono">{{ createdKeyResult()?.fullKey }}</code>
+                        <button type="button"
+                                class="btn-copy-secret"
+                                [class.copied]="copiedSecret()"
+                                (click)="copyGeneratedKey(createdKeyResult()?.fullKey || '')">
+                          {{ copiedSecret() ? '✓ Copied!' : '📋 Copy Key' }}
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Key Metadata -->
+                    <div class="generated-key-meta-grid">
+                      <div class="meta-row">
+                        <span class="lbl">Label:</span>
+                        <span class="val font-semibold">{{ createdKeyResult()?.name }}</span>
+                      </div>
+                      <div class="meta-row">
+                        <span class="lbl">Environment:</span>
+                        <span class="val">{{ createdKeyResult()?.environment }}</span>
+                      </div>
+                      <div class="meta-row">
+                        <span class="lbl">Assigned Scopes:</span>
+                        <div class="scopes-wrap">
+                          <span *ngFor="let sc of createdKeyResult()?.scopes" class="scope-pill font-mono" [ngClass]="getScopeBadgeClass(sc)">
+                            {{ sc }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Header Usage Example -->
+                    <div class="mt-16">
+                      <label class="form-label">HTTP Header Usage Example</label>
+                      <div class="code-snippet-box">
+                        <pre class="code-content font-mono" style="padding: 10px 14px; font-size: 11.5px;"><code>X-API-Key: {{ createdKeyResult()?.fullKey }}</code></pre>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="pv-modal-footer">
+                    <button type="button"
+                            class="btn-enterprise-primary"
+                            style="width: 100%; justify-content: center;"
+                            (click)="closeCreateKeyModal()">
+                      ✓ I Have Securely Saved My Key
+                    </button>
+                  </div>
+                </ng-container>
+              </div>
+            </div>
+
+            <!-- MODAL: REVOKE KEY CONFIRMATION -->
+            <div *ngIf="showRevokeKeyModal()" class="pv-modal-backdrop" (click)="closeRevokeKeyModal()">
+              <div class="pv-modal-dialog pv-modal-sm" (click)="$event.stopPropagation()">
+                <div class="pv-modal-header danger-header">
+                  <div class="modal-title-wrap">
+                    <span class="modal-glyph text-red">⚠️</span>
+                    <div>
+                      <h3 class="pv-modal-title">Revoke API Key</h3>
+                      <p class="pv-modal-sub">Permanently terminate programmatic access.</p>
+                    </div>
+                  </div>
+                  <button type="button" class="btn-modal-close" (click)="closeRevokeKeyModal()">✕</button>
+                </div>
+
+                <div class="pv-modal-body">
+                  <div class="danger-confirm-box">
+                    <p>
+                      Are you sure you want to revoke API Key <strong>"{{ keyToRevoke()?.name }}"</strong> (<code>{{ keyToRevoke()?.maskedKey }}</code>)?
+                    </p>
+                    <p class="danger-subtext">
+                      Any microservices, webhooks, or ERP connectors configured with this secret will immediately be rejected with <code>401 Unauthorized</code> errors.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="pv-modal-footer">
+                  <button type="button" class="btn-enterprise-ghost" (click)="closeRevokeKeyModal()">Cancel</button>
+                  <button type="button"
+                          class="btn-danger-primary"
+                          [disabled]="revokingKey()"
+                          (click)="confirmRevokeKey()">
+                    <span *ngIf="revokingKey()" class="btn-spinner-sm"></span>
+                    <span *ngIf="!revokingKey()">Revoke Key Immediately</span>
+                    <span *ngIf="revokingKey()">Revoking...</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 9: ACCOUNT GOVERNANCE & LIFECYCLE -->
+          <div *ngIf="activeTab() === 'account'" class="tab-pane gov-pane">
+            <!-- PANE HEADER -->
+            <div class="pane-header-group">
+              <div>
+                <h2 class="pane-title">Account Governance & Sovereign Identity</h2>
+                <p class="pane-sub">Legal entity parameters, statutory data portability (DPDP Act 2023), and enterprise lifecycle management.</p>
+              </div>
+              <span class="badge-role-pill" [ngClass]="accountStatusBadgeClass()">
+                {{ accountStatusLabel() }}
+              </span>
+            </div>
+
+            <!-- FEEDBACK ALERTS -->
+            <div *ngIf="exportSuccessNotice()" class="gov-alert gov-alert-success">
+              <span class="alert-icon">✓</span>
+              <div class="alert-body">
+                <strong>Data Export Generated</strong>
+                <span>{{ exportSuccessNotice() }}</span>
+              </div>
+            </div>
+
+            <div *ngIf="governanceNotice()" class="gov-alert gov-alert-info">
+              <span class="alert-icon">ℹ</span>
+              <div class="alert-body">
+                <strong>Governance Update</strong>
+                <span>{{ governanceNotice() }}</span>
+              </div>
+            </div>
+
+            <div *ngIf="accountStatus() === 'TERMINATION_REQUESTED'" class="gov-alert gov-alert-danger">
+              <span class="alert-icon">⚠️</span>
+              <div class="alert-body">
+                <strong>Pending Account Termination</strong>
+                <span>This organization has registered a formal account termination request. A statutory 30-day cooling-off period is active. Purge scheduled for: <strong>{{ formattedPurgeDate() }}</strong>.</span>
+              </div>
+              <button class="btn-cancel-term" (click)="cancelAccountTermination()" [disabled]="terminatingAccount()">
+                Cancel Request & Restore Access
+              </button>
+            </div>
+
+            <!-- 1. SOVEREIGN IDENTIFIERS CARD -->
+            <div class="gov-card">
+              <div class="gov-card-header">
+                <div class="gov-header-title">
+                  <span class="gov-header-icon">🏢</span>
+                  <div>
+                    <h3>Organization Identifiers</h3>
+                    <p>Cryptographic identity registration & sovereign tenant parameters.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="gov-card-body">
+                <div class="gov-info-grid">
+                  <div class="gov-info-item">
+                    <span class="gov-label">Legal Business Entity</span>
+                    <strong class="gov-value">{{ displayLegalName() }}</strong>
+                    <span class="gov-hint">{{ currentProfile()?.businessType || 'Private Limited Company' }}</span>
+                  </div>
+                  <div class="gov-info-item">
+                    <span class="gov-label">Business ID Number</span>
+                    <div class="gov-copyable-val">
+                      <strong class="gov-value font-mono">{{ displayBusinessIdNumber() }}</strong>
+                      <button class="btn-copy-mini" (click)="copyTextToClipboard(displayBusinessIdNumber(), 'Business ID Number')">Copy</button>
+                    </div>
+                    <span class="gov-hint">Permanent VeriPass Sovereign Identifier</span>
+                  </div>
+                  <div class="gov-info-item">
+                    <span class="gov-label">Organization Security UUID</span>
+                    <div class="gov-copyable-val">
+                      <span class="gov-value-sm font-mono">{{ displayOrgId() }}</span>
+                      <button class="btn-copy-mini" (click)="copyTextToClipboard(displayOrgId(), 'Organization Security ID')">Copy</button>
+                    </div>
+                    <span class="gov-hint">Multi-tenant cryptographic partition</span>
+                  </div>
+                  <div class="gov-info-item">
+                    <span class="gov-label">Primary Sovereign Admin</span>
+                    <strong class="gov-value">{{ currentUser()?.fullName || 'Primary Administrator' }}</strong>
+                    <span class="gov-hint font-mono">{{ currentUser()?.email || 'supplier@veripass.in' }}</span>
+                  </div>
+                  <div class="gov-info-item">
+                    <span class="gov-label">Compliance Baseline</span>
+                    <strong class="gov-value text-green">DPDP Act 2023 & MCA v3</strong>
+                    <span class="gov-hint">Zero-knowledge proof data fiduciary</span>
+                  </div>
+                  <div class="gov-info-item">
+                    <span class="gov-label">Account Verification Tier</span>
+                    <strong class="gov-value text-blue">{{ currentProfile()?.verificationStatus || 'VERIFIED' }}</strong>
+                    <span class="gov-hint">Composite Trust Score: {{ currentProfile()?.trustScore || 92 }}/100</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. DATA PORTABILITY & MACHINE-READABLE EXPORT CARD -->
+            <div class="gov-card">
+              <div class="gov-card-header">
+                <div class="gov-header-title">
+                  <span class="gov-header-icon">📦</span>
+                  <div>
+                    <h3>Data Portability & Sovereign Export</h3>
+                    <p>Statutory export under Section 6 of Digital Personal Data Protection Act 2023.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="gov-card-body">
+                <div class="export-banner-content">
+                  <div class="export-desc-col">
+                    <p class="export-lead">
+                      Download a complete, machine-readable JSON archive containing all data points associated with your enterprise account.
+                    </p>
+                    <div class="export-included-pills">
+                      <span class="inc-pill">✓ Legal Entity Filings (CIN, GSTIN, PAN)</span>
+                      <span class="inc-pill">✓ Verified Directors & Signatories</span>
+                      <span class="inc-pill">✓ Trust Score & Verification History</span>
+                      <span class="inc-pill">✓ Data Disclosure Rules & Audit Logs</span>
+                    </div>
+                  </div>
+                  <div class="export-action-col">
+                    <button class="btn-export-primary" (click)="requestExport()" [disabled]="exportingData()">
+                      <span *ngIf="exportingData()" class="btn-spinner-sm"></span>
+                      <span *ngIf="!exportingData()">Download Sovereign JSON Export</span>
+                      <span *ngIf="exportingData()">Compiling Bundle...</span>
+                    </button>
+                    <span class="export-spec">Format: UTF-8 JSON &bull; Schema: v2.1</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. PASSPORT PUBLIC DISCOVERY STATE CARD -->
+            <div class="gov-card">
+              <div class="gov-card-header">
+                <div class="gov-header-title">
+                  <span class="gov-header-icon">🌐</span>
+                  <div>
+                    <h3>Passport Public Discovery</h3>
+                    <p>Toggle whether your Business Passport can be discovered in public directories and buyer searches.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="gov-card-body">
+                <div class="discovery-row">
+                  <div class="discovery-info">
+                    <div class="discovery-status-line">
+                      <span class="discovery-dot" [class.paused]="accountStatus() === 'SUSPENDED'"></span>
+                      <strong>{{ accountStatus() === 'SUSPENDED' ? 'Discovery Paused (Private)' : 'Publicly Discoverable' }}</strong>
+                    </div>
+                    <p class="discovery-sub">
+                      {{ accountStatus() === 'SUSPENDED' 
+                        ? 'Your Business Passport is hidden from enterprise buyer directory searches. Existing authorized buyers retain access.' 
+                        : 'Verified enterprise buyers can search, inspect compliance badges, and request direct supplier onboarding.' }}
+                    </p>
+                  </div>
+                  <button class="btn-toggle-discovery" (click)="togglePassportFreeze()" [disabled]="freezingPassport() || accountStatus() === 'TERMINATION_REQUESTED'">
+                    <span *ngIf="freezingPassport()" class="btn-spinner-dark"></span>
+                    <span *ngIf="!freezingPassport()">
+                      {{ accountStatus() === 'SUSPENDED' ? 'Resume Public Discovery' : 'Pause Public Discovery' }}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. DANGER ZONE -->
+            <div class="danger-zone-card">
+              <div class="danger-zone-header">
+                <div class="danger-title-row">
+                  <span class="danger-tag">DANGER ZONE</span>
+                  <h3>Organization Lifecycle Termination</h3>
+                </div>
+                <p>Initiate permanent de-provisioning of your business identity, API keys, and verified passport records.</p>
+              </div>
+              <div class="danger-zone-body">
+                <div class="danger-action-row">
+                  <div class="danger-desc">
+                    <strong>Request Account Deletion & Data Purge</strong>
+                    <p>Permanently revokes your Business Passport, terminates buyer connections, and invalidates API integrations. A 30-day statutory cooling-off window is provided before irreversible deletion.</p>
+                  </div>
+                  <button *ngIf="accountStatus() !== 'TERMINATION_REQUESTED'" class="btn-danger-action" (click)="openDeleteModal()">
+                    Request Account Deletion
+                  </button>
+                  <button *ngIf="accountStatus() === 'TERMINATION_REQUESTED'" class="btn-danger-cancel" (click)="cancelAccountTermination()" [disabled]="terminatingAccount()">
+                    Cancel Pending Deletion
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- ACCOUNT DELETION CONFIRMATION MODAL -->
+          <div *ngIf="showDeleteAccountModal()" class="pv-modal-backdrop" (click)="closeDeleteModal()">
+            <div class="pv-modal-dialog" (click)="$event.stopPropagation()">
+              <div class="pv-modal-header danger-header">
+                <div class="modal-title-wrap">
+                  <span class="modal-glyph text-red">⚠️</span>
+                  <div>
+                    <h3 class="pv-modal-title">Request Organization Account Termination</h3>
+                    <p class="pv-modal-sub">Initiates statutory de-provisioning under DPDP Act 2023.</p>
+                  </div>
+                </div>
+                <button type="button" class="btn-modal-close" (click)="closeDeleteModal()">✕</button>
+              </div>
+
+              <div class="pv-modal-body">
+                <div class="danger-confirm-box mb-16">
+                  <strong style="color: #991B1B; font-size: 13px; display: block; margin-bottom: 6px;">Consequences of Account Deletion:</strong>
+                  <ul style="padding-left: 18px; margin: 0; font-size: 12px; color: #7F1D1D; line-height: 1.6;">
+                    <li>Your <strong>Business Passport ({{ displayBusinessIdNumber() }})</strong> will be permanently deactivated.</li>
+                    <li>All active and pending enterprise buyer onboarding verifications will be revoked.</li>
+                    <li>All issued API keys, ERP webhooks, and team memberships will be invalidated.</li>
+                    <li>In accordance with DPDP Act, data is archived for a 30-day statutory cooling-off recovery period before permanent purge.</li>
+                  </ul>
+                </div>
+
+                <div class="form-group mb-16">
+                  <label class="form-label">Primary Reason for Termination</label>
+                  <select class="form-select" [ngModel]="deleteReason()" (ngModelChange)="deleteReason.set($event)">
+                    <option value="Consolidation or corporate restructuring">Consolidation or corporate restructuring</option>
+                    <option value="Migrating to another compliance platform">Migrating to another compliance platform</option>
+                    <option value="Temporary cessation of manufacturing operations">Temporary cessation of manufacturing operations</option>
+                    <option value="Other statutory reason">Other statutory reason</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">
+                    To confirm, please type <strong class="text-red">DELETE</strong> below:
+                  </label>
+                  <input type="text"
+                         class="form-input font-mono"
+                         placeholder="Type DELETE to confirm"
+                         [ngModel]="deleteConfirmText()"
+                         (ngModelChange)="deleteConfirmText.set($event)">
+                </div>
+              </div>
+
+              <div class="pv-modal-footer">
+                <button type="button" class="btn-enterprise-ghost" (click)="closeDeleteModal()">Cancel</button>
+                <button type="button"
+                        class="btn-danger-primary"
+                        [disabled]="deleteConfirmText().trim().toUpperCase() !== 'DELETE' || terminatingAccount()"
+                        (click)="confirmDeleteAccount()">
+                  <span *ngIf="terminatingAccount()" class="btn-spinner-sm"></span>
+                  <span *ngIf="!terminatingAccount()">Permanently Request Deletion</span>
+                  <span *ngIf="terminatingAccount()">Processing...</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
