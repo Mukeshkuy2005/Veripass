@@ -951,3 +951,4 @@ CREATE INDEX IF NOT EXISTS ""IX_verification_cases_Assigned_Status"" ON ""verifi
         }
     }
 }
+// Hot reload trigger

@@ -56,12 +56,20 @@ export class SupplierDocumentsComponent implements OnInit {
     const authId = this.auth.currentBusinessId();
     if (authId) {
       this.businessId = authId;
+      this.businessService.getProfile(authId).subscribe({
+        next: (p) => {
+          if (p?.id) this.businessId = p.id;
+          this.loadDocuments();
+        },
+        error: () => this.loadDocuments()
+      });
+    } else {
+      this.loadDocuments();
     }
-    this.loadDocuments();
   }
 
   loadDocuments(): void {
-    const targetBusinessId = this.businessId || this.businessService.currentProfile()?.id || this.auth.currentBusinessId() || '';
+    const targetBusinessId = this.businessService.currentProfile()?.id || this.businessId || this.auth.currentBusinessId() || '';
     const isVerified = this.businessService.currentProfile()?.verificationStatus === 'VERIFIED';
     this.businessService.getDocuments(targetBusinessId).subscribe({
       next: (docs) => {
@@ -250,8 +258,8 @@ export class SupplierDocumentsComponent implements OnInit {
     this.isSubmittingCredential.set(true);
     this.addCredentialError.set(null);
 
-    const targetId = this.businessId || this.businessService.currentProfile()?.id || this.auth.currentBusinessId() || 'biz-default';
-    this.businessService.uploadDocument(targetId, this.newCredType(), file).subscribe({
+    const targetId = this.businessService.currentProfile()?.id || this.businessId || this.auth.currentBusinessId() || 'biz-default';
+    this.businessService.uploadDocument(targetId, this.newCredType(), file, this.newCredNumber()?.trim(), this.newCredName()?.trim()).subscribe({
       next: () => {
         this.isSubmittingCredential.set(false);
         this.showAddCredentialModal.set(false);

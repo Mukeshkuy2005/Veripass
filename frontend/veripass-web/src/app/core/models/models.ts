@@ -301,6 +301,7 @@ export interface VerificationCaseDetailDto {
   decisionReason?: string;
   riskLevel?: string;
   riskScore?: number;
+  trustScore?: number;
   assignedVerifierId?: string;
   assignedVerifierName?: string;
   submittedAt?: string;

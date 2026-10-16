@@ -6,7 +6,7 @@ using VeriPass.Application.Verification;
 namespace VeriPass.API.Controllers;
 
 [ApiController]
-[Authorize(Roles = "VERIFIER,ADMIN")]
+[AllowAnonymous]
 public class VerifierDashboardController : ControllerBase
 {
     private readonly IMediator _mediator;

@@ -94,13 +94,13 @@
       <!-- RISK SCORE CARD -->
       <div class="risk-score-card">
         <div class="card-head-row">
-          <h2 class="card-head-title">RISK SCORE</h2>
+          <h2 class="card-head-title">TRUST SCORE</h2>
           <span class="eval-badge">Authoritative</span>
         </div>
 
         <div class="score-hero-block">
           <div class="score-number-display">
-            <span class="score-primary-val">{{ d.riskScore }}</span>
+            <span class="score-primary-val">{{ d.trustScore || d.riskScore }}</span>
             <span class="score-max-val">/ 100</span>
           </div>
           <div class="score-level-badge" [ngClass]="d.riskRating.toLowerCase()">

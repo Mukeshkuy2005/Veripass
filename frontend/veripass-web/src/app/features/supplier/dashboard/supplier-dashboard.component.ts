@@ -75,7 +75,18 @@ export class SupplierDashboardComponent implements OnInit {
     });
 
     this.businessService.getPassport(businessId).subscribe({
-      next: (pass) => this.passportData.set(pass),
+      next: (pass) => {
+        this.passportData.set(pass);
+        if (pass?.verificationScore) {
+          const current = this.businessService.currentProfile();
+          if (current) {
+            this.businessService.saveProfileLocally({
+              ...current,
+              trustScore: pass.verificationScore
+            });
+          }
+        }
+      },
       error: () => {}
     });
   }
@@ -102,7 +113,10 @@ export class SupplierDashboardComponent implements OnInit {
   }
 
   get verificationScore(): number {
-    return this.profileData()?.trustScore ?? this.dashboardData()?.overallTrustScore ?? 0;
+    return this.passportData()?.verificationScore
+      ?? this.dashboardData()?.overallTrustScore
+      ?? this.profileData()?.trustScore
+      ?? 0;
   }
 
   get complianceScore(): number {

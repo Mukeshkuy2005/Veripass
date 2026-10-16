@@ -33,7 +33,8 @@ public record VerificationQueueItemDto(
     VerificationQueueAssigneeDto? AssignedTo,
     VerificationQueueSlaDto Sla,
     string Status,
-    string ActionLabel);
+    string ActionLabel,
+    int? TrustScore = null);
 
 public record VerificationQueueSummaryDto(
     int TotalWaiting,
@@ -96,6 +97,9 @@ public class VerificationQueueHandler :
         var baseQuery = _context.VerificationCases
             .AsNoTracking()
             .Include(c => c.Business)
+                .ThenInclude(b => b.TrustScore)
+            .Include(c => c.Business)
+                .ThenInclude(b => b.Passport)
             .Include(c => c.AssignedVerifier)
             .Where(c => !c.IsDeleted);
 
@@ -362,7 +366,16 @@ public class VerificationQueueHandler :
             var canonicalStatus = ResolveCanonicalStatus(c);
             var priority = NormalizePriority(c.Priority, c.RiskLevel, c.FinalDecision);
             var risk = NormalizeRisk(c.RiskLevel);
-            var riskScore = CalculateRiskScore(c.RiskLevel);
+            var authoritativeScore = c.Business?.TrustScore?.OverallScore 
+                ?? (c.Business?.Passport != null ? c.Business.Passport.VerificationScore : (int?)null)
+                ?? (c.RiskLevel switch
+                {
+                    RiskLevel.CRITICAL => 15,
+                    RiskLevel.HIGH => 25,
+                    RiskLevel.MEDIUM => 50,
+                    _ => 85
+                });
+            var riskScore = authoritativeScore;
             var sla = CalculateSla(c, now);
             var action = ResolveActionLabel(canonicalStatus);
 
@@ -384,7 +397,8 @@ public class VerificationQueueHandler :
                         : null,
                 sla,
                 canonicalStatus,
-                action);
+                action,
+                authoritativeScore);
         }).ToList();
 
         var summary = new VerificationQueueSummaryDto(

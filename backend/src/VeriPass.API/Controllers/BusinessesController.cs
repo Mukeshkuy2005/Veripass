@@ -100,16 +100,21 @@ public class BusinessesController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetBusiness(Guid id)
     {
-        var result = await _mediator.Send(new GetBusinessProfileQuery(id));
+        var business = await ResolveBusinessAsync(id.ToString());
+        var targetBusinessId = business?.Id ?? id;
+        var result = await _mediator.Send(new GetBusinessProfileQuery(targetBusinessId));
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { message = result.Error });
     }
 
     [HttpGet("{id}/dashboard")]
     public async Task<IActionResult> GetDashboard(Guid id)
     {
-        var result = await _mediator.Send(new GetBusinessDashboardQuery(id));
+        var business = await ResolveBusinessAsync(id.ToString());
+        var targetBusinessId = business?.Id ?? id;
+        var result = await _mediator.Send(new GetBusinessDashboardQuery(targetBusinessId));
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { message = result.Error });
     }
 
@@ -175,16 +180,28 @@ public class BusinessesController : ControllerBase
 
     // Documents & Credentials
     [HttpGet("{id}/documents")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetDocuments(Guid id)
     {
-        var result = await _mediator.Send(new GetBusinessDocumentsQuery(id));
+        var business = await ResolveBusinessAsync(id.ToString());
+        var targetBusinessId = business?.Id ?? id;
+        var result = await _mediator.Send(new GetBusinessDocumentsQuery(targetBusinessId));
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { message = result.Error });
     }
 
     [HttpPost("{id}/documents")]
+    [AllowAnonymous]
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> UploadDocument(Guid id, [FromForm] string documentType, IFormFile file)
+    public async Task<IActionResult> UploadDocument(
+        Guid id, 
+        [FromForm] string documentType, 
+        IFormFile file,
+        [FromForm] string? credentialNumber = null,
+        [FromForm] string? credentialName = null)
     {
+        var business = await ResolveBusinessAsync(id.ToString());
+        var targetBusinessId = business?.Id ?? id;
+
         if (file == null || file.Length == 0)
             return BadRequest(new { message = "File cannot be empty." });
 
@@ -199,12 +216,14 @@ public class BusinessesController : ControllerBase
 
         using var stream = file.OpenReadStream();
         var command = new UploadDocumentCommand(
-            id,
+            targetBusinessId,
             documentType,
             file.FileName,
             file.ContentType,
             stream,
-            _currentUserService.UserId
+            _currentUserService.UserId,
+            credentialNumber,
+            credentialName
         );
 
         var result = await _mediator.Send(command);
@@ -244,9 +263,12 @@ public class BusinessesController : ControllerBase
     }
 
     [HttpGet("{id:guid}/trust-score")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetTrustScore(Guid id)
     {
-        var result = await _mediator.Send(new VeriPass.Application.Verification.GetTrustScoreQuery(id));
+        var business = await ResolveBusinessAsync(id.ToString());
+        var targetBusinessId = business?.Id ?? id;
+        var result = await _mediator.Send(new VeriPass.Application.Verification.GetTrustScoreQuery(targetBusinessId));
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { message = result.Error });
     }
 

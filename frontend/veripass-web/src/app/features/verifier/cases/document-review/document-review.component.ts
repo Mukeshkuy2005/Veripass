@@ -47,6 +47,7 @@ export class DocumentReviewComponent implements OnInit {
   isReprocessingOcr = signal<boolean>(false);
   isVerifyingIntegrity = signal<boolean>(false);
   isDownloading = signal<boolean>(false);
+  isApproving = signal<boolean>(false);
 
   // Safe document content stream URL
   documentContentUrl = computed<SafeResourceUrl | null>(() => {
@@ -254,6 +255,30 @@ export class DocumentReviewComponent implements OnInit {
   getFieldVal(index: number, fallback: string = ''): string {
     const f = this.review()?.ocr?.fields;
     return f && f[index] ? f[index].rawValue : fallback;
+  }
+
+  // Document Approval workflow
+  approveDocument(): void {
+    const rev = this.review();
+    if (!rev || this.isApproving()) return;
+
+    this.isApproving.set(true);
+    this.caseService.approveDocument(rev.caseId, rev.document.id, 'Approved via Forensic Document Review Workstation').subscribe({
+      next: (res) => {
+        this.isApproving.set(false);
+        this.review.update(cur => cur ? { ...cur, caseStatus: 'APPROVED' } : cur);
+        if (res?.supplier) {
+          const score = res.supplier.trustScore ?? res.supplier.riskScore;
+          this.showToast(`Document approved! Supplier trust score updated to ${score}/100 (${res.supplier.riskLevel} RISK). Buyer: ${res.supplier.buyerEligible ? 'ELIGIBLE' : 'NOT ELIGIBLE'}.`);
+        } else {
+          this.showToast('Document approved successfully.');
+        }
+      },
+      error: (err) => {
+        this.isApproving.set(false);
+        this.showToast('Could not approve this document: ' + (err?.error?.message || 'Server error'));
+      }
+    });
   }
 
   // Navigation: Close review returns directly to V3 Verification Case

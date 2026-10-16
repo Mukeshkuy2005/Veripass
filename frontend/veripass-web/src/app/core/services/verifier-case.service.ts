@@ -22,13 +22,19 @@ export interface CaseEvidenceDocument {
   documentType: string;
   fileName: string;
   mimeType: string;
+  fileType?: string;
   fileSize: number;
+  formattedFileSize?: string;
   storageKey: string;
   downloadUrl: string;
   sha256Hash: string;
   status: string;
   uploadedAt: string;
   isPrimary: boolean;
+  documentValidityStatus?: string;
+  tamperingSummary?: string;
+  expiryStatus?: string;
+  expiryDate?: string | null;
 }
 
 export interface ExtractedField {
@@ -240,6 +246,7 @@ export interface CaseRiskReviewData {
   businessName: string;
   verificationType: string;
   riskScore: number;
+  trustScore?: number;
   riskRating: 'LOW' | 'MEDIUM' | 'HIGH';
   pillars: RiskPillar[];
   signals: DetectedRiskSignal[];
@@ -264,6 +271,7 @@ export interface VerificationCase {
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
   riskRating: 'Low' | 'Medium' | 'High';
   riskScore: number;
+  trustScore?: number;
   assignedTo: string;
   slaDeadline: string;
   status: 'PENDING' | 'IN_REVIEW' | 'MORE_INFO_REQUIRED' | 'APPROVED' | 'REJECTED' | 'ESCALATED';
@@ -477,9 +485,26 @@ export class VerifierCaseService {
       concurrencyToken: concurrencyToken ? parseInt(concurrencyToken, 10) : undefined
     };
     const obs = this.api.post<any>(`verifier/cases/${caseId}/approve`, payload).pipe(
-      tap(() => {
+      tap((res) => {
         const c = this.getCaseById(caseId);
         this.updateLocalCaseStatus(caseId, 'APPROVED');
+        if (res?.supplier) {
+          this.casesSignal.update(all =>
+            all.map(item => {
+              if (item.id.toLowerCase() === caseId.toLowerCase()) {
+                return {
+                  ...item,
+                  status: 'APPROVED',
+                  decisionReason: notes || item.decisionReason,
+                  riskScore: res.supplier.riskScore,
+                  riskRating: res.supplier.riskLevel,
+                  buyerEligible: res.supplier.buyerEligible
+                };
+              }
+              return item;
+            })
+          );
+        }
         this.recordAuditEvent({
           eventId: 'EVT-' + Math.floor(1000 + Math.random() * 9000),
           caseId: c?.id || caseId,
@@ -500,6 +525,40 @@ export class VerifierCaseService {
     obs.subscribe({ next: () => {}, error: () => {} });
     return obs;
   }
+
+  approveDocument(caseId: string, documentId: string, notes?: string, concurrencyToken?: string): Observable<any> {
+    const payload = {
+      notes: notes || 'Document approved in forensic review workstation.',
+      concurrencyToken: concurrencyToken ? parseInt(concurrencyToken, 10) : undefined
+    };
+    const obs = this.api.post<any>(`verifier/cases/${caseId}/documents/${documentId}/approve`, payload).pipe(
+      tap((res) => {
+        this.updateLocalCaseStatus(caseId, 'APPROVED');
+        if (res?.supplier) {
+          this.casesSignal.update(all =>
+            all.map(item => {
+              if (item.id.toLowerCase() === caseId.toLowerCase()) {
+                return {
+                  ...item,
+                  status: 'APPROVED',
+                  riskScore: res.supplier.trustScore ?? res.supplier.riskScore,
+                  trustScore: res.supplier.trustScore ?? res.supplier.riskScore,
+                  riskRating: res.supplier.riskLevel,
+                  buyerEligible: res.supplier.buyerEligible
+                };
+              }
+              return item;
+            })
+          );
+        }
+        this.loadQueueSummary();
+      }),
+      shareReplay(1)
+    );
+    obs.subscribe({ next: () => {}, error: () => {} });
+    return obs;
+  }
+
 
   rejectCase(caseId: string, reason: string, explanation: string, notes: string, concurrencyToken?: string): Observable<any> {
     const fullReason = explanation ? `${reason}: ${explanation}`.trim() : reason;
@@ -746,7 +805,8 @@ export class VerifierCaseService {
       submittedAt: item.submittedAt ? new Date(item.submittedAt).toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently',
       priority: prio,
       riskRating,
-      riskScore: item.riskScore ?? 20,
+      riskScore: item.trustScore ?? item.riskScore ?? 20,
+      trustScore: item.trustScore ?? item.riskScore ?? 20,
       assignedTo: item.assignedTo?.name || 'Unassigned',
       slaDeadline: item.sla?.formattedRemaining || 'Active',
       status,
@@ -802,18 +862,38 @@ export class VerifierCaseService {
     const bName = dto.businessName || 'Business Entity';
     const identVal = dto.gstin || dto.pan || (dto.checks && dto.checks[0]?.requestReference) || 'Statutory-Doc';
 
-    const primaryDoc = dto.evidenceDocuments && dto.evidenceDocuments.length > 0
-      ? dto.evidenceDocuments[0]
-      : null;
+    const evidenceDocs: CaseEvidenceDocument[] = (dto.evidenceDocuments || []).map((d: any) => ({
+      documentId: d.documentId?.toString() || '',
+      evidenceId: d.evidenceId?.toString(),
+      evidenceType: d.evidenceType || 'PRIMARY_CREDENTIAL',
+      documentType: d.documentType || 'DOCUMENT',
+      fileName: d.fileName || 'document.pdf',
+      mimeType: d.mimeType || (d.fileType ? `application/${d.fileType.toLowerCase()}` : 'application/pdf'),
+      fileType: d.fileType || 'PDF',
+      fileSize: d.fileSize || 0,
+      formattedFileSize: d.formattedFileSize || `${Math.round((d.fileSize || 0) / 1024)} KB`,
+      storageKey: d.storageKey || d.downloadUrl || '',
+      downloadUrl: d.downloadUrl || '',
+      sha256Hash: d.sha256Hash || '',
+      status: d.documentValidityStatus || d.status || 'VALID',
+      uploadedAt: d.uploadedAt || new Date().toISOString(),
+      isPrimary: !!d.isPrimary
+    }));
+
+    const primaryDoc = evidenceDocs.length > 0 ? evidenceDocs[0] : null;
 
     const fileName = primaryDoc ? primaryDoc.fileName : `${vType}_Verification_Document.pdf`;
     const storageKey = primaryDoc ? primaryDoc.storageKey : undefined;
     const downloadUrl = primaryDoc ? primaryDoc.downloadUrl : (storageKey ? `/api/v1/documents/download/${storageKey}` : undefined);
 
     const extFields: ExtractedField[] = dto.extraction?.fields || [];
-    const bNameField = extFields.find(f => f.fieldName.toLowerCase().includes('name'));
-    const idField = extFields.find(f => f.fieldName.toLowerCase().includes('gstin') || f.fieldName.toLowerCase().includes('pan') || f.fieldName.toLowerCase().includes('identifier'));
-    const addrField = extFields.find(f => f.fieldName.toLowerCase().includes('address'));
+    const bNameField = extFields.find(f => f.fieldName?.toLowerCase()?.includes('name'));
+    const idField = extFields.find(f => f.fieldName?.toLowerCase()?.includes('gstin') || f.fieldName?.toLowerCase()?.includes('pan') || f.fieldName?.toLowerCase()?.includes('identifier'));
+    const addrField = extFields.find(f => f.fieldName?.toLowerCase()?.includes('address'));
+
+    const fileType = primaryDoc
+      ? (primaryDoc.mimeType?.replace('application/', '') || primaryDoc.fileType || 'PDF').toUpperCase()
+      : 'PDF';
 
     return {
       id: cid,
@@ -826,7 +906,8 @@ export class VerifierCaseService {
       submittedAt: dto.submittedAt ? new Date(dto.submittedAt).toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' }) : new Date().toLocaleDateString(),
       priority: prio,
       riskRating,
-      riskScore: dto.riskAssessment?.score ?? dto.riskScore ?? 20,
+      riskScore: dto.trustScore ?? dto.riskAssessment?.trustScore ?? dto.riskAssessment?.score ?? dto.riskScore ?? 20,
+      trustScore: dto.trustScore ?? dto.riskAssessment?.trustScore ?? dto.riskAssessment?.score ?? dto.riskScore ?? 20,
       assignedTo: dto.assignedVerifierName || 'Unassigned',
       slaDeadline: 'Authoritative SLA',
       status,
@@ -834,7 +915,7 @@ export class VerifierCaseService {
       concurrencyToken: dto.concurrencyToken,
       availableActions: dto.availableActions || ['START_REVIEW', 'APPROVE', 'REJECT', 'REQUEST_MORE_INFO', 'ESCALATE'],
       businessSummary: dto.businessSummary,
-      evidenceDocuments: dto.evidenceDocuments || [],
+      evidenceDocuments: evidenceDocs,
       extraction: dto.extraction,
       trustedSource: dto.trustedSource,
       matchAnalysis: dto.matchAnalysis || [],
@@ -842,7 +923,7 @@ export class VerifierCaseService {
       timeline: dto.timeline || [],
       document: {
         fileName,
-        fileType: primaryDoc ? primaryDoc.mimeType.replace('application/', '').toUpperCase() : 'PDF',
+        fileType,
         uploadedAt: primaryDoc ? primaryDoc.uploadedAt : (dto.submittedAt ? new Date(dto.submittedAt).toISOString() : new Date().toISOString()),
         sha256: primaryDoc?.sha256Hash || '8b2f90a13c4d7e89123b56cf8912e45a789c01de23f45a67b89c01de23f45a67',
         ocrCompleted: dto.extraction ? dto.extraction.status === 'COMPLETED' : true,
@@ -859,7 +940,7 @@ export class VerifierCaseService {
       },
       sovereignData: {
         authority: dto.trustedSource?.provider || (vType === 'GST' ? 'Goods & Services Tax Network (GSTN)' : (vType === 'PAN' ? 'Income Tax Department (CBDT)' : 'Official Statutory Authority')),
-        matched: dto.trustedSource ? dto.trustedSource.status === 'VERIFIED' : (status === 'APPROVED' || status === 'IN_REVIEW'),
+        matched: dto.trustedSource ? (dto.trustedSource.status === 'VERIFIED' || dto.trustedSource.status === 'MATCHED') : (status === 'APPROVED' || status === 'IN_REVIEW'),
         registryBusinessName: dto.trustedSource?.sourceData?.['legalName'] || bName,
         registryIdentifier: dto.trustedSource?.sourceData?.['gstin'] || dto.trustedSource?.sourceData?.['pan'] || identVal,
         registryAddress: dto.businessSummary?.addressLine1 || 'Verified Registered Address',

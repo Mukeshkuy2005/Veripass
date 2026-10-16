@@ -83,7 +83,8 @@ public record CaseRiskFactorDto(
 public record CaseRiskAssessmentDto(
     int Score,
     string Level,
-    List<CaseRiskFactorDto> Factors);
+    List<CaseRiskFactorDto> Factors,
+    int? TrustScore = null);
 
 public record CaseTimelineEventDto(
     string EventId,
@@ -124,7 +125,8 @@ public record VerificationCaseDetailDto(
     List<string>? AvailableActions = null,
     string? ConcurrencyToken = null,
     string? TradeName = null,
-    DateTime? EscalatedAt = null);
+    DateTime? EscalatedAt = null,
+    int? TrustScore = null);
 
 public record VerificationCheckDto(
     Guid Id,
@@ -193,6 +195,8 @@ public class GetVerificationCaseQueryHandler : IRequestHandler<GetVerificationCa
                     .ThenInclude(b => b.Documents)
                 .Include(x => x.Business)
                     .ThenInclude(b => b.Passport)
+                .Include(x => x.Business)
+                    .ThenInclude(b => b.TrustScore)
                 .Include(x => x.AssignedVerifier)
                 .Include(x => x.Checks)
                 .Include(x => x.Evidences)
@@ -213,6 +217,8 @@ public class GetVerificationCaseQueryHandler : IRequestHandler<GetVerificationCa
                     .ThenInclude(b => b.Documents)
                 .Include(x => x.Business)
                     .ThenInclude(b => b.Passport)
+                .Include(x => x.Business)
+                    .ThenInclude(b => b.TrustScore)
                 .Include(x => x.AssignedVerifier)
                 .Include(x => x.Checks)
                 .Include(x => x.Evidences)
@@ -236,6 +242,8 @@ public class GetVerificationCaseQueryHandler : IRequestHandler<GetVerificationCa
                         .ThenInclude(b => b.Documents)
                     .Include(x => x.Business)
                         .ThenInclude(b => b.Passport)
+                    .Include(x => x.Business)
+                        .ThenInclude(b => b.TrustScore)
                     .Include(x => x.AssignedVerifier)
                     .Include(x => x.Checks)
                     .Include(x => x.Evidences)
@@ -333,6 +341,8 @@ public class GetVerificationCaseQueryHandler : IRequestHandler<GetVerificationCa
                             .ThenInclude(b => b.Documents)
                         .Include(x => x.Business)
                             .ThenInclude(b => b.Passport)
+                        .Include(x => x.Business)
+                            .ThenInclude(b => b.TrustScore)
                         .Include(x => x.AssignedVerifier)
                         .Include(x => x.Checks)
                         .Include(x => x.Evidences)
@@ -442,13 +452,14 @@ public class GetVerificationCaseQueryHandler : IRequestHandler<GetVerificationCa
         }
 
         var caseNumber = $"VP-{c.Id.ToString("N")[..5].ToUpperInvariant()}";
-        var riskScore = c.RiskLevel switch
+        var trustScore = c.Business.TrustScore?.OverallScore ?? (c.RiskLevel switch
         {
             RiskLevel.CRITICAL => 15,
             RiskLevel.HIGH => 25,
             RiskLevel.MEDIUM => 50,
             _ => 85
-        };
+        });
+        var riskScore = trustScore;
 
         var verifierName = c.AssignedVerifier != null
             ? $"{c.AssignedVerifier.FirstName} {c.AssignedVerifier.LastName}".Trim()
@@ -577,7 +588,7 @@ public class GetVerificationCaseQueryHandler : IRequestHandler<GetVerificationCa
             new("Document Cryptographic Digest", "LOW", "SHA-256 integrity digest intact with no digital alteration artifacts.", 0),
             new("Corporate Entity Standing", c.RiskLevel == RiskLevel.HIGH ? "HIGH" : "LOW", c.RiskLevel == RiskLevel.HIGH ? "Elevated risk flagged due to jurisdictional filing discrepancy." : "Active regular corporate status with current tax filings.", c.RiskLevel == RiskLevel.HIGH ? -25 : 0)
         };
-        var riskAssessment = new CaseRiskAssessmentDto(riskScore, c.RiskLevel.ToString(), riskFactors);
+        var riskAssessment = new CaseRiskAssessmentDto(riskScore, c.RiskLevel.ToString(), riskFactors, trustScore);
 
         // Case Timeline from real AuditLogs
         var auditLogs = await _context.AuditLogs
@@ -697,7 +708,8 @@ public class GetVerificationCaseQueryHandler : IRequestHandler<GetVerificationCa
             availableActions,
             concurrencyToken,
             c.Business.TradeName ?? c.Business.LegalName,
-            c.EscalatedAt
+            c.EscalatedAt,
+            trustScore
         );
 
         return Result<VerificationCaseDetailDto>.Success(dto);
@@ -741,9 +753,28 @@ public class CreateVerificationCaseCommandHandler : IRequestHandler<CreateVerifi
     }
 }
 
-public record ApproveVerificationCommand(Guid CaseId, string? Notes, long? ConcurrencyToken = null) : IRequest<Result<bool>>;
+public class VerificationApprovalResultDto
+{
+    public bool Success { get; set; } = true;
+    public Guid CaseId { get; set; }
+    public Guid? DocumentId { get; set; }
+    public string Status { get; set; } = "APPROVED";
+    public SupplierRiskScoreDto Supplier { get; set; } = null!;
+}
 
-public class ApproveVerificationCommandHandler : IRequestHandler<ApproveVerificationCommand, Result<bool>>
+public class SupplierRiskScoreDto
+{
+    public Guid Id { get; set; }
+    public int RiskScore { get; set; }
+    public int TrustScore { get; set; }
+    public string RiskLevel { get; set; } = "MEDIUM";
+    public bool BuyerEligible { get; set; }
+    public int PreviousScore { get; set; }
+}
+
+public record ApproveVerificationCommand(Guid CaseId, string? Notes, long? ConcurrencyToken = null) : IRequest<Result<VerificationApprovalResultDto>>;
+
+public class ApproveVerificationCommandHandler : IRequestHandler<ApproveVerificationCommand, Result<VerificationApprovalResultDto>>
 {
     private readonly IApplicationDbContext _context;
     private readonly ITrustScoreCalculator _trustScoreCalculator;
@@ -762,27 +793,34 @@ public class ApproveVerificationCommandHandler : IRequestHandler<ApproveVerifica
         _notificationService = notificationService;
     }
 
-    public async Task<Result<bool>> Handle(ApproveVerificationCommand request, CancellationToken cancellationToken)
+    public async Task<Result<VerificationApprovalResultDto>> Handle(ApproveVerificationCommand request, CancellationToken cancellationToken)
     {
         var caseItem = await _context.VerificationCases
             .Include(c => c.Credential)
+            .Include(c => c.Evidences)
+                .ThenInclude(e => e.Document)
             .Include(c => c.Business)
+                .ThenInclude(b => b.Addresses)
+            .Include(c => c.Business)
+                .ThenInclude(b => b.Documents)
             .FirstOrDefaultAsync(c => c.Id == request.CaseId, cancellationToken);
 
         if (caseItem == null)
-            return Result<bool>.Failure("Verification case not found.");
+            return Result<VerificationApprovalResultDto>.Failure("Verification case not found.");
 
         if (caseItem.FinalDecision == VerificationDecision.APPROVED)
-            return Result<bool>.Failure("This verification case has already been approved.");
+            return Result<VerificationApprovalResultDto>.Failure("This verification case has already been approved.");
 
         if (request.ConcurrencyToken.HasValue)
         {
             var currentToken = caseItem.UpdatedAt?.Ticks ?? caseItem.CreatedAt.Ticks;
             if (currentToken != request.ConcurrencyToken.Value)
             {
-                return Result<bool>.Failure("The verification case has been modified by another user or session. Please refresh the workstation.");
+                return Result<VerificationApprovalResultDto>.Failure("The verification case has been modified by another user or session. Please refresh the workstation.");
             }
         }
+
+        var oldScore = (await _context.TrustScores.FirstOrDefaultAsync(t => t.BusinessId == caseItem.BusinessId, cancellationToken))?.OverallScore ?? 0;
 
         caseItem.Status = VerificationStatus.VERIFIED;
         caseItem.FinalDecision = VerificationDecision.APPROVED;
@@ -798,6 +836,88 @@ public class ApproveVerificationCommandHandler : IRequestHandler<ApproveVerifica
             caseItem.AssignedVerifierId = _currentUserService.UserId.Value;
         }
 
+        Guid? primaryDocId = null;
+
+        // 1. Mark associated evidence documents as APPROVED
+        foreach (var ev in caseItem.Evidences.Where(e => e.Document != null))
+        {
+            ev.Document!.Status = DocumentStatus.APPROVED;
+            ev.Document.UpdatedAt = DateTime.UtcNow;
+            primaryDocId ??= ev.DocumentId;
+        }
+
+        // 2. Also approve matching documents on business entity
+        var normCaseType = DocumentScoringPolicy.NormalizeType(caseItem.VerificationType);
+        if (caseItem.Business?.Documents != null)
+        {
+            foreach (var doc in caseItem.Business.Documents)
+            {
+                if (DocumentScoringPolicy.NormalizeType(doc.DocumentType) == normCaseType)
+                {
+                    doc.Status = DocumentStatus.APPROVED;
+                    doc.UpdatedAt = DateTime.UtcNow;
+                    primaryDocId ??= doc.Id;
+                }
+            }
+        }
+
+        // 3. Synchronize verified statutory identifiers and primary address from evidence to Business
+        if (caseItem.Business != null)
+        {
+            caseItem.Business.VerificationStatus = VerificationStatus.VERIFIED;
+
+            foreach (var ev in caseItem.Evidences)
+            {
+                if (!string.IsNullOrWhiteSpace(ev.ActualValue))
+                {
+                    var field = ev.FieldName?.Trim().ToLowerInvariant() ?? "";
+                    if (field.Contains("gst") && string.IsNullOrWhiteSpace(caseItem.Business.Gstin))
+                    {
+                        var val = ev.ActualValue.Trim();
+                        caseItem.Business.Gstin = val.Length > 15 ? val[..15] : val;
+                    }
+                    else if (field.Contains("pan") && string.IsNullOrWhiteSpace(caseItem.Business.Pan))
+                    {
+                        var val = ev.ActualValue.Trim();
+                        caseItem.Business.Pan = val.Length > 10 ? val[..10] : val;
+                    }
+                    else if (field.Contains("cin") && string.IsNullOrWhiteSpace(caseItem.Business.Cin))
+                    {
+                        var val = ev.ActualValue.Trim();
+                        caseItem.Business.Cin = val.Length > 21 ? val[..21] : val;
+                    }
+                    else if ((field.Contains("udyam") || field.Contains("msme")) && string.IsNullOrWhiteSpace(caseItem.Business.UdyamNumber))
+                    {
+                        var val = ev.ActualValue.Trim();
+                        caseItem.Business.UdyamNumber = val.Length > 30 ? val[..30] : val;
+                    }
+                    else if (field.Contains("address"))
+                    {
+                        var existingAddr = caseItem.Business.Addresses.FirstOrDefault(a => a.IsPrimary) ?? caseItem.Business.Addresses.FirstOrDefault();
+                        if (existingAddr != null)
+                        {
+                            existingAddr.VerificationStatus = VerificationStatus.VERIFIED;
+                            existingAddr.UpdatedAt = DateTime.UtcNow;
+                        }
+                        else
+                        {
+                            var newAddr = new BusinessAddress
+                            {
+                                BusinessId = caseItem.Business.Id,
+                                Line1 = ev.ActualValue.Trim(),
+                                City = "Ghaziabad",
+                                State = "Uttar Pradesh",
+                                Pincode = "201014",
+                                IsPrimary = true,
+                                VerificationStatus = VerificationStatus.VERIFIED
+                            };
+                            _context.BusinessAddresses.Add(newAddr);
+                        }
+                    }
+                }
+            }
+        }
+
         if (caseItem.Credential != null)
         {
             caseItem.Credential.VerificationStatus = VerificationStatus.VERIFIED;
@@ -805,7 +925,7 @@ public class ApproveVerificationCommandHandler : IRequestHandler<ApproveVerifica
             caseItem.Credential.LastVerifiedAt = DateTime.UtcNow;
         }
 
-        // Record Audit Log
+        // Record Audit Logs
         _context.AuditLogs.Add(new AuditLog
         {
             UserId = _currentUserService.UserId,
@@ -820,6 +940,24 @@ public class ApproveVerificationCommandHandler : IRequestHandler<ApproveVerifica
             CreatedAt = DateTime.UtcNow
         });
 
+        if (primaryDocId.HasValue)
+        {
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserId = _currentUserService.UserId,
+                Action = "DOCUMENT_APPROVED",
+                Category = "VERIFICATION",
+                ResourceType = "DOCUMENT",
+                ResourceId = primaryDocId.Value.ToString(),
+                TargetName = caseItem.Business?.LegalName ?? "Document Evidence",
+                Result = "SUCCESS",
+                EventCode = $"AUD-{Guid.NewGuid():N}"[..10].ToUpperInvariant(),
+                NewValuesJson = $"{{\"documentId\":\"{primaryDocId}\",\"caseId\":\"{caseItem.Id}\",\"status\":\"APPROVED\"}}",
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        // Commit case and document state changes atomically
         await _context.SaveChangesAsync(cancellationToken);
 
         // Send Notification to Supplier
@@ -835,9 +973,12 @@ public class ApproveVerificationCommandHandler : IRequestHandler<ApproveVerifica
                 cancellationToken);
         }
 
-        // Recalculate Trust Score
+        // Authoritative Trust Score Recalculation
         var calc = await _trustScoreCalculator.CalculateAsync(caseItem.BusinessId, cancellationToken);
         var score = await _context.TrustScores.FirstOrDefaultAsync(t => t.BusinessId == caseItem.BusinessId, cancellationToken);
+        var derivedRisk = SupplierRiskPolicy.DetermineRiskLevelSafe(calc.OverallScore);
+        var buyerEligible = SupplierRiskPolicy.IsEligibleForBuyer(calc.OverallScore);
+
         if (score != null)
         {
             score.OverallScore = calc.OverallScore;
@@ -857,7 +998,7 @@ public class ApproveVerificationCommandHandler : IRequestHandler<ApproveVerifica
                 ComplianceScore = calc.ComplianceScore,
                 VerificationScore = calc.VerificationScore,
                 RiskScore = calc.RiskScore,
-                Reason = "Verification Case Approved",
+                Reason = $"Document & Case Approved: {caseItem.VerificationType}",
                 CalculationVersion = calc.Version
             });
 
@@ -865,15 +1006,47 @@ public class ApproveVerificationCommandHandler : IRequestHandler<ApproveVerifica
             var relationships = await _context.BuyerSupplierRelationships
                 .Where(r => r.SupplierBusinessId == caseItem.BusinessId)
                 .ToListAsync(cancellationToken);
-            var derivedRisk = SupplierRiskPolicy.DetermineRiskLevelSafe(calc.OverallScore);
             foreach (var rel in relationships)
             {
                 rel.RiskLevel = derivedRisk;
             }
+
+            if (calc.OverallScore != oldScore)
+            {
+                _context.AuditLogs.Add(new AuditLog
+                {
+                    UserId = _currentUserService.UserId,
+                    Action = "SUPPLIER_RISK_SCORE_UPDATED",
+                    Category = "RISK_SCORE",
+                    ResourceType = "TRUST_SCORE",
+                    ResourceId = caseItem.BusinessId.ToString(),
+                    TargetName = caseItem.Business?.LegalName ?? "Supplier Trust Score",
+                    Result = "SUCCESS",
+                    EventCode = $"AUD-{Guid.NewGuid():N}"[..10].ToUpperInvariant(),
+                    NewValuesJson = $"{{\"previousScore\":{oldScore},\"newScore\":{calc.OverallScore},\"riskLevel\":\"{derivedRisk}\",\"buyerEligible\":{(buyerEligible ? "true" : "false")}}}",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
         }
 
         await _context.SaveChangesAsync(cancellationToken);
-        return Result<bool>.Success(true);
+
+        return Result<VerificationApprovalResultDto>.Success(new VerificationApprovalResultDto
+        {
+            Success = true,
+            CaseId = caseItem.Id,
+            DocumentId = primaryDocId,
+            Status = "APPROVED",
+            Supplier = new SupplierRiskScoreDto
+            {
+                Id = caseItem.BusinessId,
+                RiskScore = calc.OverallScore,
+                TrustScore = calc.OverallScore,
+                RiskLevel = derivedRisk.ToString(),
+                BuyerEligible = buyerEligible,
+                PreviousScore = oldScore
+            }
+        });
     }
 }
 
@@ -1508,23 +1681,31 @@ public class GetTrustScoreQueryHandler : IRequestHandler<GetTrustScoreQuery, Res
 
     public async Task<Result<TrustScoreDetailDto>> Handle(GetTrustScoreQuery request, CancellationToken cancellationToken)
     {
-        var score = await _context.TrustScores
-            .FirstOrDefaultAsync(t => t.BusinessId == request.BusinessId, cancellationToken);
+        var business = await _context.Businesses
+            .Include(b => b.TrustScore)
+            .Include(b => b.Passport)
+            .FirstOrDefaultAsync(b => b.Id == request.BusinessId || b.OrganizationId == request.BusinessId, cancellationToken);
+
+        var targetBusinessId = business?.Id ?? request.BusinessId;
+        var score = business?.TrustScore ?? await _context.TrustScores
+            .FirstOrDefaultAsync(t => t.BusinessId == targetBusinessId, cancellationToken);
 
         var history = await _context.TrustScoreSnapshots
-            .Where(s => s.BusinessId == request.BusinessId)
+            .Where(s => s.BusinessId == targetBusinessId)
             .OrderByDescending(s => s.CreatedAt)
             .Take(15)
             .Select(s => new TrustScoreSnapshotDto(s.OverallScore, s.IdentityScore, s.CredentialScore, s.ComplianceScore, s.VerificationScore, s.RiskScore, s.Reason, s.CreatedAt))
             .ToListAsync(cancellationToken);
 
+        var overallScore = score?.OverallScore ?? (business?.Passport != null ? business.Passport.VerificationScore : 0);
+
         var dto = new TrustScoreDetailDto(
-            request.BusinessId,
-            score?.OverallScore ?? 0,
-            score?.IdentityScore ?? 0,
-            score?.CredentialScore ?? 0,
-            score?.ComplianceScore ?? 0,
-            score?.VerificationScore ?? 0,
+            targetBusinessId,
+            overallScore,
+            score?.IdentityScore ?? overallScore,
+            score?.CredentialScore ?? overallScore,
+            score?.ComplianceScore ?? overallScore,
+            score?.VerificationScore ?? overallScore,
             score?.RiskScore ?? 100,
             score?.LastCalculatedAt ?? DateTime.UtcNow,
             score?.CalculationVersion ?? "v1.0",

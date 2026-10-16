@@ -70,6 +70,7 @@ export interface EscalatedCaseDetail {
   priority: string;
   riskLevel: string;
   riskScore?: number;
+  trustScore?: number;
   escalatedAtUtc: string;
   escalatedByName: string;
   assignedVerifierId?: string;

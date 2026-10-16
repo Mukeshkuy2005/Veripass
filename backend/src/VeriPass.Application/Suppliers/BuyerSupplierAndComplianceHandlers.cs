@@ -129,6 +129,7 @@ public class SearchSuppliersQueryHandler : IRequestHandler<SearchSuppliersQuery,
         var query = _context.Businesses
             .Include(b => b.Addresses)
             .Include(b => b.TrustScore)
+            .Include(b => b.Passport)
             .Include(b => b.Credentials)
                 .ThenInclude(c => c.CredentialType)
             .Include(b => b.Organization)
@@ -154,7 +155,7 @@ public class SearchSuppliersQueryHandler : IRequestHandler<SearchSuppliersQuery,
 
         if (request.MinTrustScore.HasValue)
         {
-            query = query.Where(b => b.TrustScore != null && b.TrustScore.OverallScore >= request.MinTrustScore.Value);
+            query = query.Where(b => (b.TrustScore != null && b.TrustScore.OverallScore >= request.MinTrustScore.Value) || (b.Passport != null && b.Passport.VerificationScore >= request.MinTrustScore.Value));
         }
 
         if (!string.IsNullOrWhiteSpace(request.RequiredCredential))
@@ -170,11 +171,11 @@ public class SearchSuppliersQueryHandler : IRequestHandler<SearchSuppliersQuery,
         // Authoritative Buyer Supplier Selection Rule: Only suppliers with score > 50 are eligible to appear
         if (request.BuyerOnly)
         {
-            query = query.Where(b => b.TrustScore != null && b.TrustScore.OverallScore > 50);
+            query = query.Where(b => (b.TrustScore != null && b.TrustScore.OverallScore > 50) || (b.Passport != null && b.Passport.VerificationScore > 50));
         }
 
         var results = await query
-            .OrderByDescending(b => b.TrustScore != null ? b.TrustScore.OverallScore : 0)
+            .OrderByDescending(b => b.TrustScore != null ? b.TrustScore.OverallScore : (b.Passport != null ? b.Passport.VerificationScore : 0))
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
@@ -191,7 +192,7 @@ public class SearchSuppliersQueryHandler : IRequestHandler<SearchSuppliersQuery,
                 ? Math.Max(1, (int)((DateTime.UtcNow - b.IncorporationDate.Value).TotalDays / 365.25))
                 : 0;
 
-            var score = b.TrustScore?.OverallScore ?? 0;
+            var score = b.TrustScore?.OverallScore ?? (b.Passport != null ? b.Passport.VerificationScore : 0);
             var riskLevel = SupplierRiskPolicy.DetermineRiskLevelSafe(score).ToString();
             var buyerEligible = SupplierRiskPolicy.IsEligibleForBuyer(score);
 
@@ -240,9 +241,10 @@ public class GetSupplierByIdQueryHandler : IRequestHandler<GetSupplierByIdQuery,
         var b = await _context.Businesses
             .Include(b => b.Addresses)
             .Include(b => b.TrustScore)
+            .Include(b => b.Passport)
             .Include(b => b.Credentials)
                 .ThenInclude(c => c.CredentialType)
-            .FirstOrDefaultAsync(b => b.Id == request.BusinessId, cancellationToken);
+            .FirstOrDefaultAsync(b => b.Id == request.BusinessId || b.OrganizationId == request.BusinessId, cancellationToken);
 
         if (b == null) return Result<SupplierSearchResultDto>.Failure("Supplier not found.");
 
@@ -256,7 +258,7 @@ public class GetSupplierByIdQueryHandler : IRequestHandler<GetSupplierByIdQuery,
             ? Math.Max(1, (int)((DateTime.UtcNow - b.IncorporationDate.Value).TotalDays / 365.25))
             : 0;
 
-        var score = b.TrustScore?.OverallScore ?? 0;
+        var score = b.TrustScore?.OverallScore ?? (b.Passport != null ? b.Passport.VerificationScore : 0);
         var riskLevel = SupplierRiskPolicy.DetermineRiskLevelSafe(score).ToString();
         var buyerEligible = SupplierRiskPolicy.IsEligibleForBuyer(score);
 
@@ -379,6 +381,9 @@ public class GetShortlistsQueryHandler : IRequestHandler<GetShortlistsQuery, Res
                     .ThenInclude(b => b.Addresses)
             .Include(s => s.Items)
                 .ThenInclude(i => i.Business)
+                    .ThenInclude(b => b.Passport)
+            .Include(s => s.Items)
+                .ThenInclude(i => i.Business)
                     .ThenInclude(b => b.Credentials)
                         .ThenInclude(c => c.CredentialType)
             .Where(s => s.BuyerOrganizationId == request.BuyerOrganizationId)
@@ -395,7 +400,7 @@ public class GetShortlistsQueryHandler : IRequestHandler<GetShortlistsQuery, Res
                 var loc = primaryAddr != null
                     ? (string.IsNullOrEmpty(primaryAddr.City) ? (primaryAddr.State ?? "") : $"{primaryAddr.City}, {primaryAddr.State}")
                     : "";
-                var score = b.TrustScore?.OverallScore ?? 0;
+                var score = b.TrustScore?.OverallScore ?? (b.Passport != null ? b.Passport.VerificationScore : 0);
                 var comp = b.TrustScore?.ComplianceScore ?? 0;
                 var risk = SupplierRiskPolicy.DetermineRiskLevelSafe(score).ToString();
                 var creds = b.Credentials?.Where(c => c.VerificationStatus == VerificationStatus.VERIFIED)

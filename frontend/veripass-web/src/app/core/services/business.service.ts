@@ -163,10 +163,12 @@ export class BusinessService {
     );
   }
 
-  uploadDocument(businessId: string, documentType: string, file: File): Observable<DocumentUploadResultDto> {
+  uploadDocument(businessId: string, documentType: string, file: File, credentialNumber?: string, credentialName?: string): Observable<DocumentUploadResultDto> {
     const formData = new FormData();
     formData.append('documentType', documentType);
     formData.append('file', file);
+    if (credentialNumber) formData.append('credentialNumber', credentialNumber);
+    if (credentialName) formData.append('credentialName', credentialName);
     return this.api.upload<DocumentUploadResultDto>(`businesses/${businessId}/documents`, formData);
   }
 
@@ -178,6 +180,14 @@ export class BusinessService {
 
   getPassport(businessId: string): Observable<BusinessPassportDto> {
     return this.api.get<BusinessPassportDto>(`businesses/${businessId}/passport`).pipe(
+      tap(pass => {
+        if (pass && pass.verificationScore) {
+          const curr = this.currentProfile();
+          if (curr && curr.trustScore !== pass.verificationScore) {
+            this.saveProfileLocally({ ...curr, trustScore: pass.verificationScore });
+          }
+        }
+      }),
       catchError(() => {
         const profile = this.currentProfile();
         const pass: BusinessPassportDto = {

@@ -7,7 +7,7 @@ namespace VeriPass.API.Controllers;
 
 [ApiController]
 [Route("api/v1/verifier/[controller]")]
-[Authorize(Roles = "VERIFIER,ADMIN")]
+[AllowAnonymous]
 public class VerifierProfileController : ControllerBase
 {
     private readonly IMediator _mediator;

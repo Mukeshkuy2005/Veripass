@@ -38,13 +38,24 @@ public class ContinuousVerificationWorker : BackgroundService
                 await riskDetectionJob.ExecuteAsync(stoppingToken);
                 await dispatchJob.ExecuteAsync(stoppingToken);
             }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred during continuous verification worker cycle.");
             }
 
-            // Runs every 5 minutes in background
-            await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+            try
+            {
+                // Runs every 5 minutes in background
+                await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
         }
     }
 }

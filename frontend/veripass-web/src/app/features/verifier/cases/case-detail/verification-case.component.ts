@@ -19,6 +19,8 @@ export interface DecisionReadinessModel {
   matchRatio: string;
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   riskScore: number;
+  trustScore: number;
+  trustLevel: string;
   issuesCount: number;
   isReady: boolean;
 }
@@ -102,6 +104,8 @@ export class VerificationCaseComponent implements OnInit {
         matchRatio: '0/0',
         riskLevel: 'LOW',
         riskScore: 0,
+        trustScore: 0,
+        trustLevel: 'LOW TRUST',
         issuesCount: 0,
         isReady: false
       };
@@ -128,7 +132,9 @@ export class VerificationCaseComponent implements OnInit {
       matchStatus: mismatches.length > 0 ? 'MISMATCH' : (partials.length > 0 ? 'PARTIAL' : 'MATCHED'),
       matchRatio: `${matchedCount}/${matches.length}`,
       riskLevel: riskLvl,
-      riskScore: c.riskScore,
+      riskScore: c.trustScore ?? c.riskScore,
+      trustScore: c.trustScore ?? c.riskScore,
+      trustLevel: (c.trustScore ?? c.riskScore) >= 70 ? 'HIGH TRUST' : ((c.trustScore ?? c.riskScore) >= 40 ? 'MODERATE TRUST' : 'ELEVATED RISK'),
       issuesCount,
       isReady: hasEvidence && sourceMatched && mismatches.length === 0
     };
@@ -280,10 +286,34 @@ export class VerificationCaseComponent implements OnInit {
     this.actionError.set(null);
 
     this.caseService.approveCase(id, this.decisionNotes, c.concurrencyToken).subscribe({
-      next: () => {
+      next: (res) => {
         this.isSubmitting.set(false);
         this.closeModal();
-        this.router.navigate(['/verifier/queue'], { queryParams: { status: 'APPROVED' } });
+
+        if (res?.supplier) {
+          const prev = res.supplier.previousScore ?? c.trustScore ?? c.riskScore;
+          const curr = res.supplier.trustScore ?? res.supplier.riskScore;
+          const eligibleText = res.supplier.buyerEligible ? 'ELIGIBLE for Buyer Selection' : 'Not Yet Buyer Eligible';
+          this.actionSuccessMessage.set(
+            `Document Approved. Supplier Trust Score: ${prev} → ${curr}/100 (${res.supplier.riskLevel} RISK). Buyer Status: ${eligibleText}.`
+          );
+
+          this.currentCase.update(currCase => currCase ? {
+            ...currCase,
+            status: 'APPROVED',
+            riskScore: curr,
+            trustScore: curr,
+            riskRating: res.supplier.riskLevel,
+            buyerEligible: res.supplier.buyerEligible,
+            decisionReason: this.decisionNotes || currCase.decisionReason
+          } : currCase);
+        } else {
+          this.actionSuccessMessage.set('Document and verification approved successfully.');
+        }
+
+        setTimeout(() => {
+          this.router.navigate(['/verifier/queue'], { queryParams: { status: 'APPROVED' } });
+        }, 1800);
       },
       error: (err) => {
         this.isSubmitting.set(false);

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using VeriPass.Application.Common.Interfaces;
+using VeriPass.Domain.Common;
 using VeriPass.Domain.Entities;
 using VeriPass.Domain.Enums;
 
@@ -36,14 +37,48 @@ public class TrustScoreCalculator : ITrustScoreCalculator
             };
         }
 
+        var cases = await _context.VerificationCases
+            .Where(c => c.BusinessId == businessId)
+            .ToListAsync(cancellationToken);
+
+        // Gather all distinct verified statutory types (Option B: Each unique type contributes once)
+        var verifiedTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // 1. From verified credentials
+        foreach (var cred in business.Credentials.Where(c => c.VerificationStatus == VerificationStatus.VERIFIED))
+        {
+            var type = DocumentScoringPolicy.NormalizeType(cred.CredentialType?.Code ?? cred.CredentialType?.Name);
+            verifiedTypes.Add(type);
+        }
+
+        // 2. From approved documents
+        foreach (var doc in business.Documents.Where(d => DocumentScoringPolicy.IsDocumentApproved(d.Status)))
+        {
+            var type = DocumentScoringPolicy.NormalizeType(doc.DocumentType);
+            verifiedTypes.Add(type);
+        }
+
+        // 3. From approved verification cases
+        foreach (var vc in cases.Where(c => DocumentScoringPolicy.IsVerificationApproved(c.FinalDecision, c.Status)))
+        {
+            var type = DocumentScoringPolicy.NormalizeType(vc.VerificationType);
+            verifiedTypes.Add(type);
+        }
+
         // 1. Identity Score (25% Weight)
         // Evaluates presence and validity of PAN, GSTIN, CIN/Udyam, Directors, Registered Address
         int identityPoints = 0;
-        if (!string.IsNullOrWhiteSpace(business.Pan)) identityPoints += 25;
-        if (!string.IsNullOrWhiteSpace(business.Gstin)) identityPoints += 25;
-        if (!string.IsNullOrWhiteSpace(business.Cin) || !string.IsNullOrWhiteSpace(business.UdyamNumber)) identityPoints += 20;
-        if (business.Directors.Count > 0) identityPoints += 15;
-        if (business.Addresses.Any(a => a.IsPrimary)) identityPoints += 15;
+        bool hasPan = !string.IsNullOrWhiteSpace(business.Pan) || verifiedTypes.Contains("PAN");
+        bool hasGstin = !string.IsNullOrWhiteSpace(business.Gstin) || verifiedTypes.Contains("GST");
+        bool hasCinOrUdyam = !string.IsNullOrWhiteSpace(business.Cin) || !string.IsNullOrWhiteSpace(business.UdyamNumber) || verifiedTypes.Contains("MSME");
+        bool hasDirectors = business.Directors.Count > 0;
+        bool hasAddress = business.Addresses.Any(a => a.IsPrimary) || verifiedTypes.Contains("ADDRESS");
+
+        if (hasPan) identityPoints += 25;
+        if (hasGstin) identityPoints += 25;
+        if (hasCinOrUdyam) identityPoints += 20;
+        if (hasDirectors) identityPoints += 15;
+        if (hasAddress) identityPoints += 15;
         int identityScore = Math.Clamp(identityPoints, 0, 100);
 
         // 2. Credential Score (25% Weight)
@@ -53,8 +88,26 @@ public class TrustScoreCalculator : ITrustScoreCalculator
         {
             var verifiedCount = business.Credentials.Count(c => c.VerificationStatus == VerificationStatus.VERIFIED);
             var activeCount = business.Credentials.Count(c => c.Status != CredentialStatus.EXPIRED && c.Status != CredentialStatus.SUSPENDED);
-            var ratio = (double)(verifiedCount + activeCount) / (business.Credentials.Count * 2);
+            var extraVerifiedTypes = verifiedTypes.Count(t => !business.Credentials.Any(c => DocumentScoringPolicy.NormalizeType(c.CredentialType?.Code ?? c.CredentialType?.Name) == t));
+            var totalTypes = business.Credentials.Count + extraVerifiedTypes;
+            var ratio = (double)(verifiedCount + activeCount + (extraVerifiedTypes * 2)) / (totalTypes * 2);
             credentialScore = Math.Clamp((int)(ratio * 100), 0, 100);
+        }
+        else
+        {
+            var submittedTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var doc in business.Documents)
+            {
+                submittedTypes.Add(DocumentScoringPolicy.NormalizeType(doc.DocumentType));
+            }
+            foreach (var vc in cases)
+            {
+                submittedTypes.Add(DocumentScoringPolicy.NormalizeType(vc.VerificationType));
+            }
+            int totalRequired = Math.Max(DocumentScoringPolicy.BaselineRequiredStatutoryCount, submittedTypes.Count);
+            credentialScore = totalRequired > 0 
+                ? Math.Clamp((int)((double)verifiedTypes.Count / totalRequired * 100), 0, 100)
+                : 0;
         }
 
         // 3. Compliance Score (20% Weight)
@@ -70,13 +123,8 @@ public class TrustScoreCalculator : ITrustScoreCalculator
         complianceScore = Math.Clamp(complianceScore, 0, 100);
 
         // 4. Verification Score (20% Weight)
-        // Checks completed verification cases and confidence scores
-        int verificationScore = 0;
-        var verifiedCreds = business.Credentials.Where(c => c.VerificationStatus == VerificationStatus.VERIFIED).ToList();
-        if (verifiedCreds.Count > 0)
-        {
-            verificationScore = Math.Min(100, verifiedCreds.Count * 25);
-        }
+        // Checks completed verification cases and confidence scores (each distinct statutory verification factor adds 25 points up to 100)
+        int verificationScore = Math.Clamp(verifiedTypes.Count * DocumentScoringPolicy.PointsPerVerifiedStatutoryType, 0, DocumentScoringPolicy.MaxVerificationScore);
 
         // 5. Risk Score (Penalty factor up to 10%)
         // Deducts points for active unresolved risk signals
@@ -97,7 +145,8 @@ public class TrustScoreCalculator : ITrustScoreCalculator
         // Build reason string
         var reasonParts = new List<string>();
         if (identityScore >= 80) reasonParts.Add("Strong Statutory Identity");
-        if (credentialScore >= 80) reasonParts.Add("Verified Credentials");
+        if (credentialScore >= 80 || verifiedTypes.Count >= 2) reasonParts.Add("Verified Credentials");
+        if (verifiedTypes.Count > 0) reasonParts.Add($"{verifiedTypes.Count} Statutory Factor(s) Verified");
         if (complianceScore < 80) reasonParts.Add("Compliance Alerts Pending");
         if (activeRisks.Count > 0) reasonParts.Add($"{activeRisks.Count} Risk Signal(s) Active");
         string reason = reasonParts.Count > 0 ? string.Join(", ", reasonParts) : "Routine Recalculation";

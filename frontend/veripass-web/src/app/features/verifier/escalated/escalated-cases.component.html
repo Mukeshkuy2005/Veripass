@@ -423,22 +423,22 @@
         </div>
       </section>
 
-      <!-- Section D: Risk Assessment -->
+      <!-- Section D: Trust & Risk Assessment -->
       <section class="drawer-section">
-        <h3 class="section-title">Risk Assessment</h3>
-        <div class="risk-card" *ngIf="caseDetail()?.riskScore !== null && caseDetail()?.riskScore !== undefined">
+        <h3 class="section-title">Trust & Risk Assessment</h3>
+        <div class="risk-card" *ngIf="(caseDetail()?.trustScore ?? caseDetail()?.riskScore) !== null && (caseDetail()?.trustScore ?? caseDetail()?.riskScore) !== undefined">
           <div class="risk-score-display">
-            <div class="risk-score-num font-mono">{{ caseDetail()?.riskScore }} / 100</div>
+            <div class="risk-score-num font-mono">{{ caseDetail()?.trustScore ?? caseDetail()?.riskScore }} / 100 Trust Score</div>
             <div class="risk-score-badge" [ngClass]="caseDetail()?.riskLevel?.toLowerCase()">
               {{ caseDetail()?.riskLevel }}
             </div>
           </div>
           <div class="risk-source-note">
-            Authoritative risk signal evaluated across sovereign records and document integrity checks.
+            Authoritative trust signal evaluated across sovereign records and document integrity checks.
           </div>
         </div>
-        <div *ngIf="caseDetail()?.riskScore === null || caseDetail()?.riskScore === undefined" class="muted-note">
-          Risk score: Not available
+        <div *ngIf="(caseDetail()?.trustScore ?? caseDetail()?.riskScore) === null || (caseDetail()?.trustScore ?? caseDetail()?.riskScore) === undefined" class="muted-note">
+          Trust score: Not available
         </div>
       </section>
 

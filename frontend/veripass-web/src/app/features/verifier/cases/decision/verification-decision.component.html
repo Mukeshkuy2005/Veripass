@@ -108,8 +108,8 @@
               <span class="val font-mono">{{ c.document.sha256.substring(0, 16) }}...</span>
             </div>
             <div class="meta-row">
-              <span class="lbl">Calculated Risk Score</span>
-              <span class="val" [ngClass]="c.riskRating.toLowerCase()">{{ c.riskScore }} / 100 ({{ c.riskRating }})</span>
+              <span class="lbl">Calculated Trust Score</span>
+              <span class="val" [ngClass]="c.riskRating.toLowerCase()">{{ c.trustScore ?? c.riskScore }} / 100 ({{ c.riskRating }})</span>
             </div>
             <div class="meta-row">
               <span class="lbl">Assigned Reviewer</span>

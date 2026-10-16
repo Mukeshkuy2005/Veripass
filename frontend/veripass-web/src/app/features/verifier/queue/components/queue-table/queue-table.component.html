@@ -92,7 +92,7 @@
               [class.risk-low]="c.riskLevel === 'LOW'"
               [class.risk-med]="c.riskLevel === 'MEDIUM'"
               [class.risk-high]="c.riskLevel === 'HIGH'"
-              [title]="'Risk Score: ' + c.riskScore + '/100'">
+              [title]="'Trust Score: ' + (c.trustScore ?? c.riskScore) + '/100'">
               <span class="risk-dot">●</span>
               {{ c.riskLevel }}
             </span>

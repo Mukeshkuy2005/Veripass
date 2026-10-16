@@ -28,9 +28,13 @@ public class CreateCredentialCommandHandler : IRequestHandler<CreateCredentialCo
 
     public async Task<Result<Guid>> Handle(CreateCredentialCommand request, CancellationToken cancellationToken)
     {
+        var business = await _context.Businesses
+            .FirstOrDefaultAsync(b => b.Id == request.BusinessId || b.OrganizationId == request.BusinessId, cancellationToken);
+        var actualBusinessId = business?.Id ?? request.BusinessId;
+
         var cred = new Credential
         {
-            BusinessId = request.BusinessId,
+            BusinessId = actualBusinessId,
             CredentialTypeId = request.CredentialTypeId,
             CredentialNumberHash = _tokenService.HashToken(request.CredentialNumber),
             CredentialDisplayValue = request.CredentialNumber.Length > 4 
@@ -75,7 +79,7 @@ public class GetCredentialsQueryHandler : IRequestHandler<GetCredentialsQuery, R
     {
         var creds = await _context.Credentials
             .AsNoTracking()
-            .Where(x => x.BusinessId == request.BusinessId)
+            .Where(x => x.BusinessId == request.BusinessId || x.Business.OrganizationId == request.BusinessId)
             .Select(x => new CredentialDto(
                 x.Id,
                 x.CredentialTypeId,

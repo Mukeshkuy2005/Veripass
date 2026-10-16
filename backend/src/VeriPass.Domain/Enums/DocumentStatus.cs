@@ -7,5 +7,7 @@ public enum DocumentStatus
     PROCESSED,
     FAILED,
     REPLACED,
-    DELETED
+    DELETED,
+    APPROVED,
+    REJECTED
 }

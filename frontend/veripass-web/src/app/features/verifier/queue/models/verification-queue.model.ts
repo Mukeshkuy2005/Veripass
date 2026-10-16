@@ -20,6 +20,7 @@ export interface VerificationQueueItem {
   submittedAt: string;
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
   riskScore: number;
+  trustScore?: number;
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
   assignedTo?: VerificationQueueAssignee | null;
   sla: VerificationQueueSla;

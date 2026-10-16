@@ -90,6 +90,11 @@
         </div>
 
         <div class="action-buttons">
+          <button class="btn-approve-doc" (click)="approveDocument()" [disabled]="isApproving() || r.caseStatus === 'APPROVED'" title="Approve Document & Update Supplier Trust Score">
+            <span *ngIf="!isApproving() && r.caseStatus !== 'APPROVED'">✓ Approve Document</span>
+            <span *ngIf="!isApproving() && r.caseStatus === 'APPROVED'">✓ Document Approved</span>
+            <span *ngIf="isApproving()">⏳ Approving...</span>
+          </button>
           <button class="btn-download" (click)="downloadDocument()" [disabled]="isDownloading()" title="Download Authoritative PDF">
             <span *ngIf="!isDownloading()">📥 Download PDF</span>
             <span *ngIf="isDownloading()">⏳ Downloading...</span>

@@ -35,6 +35,7 @@ public class DocumentExtractionService : IDocumentIntelligenceService
         {
             case "GST":
             case "GST_CERTIFICATE":
+            case "GST_REGISTRATION":
                 extractedFields["DocumentType"] = "Form GST REG-06";
                 var gstinMatch = GstinPattern.Match(textContent);
                 if (gstinMatch.Success)
@@ -57,6 +58,7 @@ public class DocumentExtractionService : IDocumentIntelligenceService
 
             case "PAN":
             case "PAN_CARD":
+            case "PAN_REGISTRATION":
                 extractedFields["DocumentType"] = "Income Tax Department PAN";
                 var panMatch = PanPattern.Match(textContent);
                 extractedFields["Pan"] = panMatch.Success ? panMatch.Value : "AAACW1234F";
@@ -67,6 +69,8 @@ public class DocumentExtractionService : IDocumentIntelligenceService
 
             case "UDYAM":
             case "UDYAM_CERT":
+            case "MSME_UDYAM":
+            case "UDYAM_REGISTRATION":
                 extractedFields["DocumentType"] = "Udyam Registration Certificate";
                 var udyamMatch = UdyamPattern.Match(textContent);
                 extractedFields["UdyamNumber"] = udyamMatch.Success ? udyamMatch.Value : "UDYAM-MH-01-0012345";
@@ -79,6 +83,8 @@ public class DocumentExtractionService : IDocumentIntelligenceService
             case "BANK":
             case "BANK_ACCOUNT":
             case "CANCELLED_CHEQUE":
+            case "BANK_CHEQUE":
+            case "BANK_STATEMENT":
                 extractedFields["DocumentType"] = "Bank Cancelled Cheque / Statement";
                 var ifscMatch = IfscPattern.Match(textContent);
                 extractedFields["Ifsc"] = ifscMatch.Success ? ifscMatch.Value : "HDFC0000123";
@@ -91,12 +97,22 @@ public class DocumentExtractionService : IDocumentIntelligenceService
 
             case "ISO_9001":
             case "ISO":
+            case "ISO_CERTIFICATE":
                 extractedFields["DocumentType"] = "ISO 9001:2015 Certificate";
                 extractedFields["Standard"] = "ISO 9001:2015";
                 extractedFields["CertificateNumber"] = "ISO-9001-IN-2024-984";
                 extractedFields["CertifiedEntity"] = "ABC MANUFACTURING PRIVATE LIMITED";
                 extractedFields["ExpiryDate"] = DateTime.UtcNow.AddYears(2).ToString("yyyy-MM-dd");
                 extractedRawText = $"INTERNATIONAL ORGANIZATION FOR STANDARDIZATION\nCertificate No: {extractedFields["CertificateNumber"]}";
+                break;
+
+            case "CIN":
+            case "MCA_INC_CERTIFICATE":
+            case "INCORPORATION":
+                extractedFields["DocumentType"] = "Certificate of Incorporation";
+                extractedFields["Cin"] = "U28195MH2018PTC123456";
+                extractedFields["LegalName"] = "ABC INDUSTRIAL DYNAMICS";
+                extractedRawText = "MINISTRY OF CORPORATE AFFAIRS - CERTIFICATE OF INCORPORATION";
                 break;
 
             default:

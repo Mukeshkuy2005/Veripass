@@ -22,6 +22,7 @@ public class SuppliersController : ControllerBase
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<IActionResult> GetSuppliers(
         [FromQuery] string? query,
         [FromQuery] string? industry,

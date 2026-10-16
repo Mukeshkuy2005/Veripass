@@ -144,8 +144,8 @@
     <div class="rail-step" [class.step-complete]="c.riskRating === 'Low'" [class.step-warn]="c.riskRating === 'Medium'">
       <span class="rail-indicator">✓</span>
       <div class="rail-step-text">
-        <span class="rail-step-title">RISK</span>
-        <span class="rail-step-sub">{{ c.riskRating | uppercase }} ({{ c.riskScore }}/100)</span>
+        <span class="rail-step-title">TRUST</span>
+        <span class="rail-step-sub">{{ c.riskRating | uppercase }} ({{ c.trustScore ?? c.riskScore }}/100)</span>
       </div>
     </div>
 
@@ -394,17 +394,17 @@
           </div>
         </div>
 
-        <!-- 3. Risk Assessment Card -->
+        <!-- 3. Trust Evaluation Card -->
         <div class="assessment-card risk-card">
           <div class="card-title-row">
-            <h3 class="card-section-title">3. RISK ASSESSMENT</h3>
+            <h3 class="card-section-title">3. TRUST EVALUATION</h3>
             <span class="risk-badge" [class.risk-low]="c.riskRating === 'Low'" [class.risk-med]="c.riskRating === 'Medium'" [class.risk-high]="c.riskRating === 'High'">
-              {{ c.riskRating | uppercase }} &bull; {{ c.riskScore }} / 100
+              {{ c.riskRating | uppercase }} &bull; {{ c.trustScore ?? c.riskScore }} / 100 Trust Score
             </span>
           </div>
 
           <div class="risk-score-bar-track">
-            <div class="risk-score-bar-fill" [style.width.%]="c.riskScore" [class.bar-low]="c.riskScore < 30" [class.bar-med]="c.riskScore >= 30 && c.riskScore < 70" [class.bar-high]="c.riskScore >= 70"></div>
+            <div class="risk-score-bar-fill" [style.width.%]="c.trustScore ?? c.riskScore" [class.bar-low]="(c.trustScore ?? c.riskScore) < 30" [class.bar-med]="(c.trustScore ?? c.riskScore) >= 30 && (c.trustScore ?? c.riskScore) < 70" [class.bar-high]="(c.trustScore ?? c.riskScore) >= 70"></div>
           </div>
 
           <div class="risk-factors-checklist">
@@ -456,8 +456,8 @@
             </div>
             <div class="readiness-item">
               <span class="r-check">✓</span>
-              <span class="r-lbl">Risk:</span>
-              <span class="r-val">{{ decisionReadiness().riskLevel }} ({{ decisionReadiness().riskScore }}/100)</span>
+              <span class="r-lbl">Trust Score:</span>
+              <span class="r-val">{{ decisionReadiness().trustLevel }} ({{ decisionReadiness().trustScore }}/100)</span>
             </div>
             <div class="readiness-item issues-item">
               <span class="r-lbl font-semibold">Outstanding Issues:</span>
@@ -720,7 +720,7 @@
           <div class="asb-line"><strong>Verification Type:</strong> {{ c.verificationType }} ({{ c.identifierValue }})</div>
           <div class="asb-line"><strong>Evidence:</strong> {{ c.evidenceDocuments?.length || 1 }} document(s) reviewed</div>
           <div class="asb-line"><strong>Sovereign Source:</strong> {{ c.trustedSource?.provider || 'Sovereign Gateway' }} &bull; MATCHED</div>
-          <div class="asb-line"><strong>Risk Level:</strong> {{ c.riskRating | uppercase }} ({{ c.riskScore }}/100)</div>
+          <div class="asb-line"><strong>Trust Score:</strong> {{ c.riskRating | uppercase }} ({{ c.trustScore ?? c.riskScore }}/100)</div>
         </div>
 
         <div class="form-group">

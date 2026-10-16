@@ -53,7 +53,9 @@ public record UploadDocumentCommand(
     string FileName,
     string ContentType,
     Stream FileStream,
-    Guid? UserId) : IRequest<Result<DocumentUploadResultDto>>;
+    Guid? UserId,
+    string? CredentialNumber = null,
+    string? CredentialName = null) : IRequest<Result<DocumentUploadResultDto>>;
 
 public class UploadDocumentCommandHandler : IRequestHandler<UploadDocumentCommand, Result<DocumentUploadResultDto>>
 {
@@ -81,7 +83,7 @@ public class UploadDocumentCommandHandler : IRequestHandler<UploadDocumentComman
     {
         var business = await _context.Businesses
             .Include(b => b.Credentials)
-            .FirstOrDefaultAsync(b => b.Id == request.BusinessId, cancellationToken);
+            .FirstOrDefaultAsync(b => b.Id == request.BusinessId || b.OrganizationId == request.BusinessId, cancellationToken);
 
         if (business == null)
             return Result<DocumentUploadResultDto>.Failure("Business entity not found.");
@@ -97,7 +99,7 @@ public class UploadDocumentCommandHandler : IRequestHandler<UploadDocumentComman
         // 3. Create Document Entity
         var document = new Document
         {
-            BusinessId = request.BusinessId,
+            BusinessId = business.Id,
             DocumentType = request.DocumentType,
             OriginalFileName = request.FileName,
             StorageKey = storageKey,
@@ -127,7 +129,7 @@ public class UploadDocumentCommandHandler : IRequestHandler<UploadDocumentComman
         {
             _context.RiskSignals.Add(new RiskSignal
             {
-                BusinessId = request.BusinessId,
+                BusinessId = business.Id,
                 SignalType = "DOCUMENT_TAMPERING",
                 Severity = RiskLevel.HIGH,
                 ScoreImpact = -25,
@@ -143,7 +145,8 @@ public class UploadDocumentCommandHandler : IRequestHandler<UploadDocumentComman
 
         // 5. Automated Registry Verification
         string identifierToVerify = string.Empty;
-        if (extraction.Fields.TryGetValue("Gstin", out var gstinVal)) identifierToVerify = gstinVal;
+        if (!string.IsNullOrWhiteSpace(request.CredentialNumber)) identifierToVerify = request.CredentialNumber.Trim();
+        else if (extraction.Fields.TryGetValue("Gstin", out var gstinVal)) identifierToVerify = gstinVal;
         else if (extraction.Fields.TryGetValue("Pan", out var panVal)) identifierToVerify = panVal;
         else if (extraction.Fields.TryGetValue("UdyamNumber", out var udyamVal)) identifierToVerify = udyamVal;
         else if (extraction.Fields.TryGetValue("AccountNumberLast4", out var accVal)) identifierToVerify = accVal;
@@ -252,6 +255,17 @@ public class UploadDocumentCommandHandler : IRequestHandler<UploadDocumentComman
         currentTrustScore.RiskScore = scoreCalc.RiskScore;
         currentTrustScore.LastCalculatedAt = DateTime.UtcNow;
 
+        var passport = await _context.BusinessPassports.FirstOrDefaultAsync(p => p.BusinessId == business.Id, cancellationToken);
+        if (passport != null)
+        {
+            passport.VerificationScore = scoreCalc.OverallScore;
+            passport.LastVerifiedAt = DateTime.UtcNow;
+            if (passport.Status != "ACTIVE" && scoreCalc.OverallScore >= 75)
+            {
+                passport.Status = "ACTIVE";
+            }
+        }
+
         _context.TrustScoreSnapshots.Add(new TrustScoreSnapshot
         {
             BusinessId = business.Id,
@@ -298,15 +312,17 @@ public class UploadDocumentCommandHandler : IRequestHandler<UploadDocumentComman
     private static string ResolveCredentialTypeCode(string docType) =>
         docType.ToUpperInvariant() switch
         {
-            "GST" or "GST_CERTIFICATE" => "GST",
-            "PAN" or "PAN_CARD" => "PAN",
-            "UDYAM" or "UDYAM_CERT" => "UDYAM",
-            "BANK" or "BANK_ACCOUNT" or "CANCELLED_CHEQUE" => "BANK_ACCOUNT",
-            "ISO" or "ISO_9001" => "ISO_9001",
+            "GST" or "GST_CERTIFICATE" or "GST_REGISTRATION" => "GST",
+            "PAN" or "PAN_CARD" or "PAN_REGISTRATION" => "PAN",
+            "CIN" or "MCA_INC_CERTIFICATE" or "INCORPORATION" => "CIN",
+            "UDYAM" or "UDYAM_CERT" or "MSME_UDYAM" or "UDYAM_REGISTRATION" => "UDYAM",
+            "BANK" or "BANK_ACCOUNT" or "CANCELLED_CHEQUE" or "BANK_CHEQUE" or "BANK_STATEMENT" => "BANK_ACCOUNT",
+            "ISO" or "ISO_9001" or "ISO_CERTIFICATE" => "ISO_9001",
             "INSURANCE" => "INSURANCE",
             "FSSAI" => "FSSAI",
             "IEC" => "IEC",
-            _ => "OTHER"
+            "FACTORY_LICENSE" or "TRADE_LICENSE" => "TRADE_LICENSE",
+            _ => "GST"
         };
 }
 

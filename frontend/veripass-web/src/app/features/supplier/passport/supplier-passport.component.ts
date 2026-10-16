@@ -107,8 +107,8 @@ export class SupplierPassportComponent implements OnInit, OnDestroy {
   udyam = computed(() => this.businessService.currentProfile()?.udyamNumber || '');
 
   ngOnInit(): void {
-    // 1. Resolve active business ID from auth if available
-    const authId = this.auth.currentBusinessId();
+    // 1. Resolve active business ID from auth or profile
+    const authId = this.auth.currentBusinessId() || this.businessService.currentProfile()?.id || this.businessService.currentProfile()?.organizationId || '';
     if (authId) {
       this.businessId = authId;
     }
@@ -129,11 +129,21 @@ export class SupplierPassportComponent implements OnInit, OnDestroy {
 
   loadPassportData(): void {
     this.isLoading.set(true);
-    this.businessService.getPassport(this.businessId).subscribe({
+    const targetId = this.businessId || this.businessService.currentProfile()?.id || this.auth.currentBusinessId() || '';
+    this.businessService.getPassport(targetId).subscribe({
       next: (pass) => {
         this.isLoading.set(false);
         if (pass) {
           this.passport.set(pass);
+          if (pass.verificationScore) {
+            const current = this.businessService.currentProfile();
+            if (current) {
+              this.businessService.saveProfileLocally({
+                ...current,
+                trustScore: pass.verificationScore
+              });
+            }
+          }
           if (pass.activeShares && pass.activeShares.length > 0) {
             this.activeShares.set(pass.activeShares);
           }
