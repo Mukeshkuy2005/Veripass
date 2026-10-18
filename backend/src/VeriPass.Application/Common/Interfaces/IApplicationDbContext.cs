@@ -43,6 +43,8 @@ public interface IApplicationDbContext
     DbSet<OnboardingRequest> OnboardingRequests { get; }
     DbSet<OnboardingRequirement> OnboardingRequirements { get; }
     DbSet<OnboardingRequestRequirement> OnboardingRequestRequirements { get; }
+    DbSet<BuyerVerificationProfile> BuyerVerificationProfiles { get; }
+    DbSet<CredentialRequirement> CredentialRequirements { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

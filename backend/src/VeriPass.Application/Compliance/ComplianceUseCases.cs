@@ -13,7 +13,11 @@ public record CreateComplianceRuleCommand(
     string Category,
     ComplianceSeverity Severity,
     string Description,
-    string? RuleExpressionJson) : IRequest<Result<Guid>>;
+    string? RuleExpressionJson,
+    string? CredentialType = null,
+    string? ValidationType = null,
+    bool IsRequired = true,
+    int DefaultWeight = 0) : IRequest<Result<Guid>>;
 
 public class CreateComplianceRuleCommandHandler : IRequestHandler<CreateComplianceRuleCommand, Result<Guid>>
 {
@@ -34,6 +38,10 @@ public class CreateComplianceRuleCommandHandler : IRequestHandler<CreateComplian
             Severity = request.Severity,
             Description = request.Description,
             RuleExpressionJson = request.RuleExpressionJson,
+            CredentialType = request.CredentialType,
+            ValidationType = request.ValidationType,
+            IsRequired = request.IsRequired,
+            DefaultWeight = request.DefaultWeight,
             IsActive = true
         };
 

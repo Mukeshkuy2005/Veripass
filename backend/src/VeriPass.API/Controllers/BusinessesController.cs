@@ -70,6 +70,19 @@ public class BusinessesController : ControllerBase
             if (biz != null) return biz;
         }
 
+        if (!string.IsNullOrWhiteSpace(id) && id != "current" && id != "my")
+        {
+            var biz = await _context.Businesses
+                .Include(b => b.Passport)
+                .Include(b => b.Addresses)
+                .Include(b => b.Directors)
+                .Include(b => b.BankAccounts)
+                .Include(b => b.TrustScore)
+                .Include(b => b.Organization)
+                .FirstOrDefaultAsync(b => b.BusinessIdNumber == id || b.Pan == id || b.Gstin == id || (b.Passport != null && (b.Passport.PassportNumber == id || b.Passport.PublicIdentifier == id)), HttpContext.RequestAborted);
+            if (biz != null) return biz;
+        }
+
         if (_currentUserService.OrganizationId.HasValue)
         {
             var orgId = _currentUserService.OrganizationId.Value;
@@ -82,6 +95,21 @@ public class BusinessesController : ControllerBase
                 .Include(b => b.Organization)
                 .FirstOrDefaultAsync(b => b.OrganizationId == orgId || b.Id == orgId, HttpContext.RequestAborted);
             if (biz != null) return biz;
+        }
+
+        // Development/Demo fallback: if no business found and current request is for "my" or "current" or null, return primary business
+        if (string.IsNullOrWhiteSpace(id) || id == "current" || id == "my" || id.StartsWith("biz-"))
+        {
+            var fallback = await _context.Businesses
+                .Include(b => b.Passport)
+                .Include(b => b.Addresses)
+                .Include(b => b.Directors)
+                .Include(b => b.BankAccounts)
+                .Include(b => b.TrustScore)
+                .Include(b => b.Organization)
+                .OrderBy(b => b.CreatedAt)
+                .FirstOrDefaultAsync(HttpContext.RequestAborted);
+            if (fallback != null) return fallback;
         }
 
         return null;
@@ -99,65 +127,85 @@ public class BusinessesController : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { message = result.Error });
     }
 
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id}")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetBusiness(Guid id)
+    public async Task<IActionResult> GetBusiness(string id)
     {
-        var business = await ResolveBusinessAsync(id.ToString());
-        var targetBusinessId = business?.Id ?? id;
+        var business = await ResolveBusinessAsync(id);
+        var targetBusinessId = business?.Id ?? (Guid.TryParse(id, out var g) ? g : Guid.Empty);
+        if (targetBusinessId == Guid.Empty) return NotFound(new { message = "Business not found." });
+
         var result = await _mediator.Send(new GetBusinessProfileQuery(targetBusinessId));
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { message = result.Error });
     }
 
     [HttpGet("{id}/dashboard")]
-    public async Task<IActionResult> GetDashboard(Guid id)
+    public async Task<IActionResult> GetDashboard(string id)
     {
-        var business = await ResolveBusinessAsync(id.ToString());
-        var targetBusinessId = business?.Id ?? id;
+        var business = await ResolveBusinessAsync(id);
+        var targetBusinessId = business?.Id ?? (Guid.TryParse(id, out var g) ? g : Guid.Empty);
+        if (targetBusinessId == Guid.Empty) return NotFound(new { message = "Business not found." });
+
         var result = await _mediator.Send(new GetBusinessDashboardQuery(targetBusinessId));
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { message = result.Error });
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateBusiness(Guid id, [FromBody] UpdateBusinessCommand command)
+    public async Task<IActionResult> UpdateBusiness(string id, [FromBody] UpdateBusinessCommand command)
     {
-        if (id != command.BusinessId) return BadRequest("Business ID mismatch.");
-        var result = await _mediator.Send(command);
-        return result.IsSuccess ? Ok(new { success = true }) : BadRequest(new { message = result.Error });
+        var business = await ResolveBusinessAsync(id);
+        var targetBusinessId = business?.Id ?? (Guid.TryParse(id, out var g) ? g : command.BusinessId);
+        if (targetBusinessId == Guid.Empty) return BadRequest(new { message = "Invalid business ID." });
+
+        var effectiveCommand = command with { BusinessId = targetBusinessId };
+        var result = await _mediator.Send(effectiveCommand);
+        return result.IsSuccess ? Ok(new { success = true, businessId = targetBusinessId }) : BadRequest(new { message = result.Error });
     }
 
-    [HttpPost("{id:guid}/address")]
-    public async Task<IActionResult> UpdateAddress(Guid id, [FromBody] AddBusinessAddressCommand command)
+    [HttpPost("{id}/address")]
+    public async Task<IActionResult> UpdateAddress(string id, [FromBody] AddBusinessAddressCommand command)
     {
-        if (id != command.BusinessId) return BadRequest("Business ID mismatch.");
-        var result = await _mediator.Send(command);
+        var business = await ResolveBusinessAsync(id);
+        var targetBusinessId = business?.Id ?? (Guid.TryParse(id, out var g) ? g : command.BusinessId);
+        if (targetBusinessId == Guid.Empty) return BadRequest(new { message = "Invalid business ID." });
+
+        var effectiveCommand = command with { BusinessId = targetBusinessId };
+        var result = await _mediator.Send(effectiveCommand);
         return result.IsSuccess ? Ok(new { addressId = result.Value }) : BadRequest(new { message = result.Error });
     }
 
     // Directors
     [HttpPost("{id}/directors")]
-    public async Task<IActionResult> AddDirector(Guid id, [FromBody] AddDirectorRequest request)
+    public async Task<IActionResult> AddDirector(string id, [FromBody] AddDirectorRequest request)
     {
-        var result = await _mediator.Send(new AddDirectorCommand(id, request.FullName, request.Designation, request.Din, request.Pan));
+        var business = await ResolveBusinessAsync(id);
+        var targetBusinessId = business?.Id ?? (Guid.TryParse(id, out var g) ? g : Guid.Empty);
+        if (targetBusinessId == Guid.Empty) return BadRequest(new { message = "Invalid business ID." });
+
+        var result = await _mediator.Send(new AddDirectorCommand(targetBusinessId, request.FullName, request.Designation, request.Din, request.Pan));
         return result.IsSuccess ? Ok(new { directorId = result.Value }) : BadRequest(new { message = result.Error });
     }
 
     [HttpGet("{id}/directors")]
-    public async Task<IActionResult> GetDirectors(Guid id)
+    public async Task<IActionResult> GetDirectors(string id)
     {
-        var result = await _mediator.Send(new GetDirectorsQuery(id));
+        var business = await ResolveBusinessAsync(id);
+        var targetBusinessId = business?.Id ?? (Guid.TryParse(id, out var g) ? g : Guid.Empty);
+        if (targetBusinessId == Guid.Empty) return BadRequest(new { message = "Invalid business ID." });
+
+        var result = await _mediator.Send(new GetDirectorsQuery(targetBusinessId));
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { message = result.Error });
     }
 
     [HttpPut("{id}/directors/{directorId}")]
-    public async Task<IActionResult> UpdateDirector(Guid id, Guid directorId, [FromBody] UpdateDirectorRequest request)
+    public async Task<IActionResult> UpdateDirector(string id, Guid directorId, [FromBody] UpdateDirectorRequest request)
     {
         var result = await _mediator.Send(new UpdateDirectorCommand(directorId, request.FullName, request.Designation, request.Din));
         return result.IsSuccess ? Ok(new { success = true }) : BadRequest(new { message = result.Error });
     }
 
     [HttpDelete("{id}/directors/{directorId}")]
-    public async Task<IActionResult> DeleteDirector(Guid id, Guid directorId)
+    public async Task<IActionResult> DeleteDirector(string id, Guid directorId)
     {
         var result = await _mediator.Send(new DeleteDirectorCommand(directorId));
         return result.IsSuccess ? Ok(new { success = true }) : BadRequest(new { message = result.Error });
@@ -165,26 +213,36 @@ public class BusinessesController : ControllerBase
 
     // Bank Accounts
     [HttpPost("{id}/bank-accounts")]
-    public async Task<IActionResult> AddBankAccount(Guid id, [FromBody] AddBankAccountRequest request)
+    public async Task<IActionResult> AddBankAccount(string id, [FromBody] AddBankAccountRequest request)
     {
-        var result = await _mediator.Send(new AddBankAccountCommand(id, request.AccountHolderName, request.BankName, request.AccountNumber, request.Ifsc, request.AccountType));
+        var business = await ResolveBusinessAsync(id);
+        var targetBusinessId = business?.Id ?? (Guid.TryParse(id, out var g) ? g : Guid.Empty);
+        if (targetBusinessId == Guid.Empty) return BadRequest(new { message = "Invalid business ID." });
+
+        var result = await _mediator.Send(new AddBankAccountCommand(targetBusinessId, request.AccountHolderName, request.BankName, request.AccountNumber, request.Ifsc, request.AccountType));
         return result.IsSuccess ? Ok(new { accountId = result.Value }) : BadRequest(new { message = result.Error });
     }
 
     [HttpGet("{id}/bank-accounts")]
-    public async Task<IActionResult> GetBankAccounts(Guid id)
+    public async Task<IActionResult> GetBankAccounts(string id)
     {
-        var result = await _mediator.Send(new GetBankAccountsQuery(id));
+        var business = await ResolveBusinessAsync(id);
+        var targetBusinessId = business?.Id ?? (Guid.TryParse(id, out var g) ? g : Guid.Empty);
+        if (targetBusinessId == Guid.Empty) return BadRequest(new { message = "Invalid business ID." });
+
+        var result = await _mediator.Send(new GetBankAccountsQuery(targetBusinessId));
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { message = result.Error });
     }
 
     // Documents & Credentials
     [HttpGet("{id}/documents")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetDocuments(Guid id)
+    public async Task<IActionResult> GetDocuments(string id)
     {
-        var business = await ResolveBusinessAsync(id.ToString());
-        var targetBusinessId = business?.Id ?? id;
+        var business = await ResolveBusinessAsync(id);
+        var targetBusinessId = business?.Id ?? (Guid.TryParse(id, out var g) ? g : Guid.Empty);
+        if (targetBusinessId == Guid.Empty) return NotFound(new { message = "Business not found." });
+
         var result = await _mediator.Send(new GetBusinessDocumentsQuery(targetBusinessId));
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { message = result.Error });
     }
@@ -193,14 +251,17 @@ public class BusinessesController : ControllerBase
     [AllowAnonymous]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> UploadDocument(
-        Guid id, 
+        string id, 
         [FromForm] string documentType, 
         IFormFile file,
         [FromForm] string? credentialNumber = null,
-        [FromForm] string? credentialName = null)
+        [FromForm] string? credentialName = null,
+        [FromForm] string? issueDate = null,
+        [FromForm] string? issuer = null)
     {
-        var business = await ResolveBusinessAsync(id.ToString());
-        var targetBusinessId = business?.Id ?? id;
+        var business = await ResolveBusinessAsync(id);
+        var targetBusinessId = business?.Id ?? (Guid.TryParse(id, out var g) ? g : Guid.Empty);
+        if (targetBusinessId == Guid.Empty) return BadRequest(new { message = "Invalid business ID." });
 
         if (file == null || file.Length == 0)
             return BadRequest(new { message = "File cannot be empty." });
@@ -214,6 +275,23 @@ public class BusinessesController : ControllerBase
         if (!allowedExtensions.Contains(ext))
             return BadRequest(new { message = "Invalid file type. Only PDF, PNG, and JPEG documents are permitted." });
 
+        DateTime? parsedIssueDate = null;
+        if (!string.IsNullOrWhiteSpace(issueDate))
+        {
+            if (DateTime.TryParse(issueDate, out var dt))
+            {
+                if (dt.Date > DateTime.UtcNow.Date)
+                {
+                    return BadRequest(new { message = "Issue date cannot be in the future. Please select a valid past or present date." });
+                }
+                parsedIssueDate = DateTime.SpecifyKind(dt.Date, DateTimeKind.Utc);
+            }
+            else
+            {
+                return BadRequest(new { message = "Invalid issue date format. Please use YYYY-MM-DD." });
+            }
+        }
+
         using var stream = file.OpenReadStream();
         var command = new UploadDocumentCommand(
             targetBusinessId,
@@ -223,18 +301,24 @@ public class BusinessesController : ControllerBase
             stream,
             _currentUserService.UserId,
             credentialNumber,
-            credentialName
+            credentialName,
+            parsedIssueDate,
+            issuer
         );
 
         var result = await _mediator.Send(command);
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { message = result.Error });
     }
 
-    [HttpGet("{id:guid}/passport")]
+    [HttpGet("{id}/passport")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetPassport(Guid id)
+    public async Task<IActionResult> GetPassport(string id)
     {
-        var result = await _mediator.Send(new GetBusinessPassportQuery(id));
+        var business = await ResolveBusinessAsync(id);
+        var targetBusinessId = business?.Id ?? (Guid.TryParse(id, out var g) ? g : Guid.Empty);
+        if (targetBusinessId == Guid.Empty) return NotFound(new { message = "Business not found." });
+
+        var result = await _mediator.Send(new GetBusinessPassportQuery(targetBusinessId));
         if (result.IsSuccess)
         {
             if (_currentUserService.OrganizationId.HasValue && _currentUserService.UserId.HasValue)
@@ -243,7 +327,7 @@ public class BusinessesController : ControllerBase
                     Action: "PASSPORT_VIEWED",
                     Category: "PASSPORT",
                     TargetType: "BUSINESS_PASSPORT",
-                    TargetId: result.Value.PassportNumber ?? id.ToString(),
+                    TargetId: result.Value.PassportNumber ?? id,
                     TargetName: result.Value.BusinessName ?? "Sovereign Passport Dossier",
                     Result: "SUCCESS",
                     OverrideOrganizationId: _currentUserService.OrganizationId.Value,
@@ -255,34 +339,49 @@ public class BusinessesController : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { message = result.Error });
     }
 
-    [HttpPost("{id:guid}/passport/generate")]
-    public async Task<IActionResult> GeneratePassport(Guid id)
+    [HttpPost("{id}/passport/generate")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GeneratePassport(string id)
     {
-        var result = await _mediator.Send(new GeneratePassportCommand(id));
+        var business = await ResolveBusinessAsync(id);
+        var targetBusinessId = business?.Id ?? (Guid.TryParse(id, out var g) ? g : Guid.Empty);
+        if (targetBusinessId == Guid.Empty) return BadRequest(new { message = "Business not found." });
+
+        var result = await _mediator.Send(new GeneratePassportCommand(targetBusinessId));
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { message = result.Error });
     }
 
-    [HttpGet("{id:guid}/trust-score")]
+    [HttpGet("{id}/trust-score")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetTrustScore(Guid id)
+    public async Task<IActionResult> GetTrustScore(string id)
     {
-        var business = await ResolveBusinessAsync(id.ToString());
-        var targetBusinessId = business?.Id ?? id;
+        var business = await ResolveBusinessAsync(id);
+        var targetBusinessId = business?.Id ?? (Guid.TryParse(id, out var g) ? g : Guid.Empty);
+        if (targetBusinessId == Guid.Empty) return NotFound(new { message = "Business not found." });
+
         var result = await _mediator.Send(new VeriPass.Application.Verification.GetTrustScoreQuery(targetBusinessId));
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { message = result.Error });
     }
 
     [HttpGet("{id}/compliance")]
-    public async Task<IActionResult> GetComplianceEvents(Guid id)
+    public async Task<IActionResult> GetComplianceEvents(string id)
     {
-        var result = await _mediator.Send(new GetComplianceEventsQuery(id));
+        var business = await ResolveBusinessAsync(id);
+        var targetBusinessId = business?.Id ?? (Guid.TryParse(id, out var g) ? g : Guid.Empty);
+        if (targetBusinessId == Guid.Empty) return NotFound(new { message = "Business not found." });
+
+        var result = await _mediator.Send(new GetComplianceEventsQuery(targetBusinessId));
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { message = result.Error });
     }
 
     [HttpGet("{id}/requests")]
-    public async Task<IActionResult> GetVerificationRequests(Guid id)
+    public async Task<IActionResult> GetVerificationRequests(string id)
     {
-        var result = await _mediator.Send(new GetVerificationRequestsQuery(id));
+        var business = await ResolveBusinessAsync(id);
+        var targetBusinessId = business?.Id ?? (Guid.TryParse(id, out var g) ? g : Guid.Empty);
+        if (targetBusinessId == Guid.Empty) return NotFound(new { message = "Business not found." });
+
+        var result = await _mediator.Send(new GetVerificationRequestsQuery(targetBusinessId));
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { message = result.Error });
     }
 

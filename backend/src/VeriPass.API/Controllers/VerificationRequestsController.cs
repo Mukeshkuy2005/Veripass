@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using VeriPass.Application.Common.Interfaces;
 using VeriPass.Application.Relationships;
 
@@ -13,23 +14,41 @@ public class VerificationRequestsController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IApplicationDbContext _context;
 
-    public VerificationRequestsController(IMediator mediator, ICurrentUserService currentUserService)
+    public VerificationRequestsController(
+        IMediator mediator, 
+        ICurrentUserService currentUserService,
+        IApplicationDbContext context)
     {
         _mediator = mediator;
         _currentUserService = currentUserService;
+        _context = context;
     }
 
     [HttpGet]
     [AllowAnonymous]
-    public async Task<IActionResult> GetAll([FromQuery] Guid? businessId, [FromQuery] Guid? buyerOrganizationId)
+    public async Task<IActionResult> GetAll([FromQuery] string? businessId, [FromQuery] string? buyerOrganizationId)
     {
-        var effectiveBuyerOrgId = buyerOrganizationId ?? (businessId.HasValue ? null : _currentUserService.OrganizationId);
-        if (!businessId.HasValue && !effectiveBuyerOrgId.HasValue)
+        Guid? parsedBizId = null;
+        if (!string.IsNullOrWhiteSpace(businessId))
         {
-            return Ok(new List<object>());
+            if (Guid.TryParse(businessId, out var g)) parsedBizId = g;
+            else
+            {
+                var biz = await _context.Businesses.FirstOrDefaultAsync(b => b.BusinessIdNumber == businessId || (b.Passport != null && b.Passport.PassportNumber == businessId));
+                parsedBizId = biz?.Id;
+            }
         }
-        var result = await _mediator.Send(new GetAllVerificationRequestsQuery(businessId, effectiveBuyerOrgId));
+
+        Guid? parsedBuyerOrgId = null;
+        if (!string.IsNullOrWhiteSpace(buyerOrganizationId) && Guid.TryParse(buyerOrganizationId, out var bOrgId))
+        {
+            parsedBuyerOrgId = bOrgId;
+        }
+
+        var effectiveBuyerOrgId = parsedBuyerOrgId ?? (parsedBizId.HasValue ? null : _currentUserService.OrganizationId);
+        var result = await _mediator.Send(new GetAllVerificationRequestsQuery(parsedBizId, effectiveBuyerOrgId));
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { message = result.Error });
     }
 

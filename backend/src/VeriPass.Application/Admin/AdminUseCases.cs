@@ -49,10 +49,18 @@ public record AdminBusinessSummaryDto(
     string LegalName,
     string? TradeName,
     string BusinessIdNumber,
+    string? PassportId,
     string? Gstin,
     string? Pan,
+    string? Cin,
     string VerificationStatus,
     int TrustScore,
+    string RiskRating,
+    string? Industry,
+    string? State,
+    int CredentialsCount,
+    string? FlagReason,
+    string? SuspensionReason,
     DateTime CreatedAt);
 
 public record GetAdminBusinessesQuery(
@@ -74,6 +82,9 @@ public class GetAdminBusinessesQueryHandler : IRequestHandler<GetAdminBusinesses
     {
         var query = _context.Businesses
             .Include(b => b.TrustScore)
+            .Include(b => b.Passport)
+            .Include(b => b.Addresses)
+            .Include(b => b.Credentials)
             .AsNoTracking()
             .AsQueryable();
 
@@ -92,19 +103,40 @@ public class GetAdminBusinessesQueryHandler : IRequestHandler<GetAdminBusinesses
             .OrderByDescending(b => b.CreatedAt)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
-            .Select(b => new AdminBusinessSummaryDto(
+            .ToListAsync(cancellationToken);
+
+        var dtos = list.Select(b =>
+        {
+            var score = b.TrustScore?.OverallScore ?? (b.Passport?.VerificationScore ?? 0);
+            var risk = SupplierRiskPolicy.DetermineRiskLevelSafe(score);
+            var riskRating = risk == RiskLevel.CRITICAL || risk == RiskLevel.HIGH ? "HIGH" : (risk == RiskLevel.MEDIUM ? "MEDIUM" : "LOW");
+            var primaryAddr = b.Addresses.FirstOrDefault(a => a.IsPrimary) ?? b.Addresses.FirstOrDefault();
+            var passportId = b.Passport?.PassportNumber ?? b.BusinessIdNumber;
+            var status = b.Passport?.Status == "SUSPENDED" 
+                ? "SUSPENDED" 
+                : (b.VerificationStatus == VerificationStatus.FLAGGED ? "FLAGGED" : "ACTIVE");
+
+            return new AdminBusinessSummaryDto(
                 b.Id,
                 b.LegalName,
                 b.TradeName,
                 b.BusinessIdNumber,
+                passportId,
                 b.Gstin,
                 b.Pan,
-                b.VerificationStatus.ToString(),
-                b.TrustScore != null ? b.TrustScore.OverallScore : 0,
-                b.CreatedAt))
-            .ToListAsync(cancellationToken);
+                b.Cin,
+                status,
+                score,
+                riskRating,
+                b.BusinessType ?? "Manufacturing",
+                primaryAddr?.State ?? "Delhi",
+                b.Credentials.Count,
+                b.VerificationStatus == VerificationStatus.FLAGGED ? "Flagged by compliance review" : null,
+                b.Passport?.Status == "SUSPENDED" ? "Suspended by admin compliance" : null,
+                b.CreatedAt);
+        }).ToList();
 
-        return Result<List<AdminBusinessSummaryDto>>.Success(list);
+        return Result<List<AdminBusinessSummaryDto>>.Success(dtos);
     }
 }
 
@@ -125,7 +157,7 @@ public record AdminBusinessDetailDto(
     int DocumentCount,
     DateTime CreatedAt);
 
-public record GetAdminBusinessByIdQuery(Guid Id) : IRequest<Result<AdminBusinessDetailDto>>;
+public record GetAdminBusinessByIdQuery(string Id) : IRequest<Result<AdminBusinessDetailDto>>;
 
 public class GetAdminBusinessByIdQueryHandler : IRequestHandler<GetAdminBusinessByIdQuery, Result<AdminBusinessDetailDto>>
 {
@@ -138,12 +170,30 @@ public class GetAdminBusinessByIdQueryHandler : IRequestHandler<GetAdminBusiness
 
     public async Task<Result<AdminBusinessDetailDto>> Handle(GetAdminBusinessByIdQuery request, CancellationToken cancellationToken)
     {
-        var b = await _context.Businesses
-            .Include(x => x.TrustScore)
-            .Include(x => x.Credentials)
-            .Include(x => x.Documents)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
+        Business? b = null;
+        if (Guid.TryParse(request.Id, out var gId))
+        {
+            b = await _context.Businesses
+                .Include(x => x.TrustScore)
+                .Include(x => x.Credentials)
+                .Include(x => x.Documents)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == gId || (x.Passport != null && x.Passport.Id == gId), cancellationToken);
+        }
+
+        if (b == null)
+        {
+            b = await _context.Businesses
+                .Include(x => x.TrustScore)
+                .Include(x => x.Credentials)
+                .Include(x => x.Documents)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.BusinessIdNumber == request.Id ||
+                                         x.Gstin == request.Id ||
+                                         x.Pan == request.Id ||
+                                         (x.Passport != null && (x.Passport.PassportNumber == request.Id || x.Passport.PublicIdentifier == request.Id)),
+                                     cancellationToken);
+        }
 
         if (b == null) return Result<AdminBusinessDetailDto>.Failure("Business not found.");
 
@@ -166,23 +216,50 @@ public class GetAdminBusinessByIdQueryHandler : IRequestHandler<GetAdminBusiness
     }
 }
 
-public record SuspendBusinessCommand(Guid BusinessId, string Reason) : IRequest<Result<bool>>;
+public record SuspendBusinessCommand(string BusinessId, string Reason) : IRequest<Result<bool>>;
 
 public class SuspendBusinessCommandHandler : IRequestHandler<SuspendBusinessCommand, Result<bool>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public SuspendBusinessCommandHandler(IApplicationDbContext context)
+    public SuspendBusinessCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<Result<bool>> Handle(SuspendBusinessCommand request, CancellationToken cancellationToken)
     {
-        var b = await _context.Businesses.FirstOrDefaultAsync(x => x.Id == request.BusinessId, cancellationToken);
+        Business? b = null;
+        if (Guid.TryParse(request.BusinessId, out var gId))
+        {
+            b = await _context.Businesses
+                .Include(x => x.Passport)
+                .Include(x => x.TrustScore)
+                .FirstOrDefaultAsync(x => x.Id == gId || (x.Passport != null && x.Passport.Id == gId), cancellationToken);
+        }
+        if (b == null)
+        {
+            b = await _context.Businesses
+                .Include(x => x.Passport)
+                .Include(x => x.TrustScore)
+                .FirstOrDefaultAsync(x => x.BusinessIdNumber == request.BusinessId ||
+                                         x.Gstin == request.BusinessId ||
+                                         x.Pan == request.BusinessId ||
+                                         (x.Passport != null && (x.Passport.PassportNumber == request.BusinessId || x.Passport.PublicIdentifier == request.BusinessId)),
+                                     cancellationToken);
+        }
+
         if (b == null) return Result<bool>.Failure("Business not found.");
 
         b.VerificationStatus = VerificationStatus.FLAGGED;
+        if (b.Passport != null)
+        {
+            b.Passport.Status = "SUSPENDED";
+            b.Passport.UpdatedAt = DateTime.UtcNow;
+        }
+
         _context.RiskSignals.Add(new RiskSignal
         {
             BusinessId = b.Id,
@@ -193,50 +270,189 @@ public class SuspendBusinessCommandHandler : IRequestHandler<SuspendBusinessComm
             Status = "ACTIVE"
         });
 
+        if (b.TrustScore != null)
+        {
+            b.TrustScore.OverallScore = Math.Max(0, b.TrustScore.OverallScore - 50);
+            b.TrustScore.LastCalculatedAt = DateTime.UtcNow;
+        }
+
+        var rels = await _context.BuyerSupplierRelationships
+            .Where(r => r.SupplierBusinessId == b.Id)
+            .ToListAsync(cancellationToken);
+        foreach (var rel in rels)
+        {
+            rel.RiskLevel = RiskLevel.CRITICAL;
+            rel.UpdatedAt = DateTime.UtcNow;
+        }
+
+        _context.AuditLogs.Add(new AuditLog
+        {
+            UserId = _currentUserService.UserId ?? Guid.Empty,
+            Action = "BUSINESS_SUSPENDED",
+            Category = "ADMIN_COMPLIANCE",
+            ResourceType = "Business",
+            ResourceId = b.Id.ToString(),
+            TargetName = b.LegalName,
+            Result = "SUCCESS",
+            EventCode = $"AUD-{Guid.NewGuid():N}"[..10].ToUpperInvariant(),
+            NewValuesJson = $"{{\"reason\":\"{request.Reason}\",\"status\":\"SUSPENDED\"}}"
+        });
+
         await _context.SaveChangesAsync(cancellationToken);
         return Result<bool>.Success(true);
     }
 }
 
-public record ActivateBusinessCommand(Guid BusinessId) : IRequest<Result<bool>>;
+public record ActivateBusinessCommand(string BusinessId) : IRequest<Result<bool>>;
 
 public class ActivateBusinessCommandHandler : IRequestHandler<ActivateBusinessCommand, Result<bool>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly ITrustScoreCalculator _trustScoreCalculator;
+    private readonly ICurrentUserService _currentUserService;
 
-    public ActivateBusinessCommandHandler(IApplicationDbContext context)
+    public ActivateBusinessCommandHandler(
+        IApplicationDbContext context, 
+        ITrustScoreCalculator trustScoreCalculator,
+        ICurrentUserService currentUserService)
     {
         _context = context;
+        _trustScoreCalculator = trustScoreCalculator;
+        _currentUserService = currentUserService;
     }
 
     public async Task<Result<bool>> Handle(ActivateBusinessCommand request, CancellationToken cancellationToken)
     {
-        var b = await _context.Businesses.FirstOrDefaultAsync(x => x.Id == request.BusinessId, cancellationToken);
+        Business? b = null;
+        if (Guid.TryParse(request.BusinessId, out var gId))
+        {
+            b = await _context.Businesses
+                .Include(x => x.Passport)
+                .Include(x => x.TrustScore)
+                .FirstOrDefaultAsync(x => x.Id == gId || (x.Passport != null && x.Passport.Id == gId), cancellationToken);
+        }
+        if (b == null)
+        {
+            b = await _context.Businesses
+                .Include(x => x.Passport)
+                .Include(x => x.TrustScore)
+                .FirstOrDefaultAsync(x => x.BusinessIdNumber == request.BusinessId ||
+                                         x.Gstin == request.BusinessId ||
+                                         x.Pan == request.BusinessId ||
+                                         (x.Passport != null && (x.Passport.PassportNumber == request.BusinessId || x.Passport.PublicIdentifier == request.BusinessId)),
+                                     cancellationToken);
+        }
+
         if (b == null) return Result<bool>.Failure("Business not found.");
 
         b.VerificationStatus = VerificationStatus.VERIFIED;
+        if (b.Passport != null)
+        {
+            b.Passport.Status = "ACTIVE";
+            b.Passport.UpdatedAt = DateTime.UtcNow;
+        }
+
+        // Resolve active admin suspension or flag signals
+        var activeSignals = await _context.RiskSignals
+            .Where(r => r.BusinessId == b.Id && (r.SignalType == "ADMIN_SUSPENSION" || r.SignalType == "ADMIN_FLAGGED") && r.Status == "ACTIVE")
+            .ToListAsync(cancellationToken);
+        foreach (var sig in activeSignals)
+        {
+            sig.Status = "RESOLVED";
+        }
+
+        // Authoritative score recalculation
+        var calc = await _trustScoreCalculator.CalculateAsync(b.Id, cancellationToken);
+        if (b.TrustScore == null)
+        {
+            b.TrustScore = new VeriPass.Domain.Entities.TrustScore { BusinessId = b.Id };
+            _context.TrustScores.Add(b.TrustScore);
+        }
+        b.TrustScore.OverallScore = calc.OverallScore;
+        b.TrustScore.IdentityScore = calc.IdentityScore;
+        b.TrustScore.CredentialScore = calc.CredentialScore;
+        b.TrustScore.ComplianceScore = calc.ComplianceScore;
+        b.TrustScore.VerificationScore = calc.VerificationScore;
+        b.TrustScore.RiskScore = calc.RiskScore;
+        b.TrustScore.LastCalculatedAt = DateTime.UtcNow;
+
+        if (b.Passport != null)
+        {
+            b.Passport.VerificationScore = calc.OverallScore;
+        }
+
+        var derivedRisk = SupplierRiskPolicy.DetermineRiskLevelSafe(calc.OverallScore);
+        var rels = await _context.BuyerSupplierRelationships
+            .Where(r => r.SupplierBusinessId == b.Id)
+            .ToListAsync(cancellationToken);
+        foreach (var rel in rels)
+        {
+            rel.RiskLevel = derivedRisk;
+            rel.UpdatedAt = DateTime.UtcNow;
+        }
+
+        _context.AuditLogs.Add(new AuditLog
+        {
+            UserId = _currentUserService.UserId ?? Guid.Empty,
+            Action = "BUSINESS_ACTIVATED",
+            Category = "ADMIN_COMPLIANCE",
+            ResourceType = "Business",
+            ResourceId = b.Id.ToString(),
+            TargetName = b.LegalName,
+            Result = "SUCCESS",
+            EventCode = $"AUD-{Guid.NewGuid():N}"[..10].ToUpperInvariant(),
+            NewValuesJson = $"{{\"status\":\"ACTIVE\"}}"
+        });
+
         await _context.SaveChangesAsync(cancellationToken);
         return Result<bool>.Success(true);
     }
 }
 
-public record FlagBusinessCommand(Guid BusinessId, string Reason) : IRequest<Result<bool>>;
+public record FlagBusinessCommand(string BusinessId, string Reason) : IRequest<Result<bool>>;
 
 public class FlagBusinessCommandHandler : IRequestHandler<FlagBusinessCommand, Result<bool>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public FlagBusinessCommandHandler(IApplicationDbContext context)
+    public FlagBusinessCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<Result<bool>> Handle(FlagBusinessCommand request, CancellationToken cancellationToken)
     {
-        var b = await _context.Businesses.FirstOrDefaultAsync(x => x.Id == request.BusinessId, cancellationToken);
+        Business? b = null;
+        if (Guid.TryParse(request.BusinessId, out var gId))
+        {
+            b = await _context.Businesses
+                .Include(x => x.Passport)
+                .Include(x => x.TrustScore)
+                .FirstOrDefaultAsync(x => x.Id == gId || (x.Passport != null && x.Passport.Id == gId), cancellationToken);
+        }
+        if (b == null)
+        {
+            b = await _context.Businesses
+                .Include(x => x.Passport)
+                .Include(x => x.TrustScore)
+                .FirstOrDefaultAsync(x => x.BusinessIdNumber == request.BusinessId ||
+                                         x.Gstin == request.BusinessId ||
+                                         x.Pan == request.BusinessId ||
+                                         (x.Passport != null && (x.Passport.PassportNumber == request.BusinessId || x.Passport.PublicIdentifier == request.BusinessId)),
+                                     cancellationToken);
+        }
+
         if (b == null) return Result<bool>.Failure("Business not found.");
 
         b.VerificationStatus = VerificationStatus.FLAGGED;
+        if (b.Passport != null)
+        {
+            b.Passport.Status = "FLAGGED";
+            b.Passport.UpdatedAt = DateTime.UtcNow;
+        }
+
         _context.RiskSignals.Add(new RiskSignal
         {
             BusinessId = b.Id,
@@ -245,6 +461,34 @@ public class FlagBusinessCommandHandler : IRequestHandler<FlagBusinessCommand, R
             ScoreImpact = -25,
             Description = request.Reason,
             Status = "ACTIVE"
+        });
+
+        if (b.TrustScore != null)
+        {
+            b.TrustScore.OverallScore = Math.Max(0, b.TrustScore.OverallScore - 25);
+            b.TrustScore.LastCalculatedAt = DateTime.UtcNow;
+        }
+
+        var rels = await _context.BuyerSupplierRelationships
+            .Where(r => r.SupplierBusinessId == b.Id)
+            .ToListAsync(cancellationToken);
+        foreach (var rel in rels)
+        {
+            rel.RiskLevel = RiskLevel.HIGH;
+            rel.UpdatedAt = DateTime.UtcNow;
+        }
+
+        _context.AuditLogs.Add(new AuditLog
+        {
+            UserId = _currentUserService.UserId ?? Guid.Empty,
+            Action = "BUSINESS_FLAGGED",
+            Category = "ADMIN_COMPLIANCE",
+            ResourceType = "Business",
+            ResourceId = b.Id.ToString(),
+            TargetName = b.LegalName,
+            Result = "SUCCESS",
+            EventCode = $"AUD-{Guid.NewGuid():N}"[..10].ToUpperInvariant(),
+            NewValuesJson = $"{{\"reason\":\"{request.Reason}\",\"status\":\"FLAGGED\"}}"
         });
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -258,6 +502,9 @@ public record AdminBuyerSummaryDto(
     string Name,
     string OrganizationType,
     int MemberCount,
+    int SuppliersCount,
+    int VerificationRequestsCount,
+    string Status,
     DateTime CreatedAt);
 
 public record GetAdminBuyersQuery() : IRequest<Result<List<AdminBuyerSummaryDto>>>;
@@ -275,6 +522,8 @@ public class GetAdminBuyersQueryHandler : IRequestHandler<GetAdminBuyersQuery, R
     {
         var list = await _context.Organizations
             .Include(o => o.Members)
+            .Include(o => o.BuyerRelationships)
+            .Include(o => o.SentVerificationRequests)
             .AsNoTracking()
             .Where(o => o.Type == OrganizationType.BUYER || o.Type == OrganizationType.BOTH)
             .OrderByDescending(o => o.CreatedAt)
@@ -283,6 +532,9 @@ public class GetAdminBuyersQueryHandler : IRequestHandler<GetAdminBuyersQuery, R
                 o.Name,
                 o.Type.ToString(),
                 o.Members.Count,
+                o.BuyerRelationships.Count,
+                o.SentVerificationRequests.Count,
+                "ACTIVE",
                 o.CreatedAt))
             .ToListAsync(cancellationToken);
 
@@ -467,7 +719,12 @@ public record ComplianceRuleDto(
     string Category,
     string Severity,
     string Description,
-    bool IsActive);
+    bool IsActive,
+    string? CredentialType = null,
+    string? ValidationType = null,
+    bool IsRequired = true,
+    int DefaultWeight = 0,
+    string? RuleExpressionJson = null);
 
 public record GetComplianceRulesQuery() : IRequest<Result<List<ComplianceRuleDto>>>;
 
@@ -492,7 +749,12 @@ public class GetComplianceRulesQueryHandler : IRequestHandler<GetComplianceRules
                 r.Category,
                 r.Severity.ToString(),
                 r.Description,
-                r.IsActive))
+                r.IsActive,
+                r.CredentialType,
+                r.ValidationType,
+                r.IsRequired,
+                r.DefaultWeight,
+                r.RuleExpressionJson))
             .ToListAsync(cancellationToken);
 
         return Result<List<ComplianceRuleDto>>.Success(list);
@@ -505,7 +767,12 @@ public record UpdateComplianceRuleCommand(
     string Category,
     ComplianceSeverity Severity,
     string Description,
-    bool IsActive) : IRequest<Result<bool>>;
+    bool IsActive,
+    string? CredentialType = null,
+    string? ValidationType = null,
+    bool IsRequired = true,
+    int DefaultWeight = 0,
+    string? RuleExpressionJson = null) : IRequest<Result<bool>>;
 
 public class UpdateComplianceRuleCommandHandler : IRequestHandler<UpdateComplianceRuleCommand, Result<bool>>
 {
@@ -526,6 +793,12 @@ public class UpdateComplianceRuleCommandHandler : IRequestHandler<UpdateComplian
         rule.Severity = request.Severity;
         rule.Description = request.Description;
         rule.IsActive = request.IsActive;
+
+        if (!string.IsNullOrWhiteSpace(request.CredentialType)) rule.CredentialType = request.CredentialType.Trim().ToUpperInvariant();
+        if (!string.IsNullOrWhiteSpace(request.ValidationType)) rule.ValidationType = request.ValidationType.Trim().ToUpperInvariant();
+        rule.IsRequired = request.IsRequired;
+        rule.DefaultWeight = request.DefaultWeight;
+        if (request.RuleExpressionJson != null) rule.RuleExpressionJson = request.RuleExpressionJson;
 
         await _context.SaveChangesAsync(cancellationToken);
         return Result<bool>.Success(true);

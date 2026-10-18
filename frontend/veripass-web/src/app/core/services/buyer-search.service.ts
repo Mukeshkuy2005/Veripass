@@ -23,6 +23,9 @@ export interface BuyerSupplier {
   lastVerified: string;
   expiringCredential?: string;
   isShortlisted?: boolean;
+  complianceStatus?: 'Compliant' | 'Incomplete' | 'VerificationFailed' | string;
+  trustLevel?: 'Low' | 'Medium' | 'High' | string;
+  isSelectable?: boolean;
 }
 
 export interface SearchFilters {
@@ -68,7 +71,7 @@ export class BuyerSearchService {
     state: '',
     businessTypes: [],
     verificationStatus: 'all',
-    minTrustScore: 50,
+    minTrustScore: 0,
     certifications: [],
     complianceStanding: 'all',
     minYears: 0
@@ -108,7 +111,7 @@ export class BuyerSearchService {
   }
 
   private fetchAndMergeSuppliers(backendShortlistIds: Set<string>): void {
-    this.http.get<any>(`${this.apiUrl}/suppliers?buyerOnly=true`).subscribe({
+    this.http.get<any>(`${this.apiUrl}/suppliers`).subscribe({
       next: (res) => {
         this.isLoading.set(false);
         const list = Array.isArray(res) ? res : (res?.suppliers || res?.items || res?.value || []);
@@ -158,7 +161,35 @@ export class BuyerSearchService {
             isShortlisted: isShortlisted
           };
         });
-        this.suppliers.set(merged);
+
+        // Query authoritative buyer trust score batch
+        const supplierIds = merged.map(m => m.id).filter(id => !!id);
+        if (supplierIds.length > 0) {
+          this.http.post<any[]>(`${this.apiUrl}/buyers/me/trust-scores/batch`, { supplierIds }).subscribe({
+            next: (scores) => {
+              if (Array.isArray(scores)) {
+                const map = new Map(scores.map(s => [s.supplierId?.toLowerCase(), s]));
+                for (const sup of merged) {
+                  const sc = map.get(sup.id?.toLowerCase());
+                  if (sc) {
+                    sup.trustScore = sc.score;
+                    sup.complianceScore = sc.score;
+                    sup.trustLevel = sc.trustLevel;
+                    sup.complianceStatus = sc.complianceStatus;
+                    sup.isSelectable = sc.isSelectable;
+                    sup.riskLevel = sc.trustLevel === 'High' ? 'Low' : (sc.trustLevel === 'Medium' ? 'Medium' : 'High');
+                  }
+                }
+              }
+              this.suppliers.set(merged);
+            },
+            error: () => {
+              this.suppliers.set(merged);
+            }
+          });
+        } else {
+          this.suppliers.set(merged);
+        }
       },
       error: (err) => {
         this.isLoading.set(false);
@@ -185,14 +216,11 @@ export class BuyerSearchService {
     const tab = this.activeStatusTab();
 
     let list = this.suppliers().filter(supplier => {
-      // Buyer supplier eligibility rule: strictly score > 50
-      if (supplier.trustScore <= 50) return false;
-
       // Tab filter
       if (tab === 'verified' && supplier.status !== 'Verified') return false;
       if (tab === 'partially_verified' && supplier.status !== 'Partially Verified') return false;
       if (tab === 'shortlisted' && !supplier.isShortlisted) return false;
-      if (tab === 'flagged' && supplier.riskLevel.toUpperCase() !== 'HIGH' && supplier.status !== 'Expired') return false;
+      if (tab === 'flagged' && supplier.riskLevel.toUpperCase() !== 'HIGH' && supplier.status !== 'Expired' && !supplier.status.toLowerCase().includes('flagged')) return false;
 
       // Free text search matching name, legalName, industry, category, location, gstin, pan
       if (q) {
@@ -426,7 +454,7 @@ export class BuyerSearchService {
       state: '',
       businessTypes: [],
       verificationStatus: 'all',
-      minTrustScore: 50,
+      minTrustScore: 0,
       certifications: [],
       complianceStanding: 'all',
       minYears: 0

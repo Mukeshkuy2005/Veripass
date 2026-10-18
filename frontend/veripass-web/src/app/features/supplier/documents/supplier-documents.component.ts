@@ -47,8 +47,63 @@ export class SupplierDocumentsComponent implements OnInit {
   newCredName = signal<string>('');
   newCredNumber = signal<string>('');
   newCredIssuer = signal<string>('');
+  newCredIssueDate = signal<string>(new Date().toISOString().substring(0, 10));
+  issueDateError = signal<string | null>(null);
   newCredFile = signal<File | null>(null);
   newCredFileName = signal<string | null>(null);
+
+  get todayString(): string {
+    return new Date().toISOString().substring(0, 10);
+  }
+
+  onIssueDateChange(val: string): void {
+    this.newCredIssueDate.set(val);
+    if (!val) {
+      this.issueDateError.set('Date of issue is required.');
+    } else if (val > this.todayString) {
+      this.issueDateError.set('Issue date cannot be in the future. Please select a valid past or present date.');
+    } else {
+      this.issueDateError.set(null);
+    }
+  }
+
+  private getStorageKey(bizId: string): string {
+    return `veripass_custom_docs_${bizId || 'default'}`;
+  }
+
+  private getCustomCredentialsLocally(bizId: string): CredentialDoc[] {
+    if (typeof localStorage === 'undefined') return [];
+    try {
+      const data = localStorage.getItem(this.getStorageKey(bizId));
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private saveCustomCredentialLocally(bizId: string, item: CredentialDoc): void {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      const current = this.getCustomCredentialsLocally(bizId);
+      const filtered = current.filter(c => 
+        (c.identifier && item.identifier && c.identifier.toLowerCase() !== item.identifier.toLowerCase()) || 
+        c.name.toLowerCase() !== item.name.toLowerCase()
+      );
+      filtered.unshift(item);
+      localStorage.setItem(this.getStorageKey(bizId), JSON.stringify(filtered));
+    } catch {}
+  }
+
+  mapCategory(docType: string): string {
+    const upper = (docType || '').toUpperCase();
+    if (upper.includes('GST') || upper.includes('TAX')) return 'Tax';
+    if (upper.includes('PAN') || upper.includes('IDENTITY') || upper.includes('AADHAAR')) return 'Identity';
+    if (upper.includes('BANK') || upper.includes('CHEQUE')) return 'Banking';
+    if (upper.includes('UDYAM') || upper.includes('MSME') || upper.includes('INC') || upper.includes('CIN') || upper.includes('REGISTRATION')) return 'Registration';
+    if (upper.includes('ISO') || upper.includes('QUALITY')) return 'Quality';
+    if (upper.includes('LICENSE') || upper.includes('POLLUTION') || upper.includes('NOC') || upper.includes('FACTORY')) return 'Licenses';
+    return 'Legal';
+  }
 
   credentials = signal<CredentialDoc[]>([]);
 
@@ -71,22 +126,83 @@ export class SupplierDocumentsComponent implements OnInit {
   loadDocuments(): void {
     const targetBusinessId = this.businessService.currentProfile()?.id || this.businessId || this.auth.currentBusinessId() || '';
     const isVerified = this.businessService.currentProfile()?.verificationStatus === 'VERIFIED';
+    const localDocs = this.getCustomCredentialsLocally(targetBusinessId);
+
     this.businessService.getDocuments(targetBusinessId).subscribe({
       next: (docs) => {
         if (docs && docs.length > 0) {
-          this.credentials.set(docs.map(d => ({
-            id: d.id,
-            name: (d.documentType || 'Document').replace(/_/g, ' '),
-            category: 'Legal',
-            identifier: d.storageKey || d.id,
-            status: (d.status === 'PROCESSED' ? 'VERIFIED' : 'PENDING') as any,
-            issued: d.uploadedAt ? new Date(d.uploadedAt).toLocaleDateString() : '—',
-            expires: '—',
-            source: 'Sovereign Vault',
-            fileName: d.originalFileName || 'document.pdf'
-          })));
+          const mapped: CredentialDoc[] = docs.map(d => {
+            const localMatch = localDocs.find(l =>
+              (d.originalFileName && l.fileName === d.originalFileName) ||
+              (d.title && l.name.toLowerCase() === d.title.toLowerCase()) ||
+              (d.extractedFields?.['CredentialName'] && l.name.toLowerCase() === d.extractedFields['CredentialName'].toLowerCase())
+            );
+
+            const displayName = d.title ||
+                                d.extractedFields?.['CredentialName'] ||
+                                d.extractedFields?.['Title'] ||
+                                localMatch?.name ||
+                                (d.documentType || 'Document').replace(/_/g, ' ');
+
+            const identifier = d.credentialNumber ||
+                               d.extractedFields?.['CredentialNumber'] ||
+                               localMatch?.identifier ||
+                               d.extractedFields?.['Gstin'] ||
+                               d.extractedFields?.['Pan'] ||
+                               d.extractedFields?.['UdyamNumber'] ||
+                               d.storageKey ||
+                               d.id;
+
+            let formattedIssued = '—';
+            if (d.issuedDate) {
+              formattedIssued = new Date(d.issuedDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            } else if (d.extractedFields?.['IssueDate']) {
+              formattedIssued = new Date(d.extractedFields['IssueDate']).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            } else if (localMatch?.issued) {
+              formattedIssued = localMatch.issued.includes('-')
+                ? new Date(localMatch.issued).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                : localMatch.issued;
+            } else if (d.uploadedAt) {
+              formattedIssued = new Date(d.uploadedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            }
+
+            let formattedExpires = '—';
+            if (d.expiryDate) {
+              formattedExpires = new Date(d.expiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            } else if (localMatch?.expires && localMatch.expires !== '—') {
+              formattedExpires = localMatch.expires;
+            }
+
+            const issuer = d.issuer ||
+                           d.extractedFields?.['Issuer'] ||
+                           localMatch?.source ||
+                           'Sovereign Vault';
+
+            return {
+              id: d.id,
+              name: displayName,
+              category: localMatch?.category || this.mapCategory(d.documentType),
+              identifier: identifier,
+              status: (d.status === 'PROCESSED' ? 'VERIFIED' : 'PENDING') as any,
+              issued: formattedIssued,
+              expires: formattedExpires,
+              source: issuer,
+              fileName: d.originalFileName || localMatch?.fileName || 'document.pdf'
+            };
+          });
+
+          // Append any locally created documents that haven't been indexed by the backend yet
+          const unmergedLocal = localDocs.filter(l => !mapped.some(m => m.name.toLowerCase() === l.name.toLowerCase() || (m.fileName && m.fileName === l.fileName)));
+          this.credentials.set([...unmergedLocal, ...mapped]);
+        } else if (localDocs.length > 0) {
+          this.credentials.set(localDocs);
         } else if (!isVerified) {
           this.credentials.set([]);
+        }
+      },
+      error: () => {
+        if (localDocs.length > 0) {
+          this.credentials.set(localDocs);
         }
       }
     });
@@ -179,6 +295,8 @@ export class SupplierDocumentsComponent implements OnInit {
     this.newCredName.set('');
     this.newCredNumber.set('');
     this.newCredIssuer.set('');
+    this.newCredIssueDate.set(this.todayString);
+    this.issueDateError.set(null);
     this.newCredFile.set(null);
     this.newCredFileName.set(null);
     this.addCredentialError.set(null);
@@ -244,6 +362,17 @@ export class SupplierDocumentsComponent implements OnInit {
       return;
     }
 
+    const issueDate = this.newCredIssueDate();
+    if (!issueDate) {
+      this.addCredentialError.set('Please select the date of issue.');
+      return;
+    }
+
+    if (issueDate > this.todayString) {
+      this.addCredentialError.set('Issue date cannot be in the future. Please select a valid past or present date.');
+      return;
+    }
+
     const num = this.newCredNumber().trim();
     const isDuplicate = this.credentials().some(c =>
       (num && c.identifier && c.identifier.toLowerCase() === num.toLowerCase()) ||
@@ -259,8 +388,32 @@ export class SupplierDocumentsComponent implements OnInit {
     this.addCredentialError.set(null);
 
     const targetId = this.businessService.currentProfile()?.id || this.businessId || this.auth.currentBusinessId() || 'biz-default';
-    this.businessService.uploadDocument(targetId, this.newCredType(), file, this.newCredNumber()?.trim(), this.newCredName()?.trim()).subscribe({
+    const chosenIssuer = this.newCredIssuer()?.trim() || 'Ministry / Regulatory Authority';
+
+    // Optimistically prepare local record
+    const localItem: CredentialDoc = {
+      id: 'doc_' + Date.now(),
+      name: title,
+      category: this.mapCategory(this.newCredType()),
+      identifier: num || 'VP-' + Math.random().toString(36).substring(2, 9).toUpperCase(),
+      status: 'VERIFIED',
+      issued: new Date(issueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      expires: '—',
+      source: chosenIssuer,
+      fileName: file.name
+    };
+
+    this.businessService.uploadDocument(
+      targetId,
+      this.newCredType(),
+      file,
+      num || undefined,
+      title,
+      issueDate,
+      chosenIssuer
+    ).subscribe({
       next: () => {
+        this.saveCustomCredentialLocally(targetId, localItem);
         this.isSubmittingCredential.set(false);
         this.showAddCredentialModal.set(false);
         this.showToast('✓ Credential registered and uploaded successfully!');

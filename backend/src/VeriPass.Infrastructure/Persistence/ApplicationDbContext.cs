@@ -56,6 +56,8 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext, IUnitOfWor
     public DbSet<OnboardingRequest> OnboardingRequests => Set<OnboardingRequest>();
     public DbSet<OnboardingRequirement> OnboardingRequirements => Set<OnboardingRequirement>();
     public DbSet<OnboardingRequestRequirement> OnboardingRequestRequirements => Set<OnboardingRequestRequirement>();
+    public DbSet<BuyerVerificationProfile> BuyerVerificationProfiles => Set<BuyerVerificationProfile>();
+    public DbSet<CredentialRequirement> CredentialRequirements => Set<CredentialRequirement>();
 
     public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
     {

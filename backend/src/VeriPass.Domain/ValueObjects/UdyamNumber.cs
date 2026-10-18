@@ -4,9 +4,12 @@ namespace VeriPass.Domain.ValueObjects;
 
 public sealed class UdyamNumber
 {
-    private static readonly Regex UdyamRegex = new(@"^UDYAM-[A-Z]{2}-[0-9]{2}-[0-9]{7}$", RegexOptions.Compiled);
+    private static readonly Regex UdyamRegex = new(@"^UDYAM-[A-Z]{2}-\d{2}-\d{7}$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     public string Value { get; }
+    public string StateCode => Value.Length >= 8 ? Value.Substring(6, 2) : string.Empty;
+    public string DistrictCode => Value.Length >= 11 ? Value.Substring(9, 2) : string.Empty;
+    public string RegistrationSerial => Value.Length >= 19 ? Value.Substring(12, 7) : string.Empty;
 
     public UdyamNumber(string value)
     {
@@ -15,7 +18,7 @@ public sealed class UdyamNumber
 
         var formatted = value.Trim().ToUpperInvariant();
         if (!UdyamRegex.IsMatch(formatted))
-            throw new ArgumentException($"Invalid Indian Udyam Registration format: '{value}'. Expected format: UDYAM-XX-00-0000000.", nameof(value));
+            throw new ArgumentException($"Invalid Udyam registration number format: '{value}'. Expected format 'UDYAM-XX-00-0000000'.", nameof(value));
 
         Value = formatted;
     }

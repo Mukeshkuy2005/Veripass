@@ -645,6 +645,30 @@ public class ApproveVerificationRequestCommandHandler : IRequestHandler<ApproveV
         r.SupplierResponse = request.ResponseNotes ?? "Approved and fulfilled by supplier.";
         r.RespondedAt = DateTime.UtcNow;
 
+        // Synchronize BuyerSupplierRelationship upon request approval
+        var rel = await _context.BuyerSupplierRelationships.FirstOrDefaultAsync(
+            x => x.BuyerOrganizationId == r.BuyerOrganizationId && x.SupplierBusinessId == r.SupplierBusinessId,
+            cancellationToken);
+        if (rel == null)
+        {
+            var score = await _context.TrustScores.FirstOrDefaultAsync(t => t.BusinessId == r.SupplierBusinessId, cancellationToken);
+            var derivedRisk = SupplierRiskPolicy.DetermineRiskLevelSafe(score?.OverallScore ?? 50);
+            _context.BuyerSupplierRelationships.Add(new BuyerSupplierRelationship
+            {
+                BuyerOrganizationId = r.BuyerOrganizationId,
+                SupplierBusinessId = r.SupplierBusinessId,
+                Status = RelationshipStatus.APPROVED,
+                RiskLevel = derivedRisk,
+                ApprovedAt = DateTime.UtcNow
+            });
+        }
+        else
+        {
+            rel.Status = RelationshipStatus.APPROVED;
+            rel.ApprovedAt = DateTime.UtcNow;
+            rel.UpdatedAt = DateTime.UtcNow;
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
         return Result<bool>.Success(true);
     }

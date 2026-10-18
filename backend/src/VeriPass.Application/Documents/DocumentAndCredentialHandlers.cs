@@ -21,7 +21,12 @@ public record DocumentDto(
     string Status,
     DateTime UploadedAt,
     decimal? ExtractionConfidence,
-    Dictionary<string, string>? ExtractedFields);
+    Dictionary<string, string>? ExtractedFields,
+    string? Title = null,
+    DateTime? IssuedDate = null,
+    DateTime? ExpiryDate = null,
+    string? Issuer = null,
+    string? CredentialNumber = null);
 
 public record CredentialDto(
     Guid Id,
@@ -55,7 +60,9 @@ public record UploadDocumentCommand(
     Stream FileStream,
     Guid? UserId,
     string? CredentialNumber = null,
-    string? CredentialName = null) : IRequest<Result<DocumentUploadResultDto>>;
+    string? CredentialName = null,
+    DateTime? IssueDate = null,
+    string? Issuer = null) : IRequest<Result<DocumentUploadResultDto>>;
 
 public class UploadDocumentCommandHandler : IRequestHandler<UploadDocumentCommand, Result<DocumentUploadResultDto>>
 {
@@ -95,6 +102,25 @@ public class UploadDocumentCommandHandler : IRequestHandler<UploadDocumentComman
         // 2. Perform OCR & Intelligence Extraction
         var extraction = await _docIntelligence.ExtractAndAnalyzeAsync(
             request.FileStream, request.DocumentType, cancellationToken);
+
+        // Incorporate custom user-supplied credential metadata
+        if (!string.IsNullOrWhiteSpace(request.CredentialName))
+        {
+            extraction.Fields["CredentialName"] = request.CredentialName.Trim();
+            extraction.Fields["Title"] = request.CredentialName.Trim();
+        }
+        if (!string.IsNullOrWhiteSpace(request.CredentialNumber))
+        {
+            extraction.Fields["CredentialNumber"] = request.CredentialNumber.Trim();
+        }
+        if (!string.IsNullOrWhiteSpace(request.Issuer))
+        {
+            extraction.Fields["Issuer"] = request.Issuer.Trim();
+        }
+        if (request.IssueDate.HasValue)
+        {
+            extraction.Fields["IssueDate"] = request.IssueDate.Value.ToString("yyyy-MM-dd");
+        }
 
         // 3. Create Document Entity
         var document = new Document
@@ -159,6 +185,11 @@ public class UploadDocumentCommandHandler : IRequestHandler<UploadDocumentComman
         Credential? credential = null;
         if (credentialType != null)
         {
+            var chosenIssuedDate = request.IssueDate ?? DateTime.UtcNow;
+            var chosenIssuer = !string.IsNullOrWhiteSpace(request.Issuer)
+                ? request.Issuer.Trim()
+                : (credentialType.VerificationProvider ?? "GOVERNMENT_OF_INDIA");
+
             credential = business.Credentials.FirstOrDefault(c => c.CredentialTypeId == credentialType.Id);
             if (credential == null)
             {
@@ -167,9 +198,9 @@ public class UploadDocumentCommandHandler : IRequestHandler<UploadDocumentComman
                     BusinessId = business.Id,
                     CredentialTypeId = credentialType.Id,
                     CredentialDisplayValue = identifierToVerify,
-                    Issuer = credentialType.VerificationProvider ?? "GOVERNMENT_OF_INDIA",
-                    IssuedDate = DateTime.UtcNow.AddYears(-2),
-                    ExpiryDate = credentialType.RequiresExpiry ? DateTime.UtcNow.AddYears(1) : null,
+                    Issuer = chosenIssuer,
+                    IssuedDate = chosenIssuedDate,
+                    ExpiryDate = credentialType.RequiresExpiry ? chosenIssuedDate.AddYears(1) : null,
                     Status = CredentialStatus.SUBMITTED,
                     VerificationStatus = verificationResult.Status,
                     LastVerifiedAt = DateTime.UtcNow,
@@ -180,6 +211,8 @@ public class UploadDocumentCommandHandler : IRequestHandler<UploadDocumentComman
             else
             {
                 credential.CredentialDisplayValue = identifierToVerify;
+                if (!string.IsNullOrWhiteSpace(request.Issuer)) credential.Issuer = request.Issuer.Trim();
+                if (request.IssueDate.HasValue) credential.IssuedDate = request.IssueDate.Value;
                 credential.VerificationStatus = verificationResult.Status;
                 credential.LastVerifiedAt = DateTime.UtcNow;
                 credential.MetadataJson = JsonSerializer.Serialize(verificationResult.Data);
@@ -188,20 +221,29 @@ public class UploadDocumentCommandHandler : IRequestHandler<UploadDocumentComman
             document.Credential = credential;
         }
 
-        // Update Business Primary Identifiers if extracted
+        // Update Business Primary Identifiers if extracted and unique
         if (extraction.Fields.TryGetValue("Gstin", out var extractedGstin) && string.IsNullOrEmpty(business.Gstin))
-            business.Gstin = extractedGstin;
+        {
+            var exists = await _context.Businesses.AnyAsync(b => b.Gstin == extractedGstin && b.Id != business.Id, cancellationToken);
+            if (!exists) business.Gstin = extractedGstin;
+        }
         if (extraction.Fields.TryGetValue("Pan", out var extractedPan) && string.IsNullOrEmpty(business.Pan))
-            business.Pan = extractedPan;
+        {
+            var exists = await _context.Businesses.AnyAsync(b => b.Pan == extractedPan && b.Id != business.Id, cancellationToken);
+            if (!exists) business.Pan = extractedPan;
+        }
         if (extraction.Fields.TryGetValue("UdyamNumber", out var extractedUdyam) && string.IsNullOrEmpty(business.UdyamNumber))
-            business.UdyamNumber = extractedUdyam;
+        {
+            var exists = await _context.Businesses.AnyAsync(b => b.UdyamNumber == extractedUdyam && b.Id != business.Id, cancellationToken);
+            if (!exists) business.UdyamNumber = extractedUdyam;
+        }
 
         // 7. Create Verification Case and Checks
         var verificationCase = new VerificationCase
         {
             BusinessId = business.Id,
             Credential = credential,
-            VerificationType = "AUTOMATED_EXTRACTION",
+            VerificationType = DocumentScoringPolicy.NormalizeType(request.DocumentType),
             Status = verificationResult.Status,
             Priority = "NORMAL",
             FinalDecision = verificationResult.IsValid ? VerificationDecision.APPROVED : VerificationDecision.NONE,
@@ -341,6 +383,8 @@ public class GetBusinessDocumentsQueryHandler : IRequestHandler<GetBusinessDocum
     public async Task<Result<List<DocumentDto>>> Handle(GetBusinessDocumentsQuery request, CancellationToken cancellationToken)
     {
         var docs = await _context.Documents
+            .Include(d => d.Credential)
+                .ThenInclude(c => c!.CredentialType)
             .Where(d => d.BusinessId == request.BusinessId || d.Business.OrganizationId == request.BusinessId)
             .OrderByDescending(d => d.UploadedAt)
             .ToListAsync(cancellationToken);
@@ -351,6 +395,41 @@ public class GetBusinessDocumentsQueryHandler : IRequestHandler<GetBusinessDocum
             if (!string.IsNullOrEmpty(d.ExtractedDataJson))
             {
                 try { fields = JsonSerializer.Deserialize<Dictionary<string, string>>(d.ExtractedDataJson); } catch { }
+            }
+
+            string? title = null;
+            if (fields != null && fields.TryGetValue("CredentialName", out var credNameVal) && !string.IsNullOrWhiteSpace(credNameVal))
+            {
+                title = credNameVal;
+            }
+            else if (fields != null && fields.TryGetValue("Title", out var titleVal) && !string.IsNullOrWhiteSpace(titleVal))
+            {
+                title = titleVal;
+            }
+            else if (!string.IsNullOrWhiteSpace(d.Credential?.CredentialType?.Name))
+            {
+                title = d.Credential.CredentialType.Name;
+            }
+
+            DateTime? issuedDate = d.Credential?.IssuedDate;
+            if (!issuedDate.HasValue && fields != null && fields.TryGetValue("IssueDate", out var issueDateStr))
+            {
+                if (DateTime.TryParse(issueDateStr, out var parsedDate))
+                {
+                    issuedDate = parsedDate;
+                }
+            }
+
+            string? credNumber = d.Credential?.CredentialDisplayValue;
+            if (string.IsNullOrWhiteSpace(credNumber) && fields != null && fields.TryGetValue("CredentialNumber", out var numVal))
+            {
+                credNumber = numVal;
+            }
+
+            string? issuer = d.Credential?.Issuer;
+            if (string.IsNullOrWhiteSpace(issuer) && fields != null && fields.TryGetValue("Issuer", out var issuerVal))
+            {
+                issuer = issuerVal;
             }
 
             return new DocumentDto(
@@ -365,7 +444,12 @@ public class GetBusinessDocumentsQueryHandler : IRequestHandler<GetBusinessDocum
                 d.Status.ToString(),
                 d.UploadedAt,
                 d.ExtractionConfidence,
-                fields
+                fields,
+                title,
+                issuedDate,
+                d.Credential?.ExpiryDate,
+                issuer,
+                credNumber
             );
         }).ToList();
 

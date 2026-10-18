@@ -9,6 +9,21 @@ public sealed class Gstin
     public string Value { get; }
     public string StateCode => Value.Length >= 2 ? Value[..2] : string.Empty;
     public string Pan => Value.Length >= 12 ? Value.Substring(2, 10) : string.Empty;
+    public string EmbeddedPan => Pan;
+
+    public bool IsValidStateCode
+    {
+        get
+        {
+            if (int.TryParse(StateCode, out var code))
+            {
+                return (code >= 1 && code <= 38) || code == 97 || code == 99;
+            }
+            return false;
+        }
+    }
+
+    public bool IsValidChecksum => VerifyChecksum(Value, out _);
 
     public Gstin(string value)
     {
@@ -31,6 +46,35 @@ public sealed class Gstin
 
         result = new Gstin(formatted);
         return true;
+    }
+
+    /// <summary>
+    /// Computes and verifies the 15th character checksum according to the official GSTN Mod-36 specification.
+    /// </summary>
+    public static bool VerifyChecksum(string? gstin, out char expectedChecksumChar)
+    {
+        expectedChecksumChar = ' ';
+        if (string.IsNullOrWhiteSpace(gstin) || gstin.Trim().Length != 15) return false;
+
+        var upper = gstin.Trim().ToUpperInvariant();
+        const string alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+        int sum = 0;
+        for (int i = 0; i < 14; i++)
+        {
+            int val = alphabet.IndexOf(upper[i]);
+            if (val < 0) return false;
+
+            int factor = (i % 2 == 0) ? 1 : 2;
+            int product = val * factor;
+            sum += (product / 36) + (product % 36);
+        }
+
+        int remainder = sum % 36;
+        int checkCode = (36 - remainder) % 36;
+        expectedChecksumChar = alphabet[checkCode];
+
+        return upper[14] == expectedChecksumChar;
     }
 
     public override string ToString() => Value;

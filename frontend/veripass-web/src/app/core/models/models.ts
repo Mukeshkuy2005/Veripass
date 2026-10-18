@@ -126,6 +126,11 @@ export interface DocumentDto {
   uploadedAt: string;
   extractionConfidence?: number;
   extractedFields?: Record<string, string>;
+  title?: string;
+  issuedDate?: string;
+  expiryDate?: string;
+  issuer?: string;
+  credentialNumber?: string;
 }
 
 export interface CredentialDto {
@@ -766,6 +771,10 @@ export interface SupplierSearchItem {
   industry?: string;
   verificationStatus: string;
   trustScore: number;
+  complianceStatus?: 'Compliant' | 'Incomplete' | 'VerificationFailed' | string;
+  isSelectable?: boolean;
+  trustLevel?: string;
+  riskScore?: number;
 }
 
 export interface RequirementCatalogueItem {
@@ -798,5 +807,66 @@ export interface ApproveOnboardingPayload {
 export interface RejectOnboardingPayload {
   reason: string;
 }
+
+// Buyer-Specific Weighted Trust Scoring Models
+export interface RuleExecutionDetail {
+  ruleCode: string;
+  ruleName: string;
+  credentialType: string;
+  validationType: string;
+  passed: boolean;
+  status: string; // 'PASSED' | 'FAILED' | 'ESCALATED' | 'NOT_CONFIGURED' | 'SKIPPED'
+  reason?: string | null;
+  executedAt: string;
+  severity: string;
+}
+
+export interface CredentialBreakdownDto {
+  credentialType: string;
+  weight: number;
+  isRequired: boolean;
+  status: string; // 'APPROVED' | 'PENDING' | 'EXPIRED' | 'REJECTED' | 'MISSING' | 'ESCALATED'
+  ruleFailed: boolean;
+  pointsEarned: number;
+  contribution: number;
+  ruleFailedReason?: string | null;
+  ruleDetails?: RuleExecutionDetail[] | null;
+}
+
+export interface BuyerTrustScoreDto {
+  buyerId: string;
+  supplierId: string;
+  supplierName: string;
+  score: number;
+  trustLevel: 'Low' | 'Medium' | 'High' | string;
+  riskScore: number;
+  complianceStatus: 'Compliant' | 'Incomplete' | 'VerificationFailed' | string;
+  isSelectable: boolean;
+  profileVersion: number;
+  calculatedAt: string;
+  breakdown: CredentialBreakdownDto[];
+  configurationSource?: 'BUYER' | 'PLATFORM_DEFAULT' | string;
+}
+
+export interface RequirementConfigDto {
+  type: string;
+  isRequired: boolean;
+  weight: number;
+  rules?: string | null;
+  credentialTypeId?: string | null;
+}
+
+export interface BuyerVerificationProfileDto {
+  id: string;
+  buyerOrganizationId: string;
+  name: string;
+  description?: string | null;
+  version: number;
+  isActive: boolean;
+  isDefault: boolean;
+  totalWeight: number;
+  requirements: RequirementConfigDto[];
+}
+
 
 

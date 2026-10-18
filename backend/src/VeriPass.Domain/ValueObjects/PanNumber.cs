@@ -8,6 +8,20 @@ public sealed class PanNumber
 
     public string Value { get; }
     public char EntityType => Value.Length >= 4 ? Value[3] : ' ';
+    public char EntityInitial => Value.Length >= 5 ? Value[4] : ' ';
+
+    /// <summary>
+    /// Valid Indian PAN entity types:
+    /// C: Company, P: Person, H: HUF, F: Firm/LLP, A: AOP, T: Trust, B: BOI, L: Local Authority, J: Artificial Juridical Person, G: Government
+    /// </summary>
+    public bool IsValidEntityType => "CPHFATBLJG".Contains(EntityType);
+
+    public bool MatchesLegalNameInitial(string? legalName)
+    {
+        if (string.IsNullOrWhiteSpace(legalName)) return false;
+        var trimmed = legalName.Trim().ToUpperInvariant();
+        return trimmed.StartsWith(EntityInitial);
+    }
 
     public PanNumber(string value)
     {

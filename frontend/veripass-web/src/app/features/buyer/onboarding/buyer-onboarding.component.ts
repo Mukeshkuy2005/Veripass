@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { OnboardingService } from '../../../core/services/onboarding.service';
 import { BuyerSearchService } from '../../../core/services/buyer-search.service';
+import { BuyerTrustScoreService } from '../../../core/services/buyer-trust-score.service';
 import {
   OnboardingRequestSummary,
   OnboardingStatusCounts,
@@ -24,6 +25,7 @@ export class BuyerOnboardingComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   public searchService = inject(BuyerSearchService);
+  private trustScoreService = inject(BuyerTrustScoreService);
 
   // State Signals
   requests = signal<OnboardingRequestSummary[]>([]);
@@ -250,10 +252,35 @@ export class BuyerOnboardingComponent implements OnInit {
 
     this.onboardingService.searchSuppliers(query || undefined).subscribe({
       next: (results) => {
-        // Enforce buyer supplier selection rule: only score > 50
-        const suppliersList = (results || []).filter(s => (s.trustScore ?? 0) > 50);
-        this.supplierSearchResults.set(suppliersList);
-        this.isSearchingSuppliers.set(false);
+        const suppliersList = results || [];
+        if (suppliersList.length > 0) {
+          const supplierIds = suppliersList.map(s => s.id);
+          this.trustScoreService.getBatchTrustScores('me', supplierIds).subscribe({
+            next: (scores) => {
+              const scoreMap = new Map(scores.map(sc => [sc.supplierId, sc]));
+              const enriched = suppliersList.map(s => {
+                const sc = scoreMap.get(s.id);
+                return sc ? {
+                  ...s,
+                  trustScore: sc.score,
+                  complianceStatus: sc.complianceStatus,
+                  isSelectable: sc.isSelectable,
+                  trustLevel: sc.trustLevel,
+                  riskScore: sc.riskScore
+                } : s;
+              });
+              this.supplierSearchResults.set(enriched);
+              this.isSearchingSuppliers.set(false);
+            },
+            error: () => {
+              this.supplierSearchResults.set(suppliersList);
+              this.isSearchingSuppliers.set(false);
+            }
+          });
+        } else {
+          this.supplierSearchResults.set([]);
+          this.isSearchingSuppliers.set(false);
+        }
       },
       error: (err) => {
         console.error('Error searching suppliers from backend:', err);
@@ -264,6 +291,12 @@ export class BuyerOnboardingComponent implements OnInit {
   }
 
   selectSupplier(supplier: SupplierSearchItem): void {
+    if (supplier.complianceStatus === 'VerificationFailed' || supplier.isSelectable === false) {
+      this.errorMsg.set(`Selection Blocked: ${supplier.businessName} has failed mandatory compliance verification or credentials have expired.`);
+      return;
+    }
+
+    this.errorMsg.set(null);
     this.selectedSupplier.set(supplier);
     if (!this.formPurpose) {
       this.formPurpose = `Empanelment & Procurement for ${supplier.businessName}`;

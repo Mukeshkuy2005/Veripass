@@ -29,6 +29,21 @@ public class TrustScoreSnapshotConfiguration : IEntityTypeConfiguration<TrustSco
             .HasForeignKey(x => x.BusinessId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasOne(x => x.Buyer)
+            .WithMany()
+            .HasForeignKey(x => x.BuyerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.Supplier)
+            .WithMany()
+            .HasForeignKey(x => x.SupplierId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Property(x => x.Level).HasMaxLength(20);
+        builder.Property(x => x.Compliance).HasMaxLength(30);
+        builder.Property(x => x.ConfigurationSource).HasMaxLength(50).HasDefaultValue("BUYER");
+
         builder.HasIndex(x => new { x.BusinessId, x.CreatedAt });
+        builder.HasIndex(x => new { x.BuyerId, x.SupplierId, x.CalculatedAt });
     }
 }

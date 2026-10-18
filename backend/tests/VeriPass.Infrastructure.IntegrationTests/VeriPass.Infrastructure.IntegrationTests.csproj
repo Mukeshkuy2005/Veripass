@@ -27,6 +27,7 @@
     <ProjectReference Include="..\..\src\VeriPass.Infrastructure\VeriPass.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\VeriPass.Application\VeriPass.Application.csproj" />
     <ProjectReference Include="..\..\src\VeriPass.Domain\VeriPass.Domain.csproj" />
+    <ProjectReference Include="..\..\src\VeriPass.API\VeriPass.API.csproj" />
   </ItemGroup>
 
 </Project>

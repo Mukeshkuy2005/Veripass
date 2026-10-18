@@ -9,11 +9,16 @@ namespace VeriPass.Infrastructure.BackgroundJobs;
 public class DocumentExpiryJob
 {
     private readonly IApplicationDbContext _context;
+    private readonly IBuyerTrustScoreService _buyerTrustScoreService;
     private readonly ILogger<DocumentExpiryJob> _logger;
 
-    public DocumentExpiryJob(IApplicationDbContext context, ILogger<DocumentExpiryJob> logger)
+    public DocumentExpiryJob(
+        IApplicationDbContext context,
+        IBuyerTrustScoreService buyerTrustScoreService,
+        ILogger<DocumentExpiryJob> logger)
     {
         _context = context;
+        _buyerTrustScoreService = buyerTrustScoreService;
         _logger = logger;
     }
 
@@ -23,6 +28,7 @@ public class DocumentExpiryJob
 
         var now = DateTime.UtcNow;
         var thresholdDate = now.AddDays(30);
+        var affectedSupplierIds = new HashSet<Guid>();
 
         var expiringCredentials = await _context.Credentials
             .Include(c => c.CredentialType)
@@ -38,6 +44,7 @@ public class DocumentExpiryJob
             {
                 cred.Status = CredentialStatus.EXPIRED;
                 cred.VerificationStatus = VerificationStatus.EXPIRED;
+                affectedSupplierIds.Add(cred.BusinessId);
 
                 var expiredEvent = new ComplianceEvent
                 {
@@ -74,6 +81,19 @@ public class DocumentExpiryJob
         }
 
         await _context.SaveChangesAsync(cancellationToken);
-        _logger.LogInformation("Document Expiry Job processed {Count} expiring credentials.", expiringCredentials.Count);
+        _logger.LogInformation("Document Expiry Job processed {Count} expiring credentials. Recalculating for {AffectedCount} suppliers.", expiringCredentials.Count, affectedSupplierIds.Count);
+
+        // Recalculate affected buyer-supplier pairs
+        foreach (var supplierId in affectedSupplierIds)
+        {
+            try
+            {
+                await _buyerTrustScoreService.RecalculateAllForSupplierAsync(supplierId, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to recalculate trust score for expired supplier {SupplierId}", supplierId);
+            }
+        }
     }
 }

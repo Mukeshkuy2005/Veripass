@@ -41,5 +41,9 @@ public class ComplianceRuleConfiguration : IEntityTypeConfiguration<ComplianceRu
         builder.Property(x => x.Category).HasMaxLength(50).IsRequired();
         builder.Property(x => x.Severity).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(x => x.RuleExpressionJson).HasColumnType("jsonb");
+        builder.Property(x => x.CredentialType).HasMaxLength(50);
+        builder.Property(x => x.ValidationType).HasMaxLength(50);
+        builder.Property(x => x.IsRequired).HasDefaultValue(true);
+        builder.Property(x => x.DefaultWeight).HasDefaultValue(0);
     }
 }

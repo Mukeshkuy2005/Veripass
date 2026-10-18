@@ -39,28 +39,28 @@ public class AdminController : ControllerBase
     }
 
     [HttpGet("businesses/{id}")]
-    public async Task<IActionResult> GetBusinessById(Guid id)
+    public async Task<IActionResult> GetBusinessById(string id)
     {
         var result = await _mediator.Send(new GetAdminBusinessByIdQuery(id));
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { message = result.Error });
     }
 
     [HttpPost("businesses/{id}/suspend")]
-    public async Task<IActionResult> SuspendBusiness(Guid id, [FromBody] ActionReasonRequest? request)
+    public async Task<IActionResult> SuspendBusiness(string id, [FromBody] ActionReasonRequest? request)
     {
         var result = await _mediator.Send(new SuspendBusinessCommand(id, request?.Reason ?? "Suspended by admin compliance"));
         return result.IsSuccess ? Ok(new { success = true }) : BadRequest(new { message = result.Error });
     }
 
     [HttpPost("businesses/{id}/activate")]
-    public async Task<IActionResult> ActivateBusiness(Guid id)
+    public async Task<IActionResult> ActivateBusiness(string id)
     {
         var result = await _mediator.Send(new ActivateBusinessCommand(id));
         return result.IsSuccess ? Ok(new { success = true }) : BadRequest(new { message = result.Error });
     }
 
     [HttpPost("businesses/{id}/flag")]
-    public async Task<IActionResult> FlagBusiness(Guid id, [FromBody] ActionReasonRequest? request)
+    public async Task<IActionResult> FlagBusiness(string id, [FromBody] ActionReasonRequest? request)
     {
         var result = await _mediator.Send(new FlagBusinessCommand(id, request?.Reason ?? "Flagged by admin compliance"));
         return result.IsSuccess ? Ok(new { success = true }) : BadRequest(new { message = result.Error });
@@ -125,7 +125,17 @@ public class AdminController : ControllerBase
     public async Task<IActionResult> UpdateRule(Guid id, [FromBody] UpdateComplianceRuleRequest request)
     {
         var command = new UpdateComplianceRuleCommand(
-            id, request.Name, request.Category, request.Severity, request.Description, request.IsActive);
+            id,
+            request.Name,
+            request.Category,
+            request.Severity,
+            request.Description,
+            request.IsActive,
+            request.CredentialType,
+            request.ValidationType,
+            request.IsRequired,
+            request.DefaultWeight,
+            request.RuleExpressionJson);
         var result = await _mediator.Send(command);
         return result.IsSuccess ? Ok(new { success = true }) : BadRequest(new { message = result.Error });
     }
@@ -162,6 +172,16 @@ public class AdminController : ControllerBase
 
     public record ActionReasonRequest(string? Reason);
     public record UpdateCredentialTypeRequest(string Name, string Category, bool IsRequired, bool RequiresExpiry, string? VerificationProvider, string? Description, bool IsActive);
-    public record UpdateComplianceRuleRequest(string Name, string Category, ComplianceSeverity Severity, string Description, bool IsActive);
+    public record UpdateComplianceRuleRequest(
+        string Name,
+        string Category,
+        ComplianceSeverity Severity,
+        string Description,
+        bool IsActive,
+        string? CredentialType = null,
+        string? ValidationType = null,
+        bool IsRequired = true,
+        int DefaultWeight = 0,
+        string? RuleExpressionJson = null);
     public record UpdateUserRequest(string Status);
 }

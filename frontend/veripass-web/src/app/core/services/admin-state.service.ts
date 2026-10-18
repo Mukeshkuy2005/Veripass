@@ -1,4 +1,5 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
+import { ApiService } from './api.service';
 
 export interface AdminBusiness {
   passportId: string;
@@ -178,6 +179,120 @@ export interface SecurityEventAlert {
   providedIn: 'root'
 })
 export class AdminStateService {
+  private api = inject(ApiService);
+
+  constructor() {
+    this.loadBusinesses();
+    this.loadDashboardMetrics();
+    this.loadBuyers();
+    this.loadAuditLogs();
+  }
+
+  loadBusinesses(): void {
+    this.api.get<any[]>('admin/businesses').subscribe({
+      next: (list) => {
+        if (Array.isArray(list) && list.length > 0) {
+          const mapped: AdminBusiness[] = list.map(b => {
+            const rawStatus = (b.verificationStatus || '').toUpperCase();
+            let status: 'ACTIVE' | 'FLAGGED' | 'SUSPENDED' = 'ACTIVE';
+            if (rawStatus === 'FLAGGED') status = 'FLAGGED';
+            else if (rawStatus === 'SUSPENDED' || rawStatus === 'REJECTED') status = 'SUSPENDED';
+
+            const score = b.trustScore ?? 0;
+            let risk: 'LOW' | 'MEDIUM' | 'HIGH' = 'LOW';
+            if (b.riskRating) {
+              const r = b.riskRating.toUpperCase();
+              risk = r === 'HIGH' ? 'HIGH' : (r === 'MEDIUM' ? 'MEDIUM' : 'LOW');
+            } else {
+              risk = score < 50 ? 'HIGH' : (score < 75 ? 'MEDIUM' : 'LOW');
+            }
+
+            return {
+              passportId: b.passportId || b.businessIdNumber || b.id,
+              businessName: b.tradeName || b.legalName || 'Registered Enterprise',
+              legalName: b.legalName || 'Registered Enterprise',
+              gstin: b.gstin || '—',
+              cin: b.cin || '—',
+              verifyScore: score,
+              riskRating: risk,
+              status: status,
+              industry: b.industry || 'Precision Manufacturing & Engineering',
+              state: b.state || 'Maharashtra',
+              registeredDate: b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recent',
+              credentialsCount: b.credentialsCount ?? 0,
+              flagReason: b.flagReason,
+              suspensionReason: b.suspensionReason
+            };
+          });
+          this.businessesSignal.set(mapped);
+        }
+      },
+      error: (err) => console.warn('Could not fetch admin businesses, using local default:', err)
+    });
+  }
+
+  loadDashboardMetrics(): void {
+    this.api.get<any>('admin/dashboard').subscribe({
+      next: (d) => {
+        if (d) {
+          this.platformKpis.update(prev => ({
+            ...prev,
+            totalBusinesses: d.totalBusinesses ?? prev.totalBusinesses,
+            verifiedBusinesses: d.totalVerifiedPassports ?? prev.verifiedBusinesses,
+            pendingCases: d.pendingVerifications ?? prev.pendingCases,
+            highRiskBusinesses: d.activeRiskSignals ?? prev.highRiskBusinesses,
+            totalDisputes: d.openDisputes ?? prev.totalDisputes
+          }));
+        }
+      },
+      error: (err) => console.warn('Could not fetch admin dashboard, using local default:', err)
+    });
+  }
+
+  loadBuyers(): void {
+    this.api.get<any[]>('admin/buyers').subscribe({
+      next: (list) => {
+        if (Array.isArray(list) && list.length > 0) {
+          const mapped: AdminBuyer[] = list.map(b => ({
+            orgId: b.id || b.orgId,
+            organizationName: b.name || b.organizationName || 'Procurement Organization',
+            industry: b.industry || 'Procurement & Supply Chain',
+            usersCount: b.memberCount ?? b.usersCount ?? 1,
+            suppliersCount: b.supplierCount ?? b.suppliersCount ?? 0,
+            verificationRequestsCount: b.verificationRequestsCount ?? 0,
+            status: (b.status?.toUpperCase() as any) || 'ACTIVE',
+            joinedDate: b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '10 Jan 2026'
+          }));
+          this.buyersSignal.set(mapped);
+        }
+      },
+      error: (err) => console.warn('Could not fetch admin buyers:', err)
+    });
+  }
+
+  loadAuditLogs(): void {
+    this.api.get<any[]>('admin/audit-logs').subscribe({
+      next: (logs) => {
+        if (Array.isArray(logs) && logs.length > 0) {
+          const mapped: AdminAuditLog[] = logs.map(a => ({
+            id: a.id ? (typeof a.id === 'string' ? a.id : a.id.toString()) : 'AUD-' + Math.floor(Math.random() * 100000),
+            time: a.createdAt ? new Date(a.createdAt).toLocaleString('en-GB') : 'Just now',
+            actor: a.userEmail || a.userId || 'admin@veripass.in',
+            role: 'PLATFORM_ADMIN',
+            action: a.action || 'ACTIVITY_LOGGED',
+            resource: a.resourceType || a.resourceId || 'System',
+            result: (a.result?.toUpperCase() as any) || 'SUCCESS',
+            ip: a.ipAddress || '127.0.0.1',
+            correlationId: 'REQ-' + (a.id ? a.id.toString().substring(0, 8) : '001'),
+            reason: a.description || 'System action executed'
+          }));
+          this.auditLogsSignal.set(mapped);
+        }
+      },
+      error: (err) => console.warn('Could not fetch admin audit logs:', err)
+    });
+  }
+
   // Platform Metrics Signals
   platformKpis = signal({
     totalBusinesses: 84291,
@@ -751,6 +866,11 @@ export class AdminStateService {
       all.map(b => (b.passportId === passportId ? { ...b, status: 'FLAGGED', flagReason: reason } : b))
     );
     this.recordAudit('BUSINESS_FLAGGED', passportId, `Flagged for investigation: ${reason}`, 'ACTIVE', 'FLAGGED');
+
+    this.api.post<{ success: boolean }>(`admin/businesses/${encodeURIComponent(passportId)}/flag`, { reason }).subscribe({
+      next: () => this.loadBusinesses(),
+      error: (err) => console.warn('Server sync failed for flagBusiness:', err)
+    });
   }
 
   suspendBusiness(passportId: string, reason: string): void {
@@ -759,6 +879,11 @@ export class AdminStateService {
       all.map(b => (b.passportId === passportId ? { ...b, status: 'SUSPENDED', suspensionReason: reason } : b))
     );
     this.recordAudit('BUSINESS_SUSPENDED', passportId, reason, prev, 'SUSPENDED');
+
+    this.api.post<{ success: boolean }>(`admin/businesses/${encodeURIComponent(passportId)}/suspend`, { reason }).subscribe({
+      next: () => this.loadBusinesses(),
+      error: (err) => console.warn('Server sync failed for suspendBusiness:', err)
+    });
   }
 
   reactivateBusiness(passportId: string): void {
@@ -767,6 +892,11 @@ export class AdminStateService {
       all.map(b => (b.passportId === passportId ? { ...b, status: 'ACTIVE', suspensionReason: undefined, flagReason: undefined } : b))
     );
     this.recordAudit('BUSINESS_REACTIVATED', passportId, 'Compliance verification satisfied. Business reinstated.', prev, 'ACTIVE');
+
+    this.api.post<{ success: boolean }>(`admin/businesses/${encodeURIComponent(passportId)}/activate`, {}).subscribe({
+      next: () => this.loadBusinesses(),
+      error: (err) => console.warn('Server sync failed for reactivateBusiness:', err)
+    });
   }
 
   suspendBuyer(orgId: string, reason: string): void {

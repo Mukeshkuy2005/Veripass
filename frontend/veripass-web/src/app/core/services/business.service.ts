@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError, tap, switchMap, map } from 'rxjs/operators';
 import { ApiService } from './api.service';
 import {
   BusinessDashboardDto,
@@ -98,13 +98,55 @@ export class BusinessService {
     this.saveProfileLocally(merged);
 
     // Sync with backend API if accessible
-    if (merged.id && !merged.id.startsWith('biz-')) {
-      this.api.put(`businesses/${merged.id}`, merged).pipe(
-        catchError(() => of(merged))
-      ).subscribe();
-    }
+    const targetId = (merged.id && !merged.id.startsWith('biz-')) ? merged.id : (merged.organizationId || 'current');
+    const updatePayload = {
+      businessId: (merged.id && !merged.id.startsWith('biz-')) ? merged.id : '00000000-0000-0000-0000-000000000000',
+      legalName: merged.legalName || 'Supplier Business',
+      tradeName: merged.tradeName || merged.legalName,
+      businessType: merged.businessType,
+      pan: merged.pan,
+      gstin: merged.gstin,
+      cin: merged.cin,
+      udyamNumber: merged.udyamNumber,
+      website: merged.website,
+      employeeCount: merged.employeeCount,
+      description: merged.description,
+      addresses: merged.addresses?.map(a => ({
+        addressType: a.addressType || 'REGISTERED',
+        line1: a.line1 || '',
+        line2: a.line2 || '',
+        city: a.city || '',
+        district: a.district || '',
+        state: a.state || '',
+        pincode: a.pincode || '',
+        country: a.country || 'India',
+        isPrimary: a.isPrimary ?? true
+      })) || []
+    };
 
-    return of(merged);
+    return this.api.put<{ success: boolean; businessId?: string }>(`businesses/${targetId}`, updatePayload).pipe(
+      switchMap(res => {
+        const idToFetch = res?.businessId || targetId;
+        return this.api.get<BusinessProfileDto>(`businesses/${idToFetch}`).pipe(
+          tap(fresh => {
+            if (fresh) {
+              const fullProfile: BusinessProfileDto = {
+                ...merged,
+                ...fresh,
+                id: fresh.id || merged.id
+              };
+              this.saveProfileLocally(fullProfile);
+            }
+          }),
+          map(fresh => ({ ...merged, ...fresh })),
+          catchError(() => of(merged))
+        );
+      }),
+      catchError(err => {
+        console.warn('Backend update failed, using local profile fallback:', err);
+        return of(merged);
+      })
+    );
   }
 
   updatePrimaryContact(contact: { name: string; email: string; phone?: string }): void {
@@ -136,11 +178,19 @@ export class BusinessService {
 
   getProfile(businessId: string): Observable<BusinessProfileDto> {
     const stored = this.currentProfile();
-    if (stored && (stored.id === businessId || stored.organizationId === businessId)) {
-      return of(stored);
-    }
     return this.api.get<BusinessProfileDto>(`businesses/${businessId}`).pipe(
-      tap(p => this.saveProfileLocally(p)),
+      tap(p => {
+        if (p) {
+          const merged: BusinessProfileDto = {
+            ...(stored || {}),
+            ...p,
+            id: p.id || stored?.id || businessId,
+            trustScore: p.trustScore ?? stored?.trustScore ?? 0,
+            verificationStatus: p.verificationStatus || stored?.verificationStatus || 'PENDING'
+          };
+          this.saveProfileLocally(merged);
+        }
+      }),
       catchError(() => {
         if (stored) return of(stored);
         return of(this.getEmptyProfile(businessId));
@@ -163,12 +213,22 @@ export class BusinessService {
     );
   }
 
-  uploadDocument(businessId: string, documentType: string, file: File, credentialNumber?: string, credentialName?: string): Observable<DocumentUploadResultDto> {
+  uploadDocument(
+    businessId: string, 
+    documentType: string, 
+    file: File, 
+    credentialNumber?: string, 
+    credentialName?: string,
+    issueDate?: string,
+    issuer?: string
+  ): Observable<DocumentUploadResultDto> {
     const formData = new FormData();
     formData.append('documentType', documentType);
     formData.append('file', file);
     if (credentialNumber) formData.append('credentialNumber', credentialNumber);
     if (credentialName) formData.append('credentialName', credentialName);
+    if (issueDate) formData.append('issueDate', issueDate);
+    if (issuer) formData.append('issuer', issuer);
     return this.api.upload<DocumentUploadResultDto>(`businesses/${businessId}/documents`, formData);
   }
 

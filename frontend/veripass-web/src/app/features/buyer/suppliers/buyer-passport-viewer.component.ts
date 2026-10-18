@@ -31,6 +31,9 @@ export interface AuditRecord {
   actor: string;
 }
 
+import { BuyerTrustScoreService } from '../../../core/services/buyer-trust-score.service';
+import { BuyerTrustScoreDto } from '../../../core/models/models';
+
 @Component({
   selector: 'app-buyer-passport-viewer',
   standalone: true,
@@ -43,10 +46,12 @@ export class BuyerPassportViewerComponent implements OnInit {
   private http = inject(HttpClient);
   private auth = inject(AuthService);
   private searchService = inject(BuyerSearchService);
+  private trustScoreService = inject(BuyerTrustScoreService);
 
   private readonly apiUrl = 'http://localhost:5000/api/v1';
 
   supplier = signal<BuyerSupplier | undefined>(undefined);
+  buyerTrustScore = signal<BuyerTrustScoreDto | null>(null);
   activeTab = signal<'overview' | 'identity' | 'verification' | 'compliance' | 'certifications' | 'activity'>('overview');
 
   directors: DirectorDetail[] = [];
@@ -58,6 +63,7 @@ export class BuyerPassportViewerComponent implements OnInit {
     this.route.paramMap.subscribe(params => {
       const id = params.get('supplierId');
       if (!id) return;
+      this.loadBuyerTrustScore(id);
       const s = this.searchService.getSupplierById(id) || this.searchService.filteredSuppliers().find(x => x.id === id);
       if (s) {
         this.supplier.set(s);
@@ -96,6 +102,26 @@ export class BuyerPassportViewerComponent implements OnInit {
             }
           }
         });
+      }
+    });
+  }
+
+  loadBuyerTrustScore(supplierId: string): void {
+    const orgId = this.auth.currentUser()?.currentOrganizationId || 'me';
+    this.trustScoreService.getSupplierTrustScore(orgId, supplierId).subscribe({
+      next: (scoreDto) => {
+        this.buyerTrustScore.set(scoreDto);
+        if (scoreDto) {
+          this.supplier.update(curr => curr ? {
+            ...curr,
+            trustScore: scoreDto.score,
+            complianceScore: scoreDto.score,
+            riskLevel: scoreDto.trustLevel === 'High' ? 'Low' : (scoreDto.trustLevel === 'Medium' ? 'Medium' : 'High')
+          } : curr);
+        }
+      },
+      error: (err) => {
+        console.warn('Could not load authoritative buyer trust score:', err);
       }
     });
   }

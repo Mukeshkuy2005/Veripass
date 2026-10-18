@@ -780,17 +780,20 @@ public class ApproveVerificationCommandHandler : IRequestHandler<ApproveVerifica
     private readonly ITrustScoreCalculator _trustScoreCalculator;
     private readonly ICurrentUserService _currentUserService;
     private readonly INotificationService? _notificationService;
+    private readonly IBuyerTrustScoreService? _buyerTrustScoreService;
 
     public ApproveVerificationCommandHandler(
         IApplicationDbContext context,
         ITrustScoreCalculator trustScoreCalculator,
         ICurrentUserService currentUserService,
-        INotificationService? notificationService = null)
+        INotificationService? notificationService = null,
+        IBuyerTrustScoreService? buyerTrustScoreService = null)
     {
         _context = context;
         _trustScoreCalculator = trustScoreCalculator;
         _currentUserService = currentUserService;
         _notificationService = notificationService;
+        _buyerTrustScoreService = buyerTrustScoreService;
     }
 
     public async Task<Result<VerificationApprovalResultDto>> Handle(ApproveVerificationCommand request, CancellationToken cancellationToken)
@@ -979,57 +982,80 @@ public class ApproveVerificationCommandHandler : IRequestHandler<ApproveVerifica
         var derivedRisk = SupplierRiskPolicy.DetermineRiskLevelSafe(calc.OverallScore);
         var buyerEligible = SupplierRiskPolicy.IsEligibleForBuyer(calc.OverallScore);
 
-        if (score != null)
+        if (score == null)
         {
-            score.OverallScore = calc.OverallScore;
-            score.IdentityScore = calc.IdentityScore;
-            score.CredentialScore = calc.CredentialScore;
-            score.ComplianceScore = calc.ComplianceScore;
-            score.VerificationScore = calc.VerificationScore;
-            score.RiskScore = calc.RiskScore;
-            score.LastCalculatedAt = DateTime.UtcNow;
+            score = new VeriPass.Domain.Entities.TrustScore { BusinessId = caseItem.BusinessId };
+            _context.TrustScores.Add(score);
+        }
 
-            _context.TrustScoreSnapshots.Add(new TrustScoreSnapshot
+        score.OverallScore = calc.OverallScore;
+        score.IdentityScore = calc.IdentityScore;
+        score.CredentialScore = calc.CredentialScore;
+        score.ComplianceScore = calc.ComplianceScore;
+        score.VerificationScore = calc.VerificationScore;
+        score.RiskScore = calc.RiskScore;
+        score.LastCalculatedAt = DateTime.UtcNow;
+
+        _context.TrustScoreSnapshots.Add(new TrustScoreSnapshot
+        {
+            BusinessId = caseItem.BusinessId,
+            OverallScore = calc.OverallScore,
+            IdentityScore = calc.IdentityScore,
+            CredentialScore = calc.CredentialScore,
+            ComplianceScore = calc.ComplianceScore,
+            VerificationScore = calc.VerificationScore,
+            RiskScore = calc.RiskScore,
+            Reason = $"Document & Case Approved: {caseItem.VerificationType}",
+            CalculationVersion = calc.Version
+        });
+
+        // Update BusinessPassport status and score
+        var passport = await _context.BusinessPassports.FirstOrDefaultAsync(p => p.BusinessId == caseItem.BusinessId, cancellationToken);
+        if (passport != null)
+        {
+            passport.VerificationScore = calc.OverallScore;
+            passport.LastVerifiedAt = DateTime.UtcNow;
+            if (passport.Status == "SUSPENDED" || passport.Status == "PENDING" || string.IsNullOrEmpty(passport.Status))
             {
-                BusinessId = caseItem.BusinessId,
-                OverallScore = calc.OverallScore,
-                IdentityScore = calc.IdentityScore,
-                CredentialScore = calc.CredentialScore,
-                ComplianceScore = calc.ComplianceScore,
-                VerificationScore = calc.VerificationScore,
-                RiskScore = calc.RiskScore,
-                Reason = $"Document & Case Approved: {caseItem.VerificationType}",
-                CalculationVersion = calc.Version
+                passport.Status = "ACTIVE";
+            }
+            passport.UpdatedAt = DateTime.UtcNow;
+        }
+
+        // Keep linked BuyerSupplierRelationships in sync with authoritative risk level
+        var relationships = await _context.BuyerSupplierRelationships
+            .Where(r => r.SupplierBusinessId == caseItem.BusinessId)
+            .ToListAsync(cancellationToken);
+        foreach (var rel in relationships)
+        {
+            rel.RiskLevel = derivedRisk;
+            rel.UpdatedAt = DateTime.UtcNow;
+        }
+
+        if (calc.OverallScore != oldScore)
+        {
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserId = _currentUserService.UserId,
+                Action = "SUPPLIER_RISK_SCORE_UPDATED",
+                Category = "RISK_SCORE",
+                ResourceType = "TRUST_SCORE",
+                ResourceId = caseItem.BusinessId.ToString(),
+                TargetName = caseItem.Business?.LegalName ?? "Supplier Trust Score",
+                Result = "SUCCESS",
+                EventCode = $"AUD-{Guid.NewGuid():N}"[..10].ToUpperInvariant(),
+                NewValuesJson = $"{{\"previousScore\":{oldScore},\"newScore\":{calc.OverallScore},\"riskLevel\":\"{derivedRisk}\",\"buyerEligible\":{(buyerEligible ? "true" : "false")}}}",
+                CreatedAt = DateTime.UtcNow
             });
-
-            // Keep linked BuyerSupplierRelationships in sync with authoritative risk level
-            var relationships = await _context.BuyerSupplierRelationships
-                .Where(r => r.SupplierBusinessId == caseItem.BusinessId)
-                .ToListAsync(cancellationToken);
-            foreach (var rel in relationships)
-            {
-                rel.RiskLevel = derivedRisk;
-            }
-
-            if (calc.OverallScore != oldScore)
-            {
-                _context.AuditLogs.Add(new AuditLog
-                {
-                    UserId = _currentUserService.UserId,
-                    Action = "SUPPLIER_RISK_SCORE_UPDATED",
-                    Category = "RISK_SCORE",
-                    ResourceType = "TRUST_SCORE",
-                    ResourceId = caseItem.BusinessId.ToString(),
-                    TargetName = caseItem.Business?.LegalName ?? "Supplier Trust Score",
-                    Result = "SUCCESS",
-                    EventCode = $"AUD-{Guid.NewGuid():N}"[..10].ToUpperInvariant(),
-                    NewValuesJson = $"{{\"previousScore\":{oldScore},\"newScore\":{calc.OverallScore},\"riskLevel\":\"{derivedRisk}\",\"buyerEligible\":{(buyerEligible ? "true" : "false")}}}",
-                    CreatedAt = DateTime.UtcNow
-                });
-            }
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Recalculate buyer-specific trust scores for all associated buyers
+        if (_buyerTrustScoreService != null)
+        {
+            await _buyerTrustScoreService.RecalculateAllForSupplierAsync(caseItem.BusinessId, cancellationToken);
+        }
 
         return Result<VerificationApprovalResultDto>.Success(new VerificationApprovalResultDto
         {
@@ -1058,17 +1084,20 @@ public class RejectVerificationCommandHandler : IRequestHandler<RejectVerificati
     private readonly ITrustScoreCalculator _trustScoreCalculator;
     private readonly ICurrentUserService _currentUserService;
     private readonly INotificationService? _notificationService;
+    private readonly IBuyerTrustScoreService? _buyerTrustScoreService;
 
     public RejectVerificationCommandHandler(
         IApplicationDbContext context,
         ITrustScoreCalculator trustScoreCalculator,
         ICurrentUserService currentUserService,
-        INotificationService? notificationService = null)
+        INotificationService? notificationService = null,
+        IBuyerTrustScoreService? buyerTrustScoreService = null)
     {
         _context = context;
         _trustScoreCalculator = trustScoreCalculator;
         _currentUserService = currentUserService;
         _notificationService = notificationService;
+        _buyerTrustScoreService = buyerTrustScoreService;
     }
 
     public async Task<Result<bool>> Handle(RejectVerificationCommand request, CancellationToken cancellationToken)
@@ -1116,6 +1145,20 @@ public class RejectVerificationCommandHandler : IRequestHandler<RejectVerificati
             caseItem.Credential.Status = CredentialStatus.REJECTED;
         }
 
+        // Synchronize associated documents to REJECTED
+        var normCaseType = DocumentScoringPolicy.NormalizeType(caseItem.VerificationType);
+        var docs = await _context.Documents
+            .Where(d => d.BusinessId == caseItem.BusinessId)
+            .ToListAsync(cancellationToken);
+        foreach (var doc in docs)
+        {
+            if (DocumentScoringPolicy.NormalizeType(doc.DocumentType) == normCaseType)
+            {
+                doc.Status = DocumentStatus.REJECTED;
+                doc.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
         // Record Audit Log
         _context.AuditLogs.Add(new AuditLog
         {
@@ -1133,6 +1176,55 @@ public class RejectVerificationCommandHandler : IRequestHandler<RejectVerificati
 
         await _context.SaveChangesAsync(cancellationToken);
 
+        // Recalculate Trust Score after rejection
+        var calc = await _trustScoreCalculator.CalculateAsync(caseItem.BusinessId, cancellationToken);
+        if (calc != null)
+        {
+            var score = await _context.TrustScores.FirstOrDefaultAsync(t => t.BusinessId == caseItem.BusinessId, cancellationToken);
+            if (score != null)
+            {
+                score.OverallScore = calc.OverallScore;
+                score.IdentityScore = calc.IdentityScore;
+                score.CredentialScore = calc.CredentialScore;
+                score.ComplianceScore = calc.ComplianceScore;
+                score.VerificationScore = calc.VerificationScore;
+                score.RiskScore = calc.RiskScore;
+                score.LastCalculatedAt = DateTime.UtcNow;
+
+                _context.TrustScoreSnapshots.Add(new TrustScoreSnapshot
+                {
+                    BusinessId = caseItem.BusinessId,
+                    OverallScore = calc.OverallScore,
+                    IdentityScore = calc.IdentityScore,
+                    CredentialScore = calc.CredentialScore,
+                    ComplianceScore = calc.ComplianceScore,
+                    VerificationScore = calc.VerificationScore,
+                    RiskScore = calc.RiskScore,
+                    Reason = $"Document & Case Rejected: {caseItem.VerificationType}",
+                    CalculationVersion = calc.Version
+                });
+            }
+
+            var passport = await _context.BusinessPassports.FirstOrDefaultAsync(p => p.BusinessId == caseItem.BusinessId, cancellationToken);
+            if (passport != null)
+            {
+                passport.VerificationScore = calc.OverallScore;
+                passport.UpdatedAt = DateTime.UtcNow;
+            }
+
+            var derivedRisk = SupplierRiskPolicy.DetermineRiskLevelSafe(calc.OverallScore);
+            var relationships = await _context.BuyerSupplierRelationships
+                .Where(r => r.SupplierBusinessId == caseItem.BusinessId)
+                .ToListAsync(cancellationToken);
+            foreach (var rel in relationships)
+            {
+                rel.RiskLevel = derivedRisk;
+                rel.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
         // Send Notification to Supplier
         if (caseItem.Business != null && _notificationService != null)
         {
@@ -1144,6 +1236,12 @@ public class RejectVerificationCommandHandler : IRequestHandler<RejectVerificati
                 "VERIFICATION_CASE",
                 caseItem.Id.ToString(),
                 cancellationToken);
+        }
+
+        // Recalculate buyer-specific trust scores for all associated buyers
+        if (_buyerTrustScoreService != null)
+        {
+            await _buyerTrustScoreService.RecalculateAllForSupplierAsync(caseItem.BusinessId, cancellationToken);
         }
 
         return Result<bool>.Success(true);

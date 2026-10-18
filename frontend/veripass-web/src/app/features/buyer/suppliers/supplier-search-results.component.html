@@ -397,6 +397,14 @@
                 ● {{ s.status }}
               </span>
               <span
+                *ngIf="s.complianceStatus"
+                class="status-pill"
+                [class.pill-verified]="s.complianceStatus === 'Compliant'"
+                [class.pill-partial]="s.complianceStatus === 'Incomplete'"
+                [class.pill-flagged]="s.complianceStatus === 'VerificationFailed'">
+                {{ s.complianceStatus }}
+              </span>
+              <span
                 class="badge-risk-pill"
                 [class.risk-low]="s.riskLevel.toUpperCase() === 'LOW'"
                 [class.risk-med]="s.riskLevel.toUpperCase() === 'MEDIUM'"
@@ -464,7 +472,8 @@
           <!-- Audit Meta -->
           <div class="audit-meta-row">
             <span class="audit-date">Audited: {{ s.lastVerified }}</span>
-            <span class="expiring-warning" *ngIf="s.expiringCredential">⚠ {{ s.expiringCredential }}</span>
+            <span class="expiring-warning" *ngIf="s.complianceStatus === 'VerificationFailed'">✕ Hard Selection Block: Failed verification</span>
+            <span class="expiring-warning" *ngIf="s.expiringCredential && s.complianceStatus !== 'VerificationFailed'">⚠ {{ s.expiringCredential }}</span>
           </div>
 
           <!-- Card Actions -->
@@ -472,8 +481,12 @@
             <a [routerLink]="['/buyer/suppliers', s.id, 'passport']" class="btn-card-passport">
               View Passport &rarr;
             </a>
-            <button class="btn-card-engage" (click)="openEngagementModal(s)">
-              Engage &bull; Request
+            <button
+              class="btn-card-engage"
+              [disabled]="s.complianceStatus === 'VerificationFailed' || s.isSelectable === false"
+              [title]="s.complianceStatus === 'VerificationFailed' ? 'Selection Disabled: Required compliance verification failed' : 'Engage & Onboard Supplier'"
+              (click)="openEngagementModal(s)">
+              {{ (s.complianceStatus === 'VerificationFailed') ? 'Selection Blocked' : 'Engage • Request' }}
             </button>
           </div>
         </div>

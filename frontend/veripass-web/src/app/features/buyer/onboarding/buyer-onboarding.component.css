@@ -1582,3 +1582,40 @@
   border-color: #94A3B8 !important;
   color: #0F172A !important;
 }
+
+/* Supplier Card Compliance & Blocked State */
+.supplier-result-card.card-blocked {
+  background: #FEF2F2 !important;
+  border-color: #FECACA !important;
+  cursor: not-allowed !important;
+  opacity: 0.85;
+}
+
+.compliance-mini-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.compliance-mini-tag.tag-compliant {
+  background: #DCFCE7;
+  color: #166534;
+}
+
+.compliance-mini-tag.tag-incomplete {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.compliance-mini-tag.tag-failed {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.blocked-alert-chip {
+  color: #DC2626;
+  font-weight: 700;
+  font-size: 11px;
+}
+

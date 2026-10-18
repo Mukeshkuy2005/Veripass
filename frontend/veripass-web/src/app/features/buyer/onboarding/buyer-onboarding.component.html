@@ -501,6 +501,7 @@
                   <div
                     class="supplier-result-card"
                     [class.selected]="selectedSupplier()?.id === sup.id"
+                    [class.card-blocked]="sup.complianceStatus === 'VerificationFailed'"
                     (click)="selectSupplier(sup)">
                     <div class="res-card-top">
                       <div class="res-names">
@@ -511,6 +512,14 @@
                       </div>
                       <div class="res-badges">
                         <span class="trust-badge">Trust: {{ sup.trustScore }}/100</span>
+                        @if (sup.complianceStatus) {
+                          <span class="compliance-mini-tag"
+                            [class.tag-compliant]="sup.complianceStatus === 'Compliant'"
+                            [class.tag-incomplete]="sup.complianceStatus === 'Incomplete'"
+                            [class.tag-failed]="sup.complianceStatus === 'VerificationFailed'">
+                            {{ sup.complianceStatus }}
+                          </span>
+                        }
                         <span class="verif-tag" [class.verified]="sup.verificationStatus === 'VERIFIED'">
                           {{ sup.verificationStatus }}
                         </span>
@@ -519,7 +528,12 @@
                     <div class="res-card-meta">
                       <span>Passport: <strong>{{ sup.passportId || 'Pending' }}</strong></span>
                       <span>GSTIN: {{ sup.gstinMasked || 'Unregistered' }}</span>
-                      <span>Location: {{ sup.location || 'India' }}</span>
+                      @if (sup.riskScore !== undefined) {
+                        <span>Risk: {{ sup.riskScore }}%</span>
+                      }
+                      @if (sup.complianceStatus === 'VerificationFailed') {
+                        <span class="blocked-alert-chip">✕ Selection Blocked (Failed Compliance)</span>
+                      }
                     </div>
                   </div>
                 }
@@ -734,7 +748,7 @@
             @if (modalStep() < 4) {
               <button
                 class="btn btn-primary"
-                [disabled]="modalStep() === 1 && !selectedSupplier()"
+                [disabled]="(modalStep() === 1 && (!selectedSupplier() || selectedSupplier()?.complianceStatus === 'VerificationFailed'))"
                 (click)="nextModalStep()">
                 Continue →
               </button>

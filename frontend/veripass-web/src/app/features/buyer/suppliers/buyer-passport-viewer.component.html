@@ -21,6 +21,19 @@
     </div>
 
     <div class="header-actions">
+      <!-- Select Supplier Button with Compliance Gating -->
+      <button
+        class="btn-select-supplier"
+        [class.btn-disabled]="buyerTrustScore()?.complianceStatus === 'VerificationFailed' || buyerTrustScore()?.isSelectable === false"
+        [disabled]="buyerTrustScore()?.complianceStatus === 'VerificationFailed' || buyerTrustScore()?.isSelectable === false"
+        [title]="buyerTrustScore()?.complianceStatus === 'VerificationFailed' ? 'Selection Blocked: Required statutory credentials failed verification or expired' : 'Select this supplier for procurement onboarding'"
+        [routerLink]="(buyerTrustScore()?.complianceStatus === 'VerificationFailed' || buyerTrustScore()?.isSelectable === false) ? null : ['/buyer/onboarding']">
+        <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+        </svg>
+        {{ (buyerTrustScore()?.complianceStatus === 'VerificationFailed') ? 'Selection Blocked' : 'Select Supplier' }}
+      </button>
+
       <button class="btn-secondary" (click)="toggleShortlist(s.id)">
         <svg width="13" height="13" viewBox="0 0 20 20" [attr.fill]="s.isShortlisted ? '#D97706' : 'none'" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -50,16 +63,35 @@
     </div>
   </div>
 
-  <!-- TOP SUMMARY: TRUST SCORE & PILLARS -->
+  <!-- TOP SUMMARY: BUYER TRUST SCORE, LEVEL, RISK & COMPLIANCE -->
   <div class="summary-top-card vp-card">
     <div class="score-column">
-      <span class="score-label">OVERALL TRUST SCORE</span>
-      <div class="score-big text-blue">{{ s.trustScore }} <span class="score-max">/ 100</span></div>
-      <div class="risk-rating-pill" 
-        [class.risk-low]="s.riskLevel.toUpperCase() === 'LOW'" 
-        [class.risk-med]="s.riskLevel.toUpperCase() === 'MEDIUM'"
-        [class.risk-high]="s.riskLevel.toUpperCase() === 'HIGH'">
-        ● {{ s.riskLevel | uppercase }} RISK PROFILE
+      <span class="score-label">BUYER TRUST SCORE</span>
+      <div class="score-big text-blue">{{ buyerTrustScore()?.score ?? s.trustScore }} <span class="score-max">/ 100</span></div>
+      
+      <div class="badge-stack">
+        <span class="trust-level-pill"
+          [class.level-low]="(buyerTrustScore()?.trustLevel || 'LOW').toUpperCase() === 'LOW'"
+          [class.level-med]="(buyerTrustScore()?.trustLevel || 'MEDIUM').toUpperCase() === 'MEDIUM'"
+          [class.level-high]="(buyerTrustScore()?.trustLevel || 'HIGH').toUpperCase() === 'HIGH'">
+          ★ {{ (buyerTrustScore()?.trustLevel || 'Medium') | uppercase }} TRUST
+        </span>
+
+        <span class="risk-rating-pill" 
+          [class.risk-low]="(buyerTrustScore()?.riskScore ?? (100 - s.trustScore)) <= 34" 
+          [class.risk-med]="(buyerTrustScore()?.riskScore ?? (100 - s.trustScore)) > 34 && (buyerTrustScore()?.riskScore ?? (100 - s.trustScore)) <= 70"
+          [class.risk-high]="(buyerTrustScore()?.riskScore ?? (100 - s.trustScore)) > 70">
+          ● {{ buyerTrustScore()?.riskScore ?? (100 - s.trustScore) }}% RISK (100 - SCORE)
+        </span>
+
+        <span class="compliance-badge-pill"
+          [class.compliance-ok]="buyerTrustScore()?.complianceStatus === 'Compliant'"
+          [class.compliance-inc]="buyerTrustScore()?.complianceStatus === 'Incomplete' || !buyerTrustScore()"
+          [class.compliance-fail]="buyerTrustScore()?.complianceStatus === 'VerificationFailed'">
+          <span *ngIf="buyerTrustScore()?.complianceStatus === 'Compliant'">✓ COMPLIANT</span>
+          <span *ngIf="buyerTrustScore()?.complianceStatus === 'Incomplete' || !buyerTrustScore()">⏳ INCOMPLETE</span>
+          <span *ngIf="buyerTrustScore()?.complianceStatus === 'VerificationFailed'">✕ VERIFICATION FAILED</span>
+        </span>
       </div>
     </div>
 
@@ -91,6 +123,130 @@
         <span class="pillar-check">✓ Verified</span>
         <span class="pillar-sub">ISO &bull; BIS Validated</span>
       </div>
+    </div>
+  </div>
+
+  <!-- BUYER TRUST SCORE PER-CREDENTIAL BREAKDOWN -->
+  <div class="credential-breakdown-card vp-card" *ngIf="buyerTrustScore() as bts">
+    <div class="breakdown-card-head">
+      <div class="bch-info">
+        <div class="bch-title-row">
+          <span class="breakdown-tag" [class.platform-default-tag]="bts.configurationSource === 'PLATFORM_DEFAULT'">
+            {{ bts.configurationSource === 'PLATFORM_DEFAULT' ? 'PLATFORM ADMIN BASELINE' : 'BUYER VERIFICATION PROFILE' }}
+          </span>
+          <span class="version-tag">
+            {{ bts.configurationSource === 'PLATFORM_DEFAULT' ? 'DEFAULT RULES' : ('PROFILE v' + bts.profileVersion) }}
+          </span>
+        </div>
+        <h3 class="breakdown-heading">Per-Credential Weighted Scoring Breakdown</h3>
+        <p class="breakdown-sub">
+          Calculated for {{ bts.supplierName }} using {{ bts.configurationSource === 'PLATFORM_DEFAULT' ? 'Platform Administrator baseline verification rules and default weights' : 'active buyer custom verification profile rules and weights' }}. 
+          Every configured credential is included in the denominator.
+        </p>
+      </div>
+
+      <div class="bch-stat-box" [class.bch-blocked]="bts.complianceStatus === 'VerificationFailed'">
+        <div class="stat-main">
+          <span class="stat-val">{{ bts.score }}</span>
+          <span class="stat-max">/100</span>
+        </div>
+        <span class="stat-status-badge"
+          [class.chip-ok]="bts.complianceStatus === 'Compliant'"
+          [class.chip-inc]="bts.complianceStatus === 'Incomplete'"
+          [class.chip-fail]="bts.complianceStatus === 'VerificationFailed'">
+          {{ bts.complianceStatus }}
+        </span>
+      </div>
+    </div>
+
+    @if (bts.complianceStatus === 'VerificationFailed') {
+      <div class="selection-blocked-alert">
+        <div class="alert-icon">⚠</div>
+        <div class="alert-content">
+          <strong>HARD SELECTION BLOCKER ACTIVE:</strong>
+          This supplier cannot be selected or onboarded because one or more mandatory credential requirements are 
+          <strong>REJECTED</strong>, <strong>EXPIRED</strong>, or failed verification rules.
+        </div>
+      </div>
+    }
+
+    <div class="breakdown-table-wrap">
+      <table class="breakdown-table">
+        <thead>
+          <tr>
+            <th>Credential Requirement</th>
+            <th>Obligation</th>
+            <th>Verification Status</th>
+            <th>Points Earned / Weight</th>
+            <th>Contribution (S<sub>i</sub>)</th>
+            <th>Rules & Failure Analysis</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of bts.breakdown; track item.credentialType) {
+            <tr [class.row-failed]="item.ruleFailed || (item.isRequired && (item.status === 'REJECTED' || item.status === 'EXPIRED'))">
+              <td class="td-type">
+                <span class="cred-code">{{ item.credentialType }}</span>
+              </td>
+              <td>
+                <span class="obligation-tag" [class.ob-req]="item.isRequired" [class.ob-opt]="!item.isRequired">
+                  {{ item.isRequired ? 'Mandatory' : 'Optional' }}
+                </span>
+              </td>
+              <td>
+                <span class="status-pill-small"
+                  [class.st-app]="item.status === 'APPROVED'"
+                  [class.st-pen]="item.status === 'PENDING'"
+                  [class.st-exp]="item.status === 'EXPIRED'"
+                  [class.st-rej]="item.status === 'REJECTED'"
+                  [class.st-mis]="item.status === 'MISSING'">
+                  {{ item.status }}
+                </span>
+              </td>
+              <td class="td-pts">
+                <div class="pts-text">
+                  <strong [class.text-muted]="item.pointsEarned === 0">{{ item.pointsEarned }}</strong> / {{ item.weight }} pts
+                </div>
+                <div class="pts-track">
+                  <div class="pts-bar" [style.width.%]="(item.pointsEarned / (item.weight || 1)) * 100"></div>
+                </div>
+              </td>
+              <td class="td-contrib">
+                <span class="contrib-badge" [class.contrib-one]="item.contribution === 1" [class.contrib-zero]="item.contribution === 0">
+                  {{ item.contribution }}
+                </span>
+              </td>
+              <td class="td-analysis">
+                @if (item.ruleFailed || item.ruleFailedReason) {
+                  <span class="rule-fail-text">
+                    ✕ Failed: {{ item.ruleFailedReason || 'Verification rule check failed' }}
+                  </span>
+                } @else if (item.status === 'APPROVED') {
+                  <span class="rule-ok-text">
+                    ✓ Verified sovereign match (100% contribution)
+                  </span>
+                } @else if (item.status === 'EXPIRED') {
+                  <span class="rule-fail-text">
+                    ✕ Credential expired — renew required
+                  </span>
+                } @else if (item.status === 'REJECTED') {
+                  <span class="rule-fail-text">
+                    ✕ Verifier rejected compliance proof
+                  </span>
+                } @else if (item.status === 'PENDING') {
+                  <span class="rule-pend-text">
+                    ⏳ In review with compliance desk
+                  </span>
+                } @else {
+                  <span class="rule-miss-text">
+                    — Missing proof (counts as 0 in denominator)
+                  </span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
     </div>
   </div>
 

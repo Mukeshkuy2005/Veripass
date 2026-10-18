@@ -198,6 +198,17 @@ public class GetBusinessDashboardQueryHandler : IRequestHandler<GetBusinessDashb
 }
 
 // Commands
+public record UpdateBusinessAddressDto(
+    string? AddressType,
+    string? Line1,
+    string? Line2,
+    string? City,
+    string? District,
+    string? State,
+    string? Pincode,
+    string? Country,
+    bool? IsPrimary);
+
 public record UpdateBusinessCommand(
     Guid BusinessId,
     string LegalName,
@@ -209,7 +220,8 @@ public record UpdateBusinessCommand(
     string? UdyamNumber,
     string? Website,
     int? EmployeeCount,
-    string? Description) : IRequest<Result<bool>>;
+    string? Description,
+    List<UpdateBusinessAddressDto>? Addresses = null) : IRequest<Result<bool>>;
 
 public class UpdateBusinessCommandHandler : IRequestHandler<UpdateBusinessCommand, Result<bool>>
 {
@@ -238,9 +250,59 @@ public class UpdateBusinessCommandHandler : IRequestHandler<UpdateBusinessComman
         b.EmployeeCount = request.EmployeeCount;
         b.Description = request.Description;
 
+        // Keep parent Organization name in sync with updated legal name
+        var org = await _context.Organizations.FindAsync(new object[] { b.OrganizationId }, cancellationToken);
+        if (org != null && !string.IsNullOrWhiteSpace(b.LegalName))
+        {
+            org.Name = b.LegalName;
+        }
+
+        // Synchronize primary address if provided
+        if (request.Addresses != null && request.Addresses.Count > 0)
+        {
+            var primaryReq = request.Addresses.FirstOrDefault(a => a.IsPrimary == true) ?? request.Addresses[0];
+            if (!string.IsNullOrWhiteSpace(primaryReq.Line1) || !string.IsNullOrWhiteSpace(primaryReq.City))
+            {
+                var existingAddresses = await _context.BusinessAddresses
+                    .Where(a => a.BusinessId == b.Id)
+                    .ToListAsync(cancellationToken);
+                var primaryAddr = existingAddresses.FirstOrDefault(a => a.IsPrimary) ?? existingAddresses.FirstOrDefault();
+                if (primaryAddr != null)
+                {
+                    primaryAddr.Line1 = primaryReq.Line1 ?? primaryAddr.Line1;
+                    primaryAddr.Line2 = primaryReq.Line2 ?? primaryAddr.Line2;
+                    primaryAddr.City = primaryReq.City ?? primaryAddr.City;
+                    primaryAddr.District = primaryReq.District ?? primaryAddr.District;
+                    primaryAddr.State = primaryReq.State ?? primaryAddr.State;
+                    primaryAddr.Pincode = primaryReq.Pincode ?? primaryAddr.Pincode;
+                    primaryAddr.Country = primaryReq.Country ?? primaryAddr.Country ?? "India";
+                    primaryAddr.AddressType = primaryReq.AddressType ?? primaryAddr.AddressType ?? "REGISTERED";
+                    primaryAddr.IsPrimary = true;
+                    primaryAddr.UpdatedAt = DateTime.UtcNow;
+                }
+                else
+                {
+                    _context.BusinessAddresses.Add(new BusinessAddress
+                    {
+                        BusinessId = b.Id,
+                        Line1 = primaryReq.Line1 ?? "",
+                        Line2 = primaryReq.Line2,
+                        City = primaryReq.City ?? "",
+                        District = primaryReq.District,
+                        State = primaryReq.State ?? "",
+                        Pincode = primaryReq.Pincode ?? "",
+                        Country = primaryReq.Country ?? "India",
+                        AddressType = primaryReq.AddressType ?? "REGISTERED",
+                        IsPrimary = true,
+                        VerificationStatus = VerificationStatus.VERIFIED
+                    });
+                }
+            }
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Recalculate score after updating identity fields
+        // Recalculate score after updating identity and address fields
         var calc = await _trustScoreCalculator.CalculateAsync(b.Id, cancellationToken);
         var score = await _context.TrustScores.FirstOrDefaultAsync(t => t.BusinessId == b.Id, cancellationToken);
         if (score == null)
@@ -255,6 +317,25 @@ public class UpdateBusinessCommandHandler : IRequestHandler<UpdateBusinessComman
         score.VerificationScore = calc.VerificationScore;
         score.RiskScore = calc.RiskScore;
         score.LastCalculatedAt = DateTime.UtcNow;
+
+        // Synchronize BusinessPassport verification score
+        var passport = await _context.BusinessPassports.FirstOrDefaultAsync(p => p.BusinessId == b.Id, cancellationToken);
+        if (passport != null)
+        {
+            passport.VerificationScore = calc.OverallScore;
+            passport.UpdatedAt = DateTime.UtcNow;
+        }
+
+        // Synchronize linked BuyerSupplierRelationships with authoritative risk level
+        var relationships = await _context.BuyerSupplierRelationships
+            .Where(r => r.SupplierBusinessId == b.Id)
+            .ToListAsync(cancellationToken);
+        var derivedRisk = SupplierRiskPolicy.DetermineRiskLevelSafe(calc.OverallScore);
+        foreach (var rel in relationships)
+        {
+            rel.RiskLevel = derivedRisk;
+            rel.UpdatedAt = DateTime.UtcNow;
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
         return Result<bool>.Success(true);

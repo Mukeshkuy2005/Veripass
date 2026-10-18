@@ -67,6 +67,8 @@ public static class DependencyInjection
         // Verification & Scoring
         services.AddSingleton<IVerificationProviderFactory, VerificationProviderFactory>();
         services.AddScoped<ITrustScoreCalculator, TrustScoreCalculator>();
+        services.AddScoped<IRuleBasedVerificationEngine, RuleBasedVerificationEngine>();
+        services.AddScoped<IBuyerTrustScoreService, BuyerTrustScoreService>();
 
         // Notifications
         services.AddScoped<INotificationService, NotificationService>();

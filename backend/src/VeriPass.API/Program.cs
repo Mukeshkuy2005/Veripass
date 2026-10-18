@@ -50,6 +50,9 @@ using (var scope = app.Services.CreateScope())
 
         // Ensure Verification Cases Schema, Indexes, Verifier User, and Initial Verification Cases
         EnsureVerificationCaseSchema(dbContext, scope.ServiceProvider, logger);
+
+        // Ensure Buyer Verification Profiles Schema & Default Profiles
+        EnsureBuyerVerificationProfileSchema(dbContext, logger);
     }
     catch (Exception ex)
     {
@@ -242,7 +245,10 @@ CREATE INDEX IF NOT EXISTS ""IX_onboarding_request_requirements_OnboardingReques
 CREATE INDEX IF NOT EXISTS ""IX_onboarding_request_requirements_RequirementId"" ON ""onboarding_request_requirements"" (""RequirementId"");
 CREATE INDEX IF NOT EXISTS ""IX_onboarding_request_requirements_Status"" ON ""onboarding_request_requirements"" (""Status"");
 ";
-            dbContext.Database.ExecuteSqlRaw(ddl);
+            if (dbContext.Database.IsRelational())
+            {
+                dbContext.Database.ExecuteSqlRaw(ddl);
+            }
 
             if (!dbContext.OnboardingRequirements.Any())
             {
@@ -288,7 +294,10 @@ CREATE INDEX IF NOT EXISTS ""IX_audit_logs_Action"" ON ""audit_logs"" (""Action"
 CREATE INDEX IF NOT EXISTS ""IX_audit_logs_Result"" ON ""audit_logs"" (""Result"");
 CREATE INDEX IF NOT EXISTS ""IX_audit_logs_EventCode"" ON ""audit_logs"" (""EventCode"");
 ";
-            dbContext.Database.ExecuteSqlRaw(ddl);
+            if (dbContext.Database.IsRelational())
+            {
+                dbContext.Database.ExecuteSqlRaw(ddl);
+            }
 
             // Ensure system roles exist
             var buyerRoleId = Guid.Parse("33333333-3333-3333-3333-333333333333");
@@ -478,8 +487,11 @@ BEGIN
        OR ""Id""::text LIKE '88888888%';
 END $$;
 ";
-            dbContext.Database.ExecuteSqlRaw(purgeSql);
-            logger.LogInformation("Legacy mock seed data purged successfully. Only genuine registered entities and platform admin remain.");
+            if (dbContext.Database.IsRelational())
+            {
+                dbContext.Database.ExecuteSqlRaw(purgeSql);
+                logger.LogInformation("Legacy mock seed data purged successfully. Only genuine registered entities and platform admin remain.");
+            }
         }
         catch (Exception ex)
         {
@@ -507,7 +519,10 @@ CREATE INDEX IF NOT EXISTS ""IX_verification_cases_CompletedAt"" ON ""verificati
 CREATE INDEX IF NOT EXISTS ""IX_verification_cases_Status_Priority"" ON ""verification_cases"" (""Status"", ""Priority"");
 CREATE INDEX IF NOT EXISTS ""IX_verification_cases_Assigned_Status"" ON ""verification_cases"" (""AssignedVerifierId"", ""Status"");
 ";
-            dbContext.Database.ExecuteSqlRaw(ddl);
+            if (dbContext.Database.IsRelational())
+            {
+                dbContext.Database.ExecuteSqlRaw(ddl);
+            }
 
             // 1. Ensure dedicated verifier account exists: verifier@veripass.in (Rahul Sharma)
             var passwordHasher = services.GetRequiredService<IPasswordHasher>();
@@ -950,5 +965,216 @@ CREATE INDEX IF NOT EXISTS ""IX_verification_cases_Assigned_Status"" ON ""verifi
             logger.LogError(ex, "Failed to ensure verification case schema.");
         }
     }
+
+    private static void EnsureBuyerVerificationProfileSchema(ApplicationDbContext dbContext, ILogger logger)
+    {
+        try
+        {
+            logger.LogInformation("Verifying and updating Buyer Verification Profile schema...");
+            var ddl = @"
+CREATE TABLE IF NOT EXISTS ""buyer_verification_profiles"" (
+    ""Id"" uuid NOT NULL PRIMARY KEY,
+    ""BuyerOrganizationId"" uuid NOT NULL,
+    ""Name"" character varying(150) NOT NULL,
+    ""Description"" character varying(500),
+    ""Version"" integer NOT NULL DEFAULT 1,
+    ""IsActive"" boolean NOT NULL DEFAULT TRUE,
+    ""IsDefault"" boolean NOT NULL DEFAULT TRUE,
+    ""TotalWeight"" integer NOT NULL DEFAULT 100,
+    ""CreatedBy"" character varying(100),
+    ""UpdatedBy"" character varying(100),
+    ""IsDeleted"" boolean NOT NULL DEFAULT FALSE,
+    ""DeletedAt"" timestamp with time zone,
+    ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ""UpdatedAt"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ""CK_buyer_verification_profiles_TotalWeight"" CHECK (""TotalWeight"" = 100)
+);
+
+CREATE TABLE IF NOT EXISTS ""credential_requirements"" (
+    ""Id"" uuid NOT NULL PRIMARY KEY,
+    ""ProfileId"" uuid NOT NULL,
+    ""Type"" character varying(50) NOT NULL,
+    ""CredentialTypeId"" uuid,
+    ""IsRequired"" boolean NOT NULL DEFAULT TRUE,
+    ""Weight"" integer NOT NULL DEFAULT 0,
+    ""Rules"" character varying(1000),
+    ""CreatedBy"" character varying(100),
+    ""UpdatedBy"" character varying(100),
+    ""IsDeleted"" boolean NOT NULL DEFAULT FALSE,
+    ""DeletedAt"" timestamp with time zone,
+    ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ""UpdatedAt"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ""CK_credential_requirements_Weight"" CHECK (""Weight"" > 0 AND ""Weight"" <= 100)
+);
+
+CREATE INDEX IF NOT EXISTS ""IX_buyer_verification_profiles_BuyerOrganizationId"" ON ""buyer_verification_profiles"" (""BuyerOrganizationId"");
+CREATE INDEX IF NOT EXISTS ""IX_credential_requirements_ProfileId"" ON ""credential_requirements"" (""ProfileId"");
+CREATE INDEX IF NOT EXISTS ""IX_credential_requirements_Type"" ON ""credential_requirements"" (""Type"");
+
+ALTER TABLE ""trust_score_snapshots"" ADD COLUMN IF NOT EXISTS ""BuyerId"" uuid;
+ALTER TABLE ""trust_score_snapshots"" ADD COLUMN IF NOT EXISTS ""SupplierId"" uuid;
+ALTER TABLE ""trust_score_snapshots"" ADD COLUMN IF NOT EXISTS ""Score"" integer NOT NULL DEFAULT 0;
+ALTER TABLE ""trust_score_snapshots"" ADD COLUMN IF NOT EXISTS ""Level"" character varying(20) NOT NULL DEFAULT 'Low';
+ALTER TABLE ""trust_score_snapshots"" ADD COLUMN IF NOT EXISTS ""Compliance"" character varying(30) NOT NULL DEFAULT 'Incomplete';
+ALTER TABLE ""trust_score_snapshots"" ADD COLUMN IF NOT EXISTS ""ProfileVersion"" integer NOT NULL DEFAULT 1;
+ALTER TABLE ""trust_score_snapshots"" ADD COLUMN IF NOT EXISTS ""CalculatedAt"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE ""trust_score_snapshots"" ADD COLUMN IF NOT EXISTS ""BreakdownJson"" text;
+ALTER TABLE ""trust_score_snapshots"" ADD COLUMN IF NOT EXISTS ""ConfigurationSource"" character varying(50) NOT NULL DEFAULT 'BUYER';
+
+ALTER TABLE ""compliance_rules"" ADD COLUMN IF NOT EXISTS ""CredentialType"" character varying(50);
+ALTER TABLE ""compliance_rules"" ADD COLUMN IF NOT EXISTS ""ValidationType"" character varying(50);
+ALTER TABLE ""compliance_rules"" ADD COLUMN IF NOT EXISTS ""IsRequired"" boolean NOT NULL DEFAULT TRUE;
+ALTER TABLE ""compliance_rules"" ADD COLUMN IF NOT EXISTS ""DefaultWeight"" integer NOT NULL DEFAULT 0;
+
+CREATE INDEX IF NOT EXISTS ""IX_trust_score_snapshots_BuyerId_SupplierId"" ON ""trust_score_snapshots"" (""BuyerId"", ""SupplierId"");
+";
+            if (dbContext.Database.IsRelational())
+            {
+                dbContext.Database.ExecuteSqlRaw(ddl);
+            }
+
+            // Seed Platform Admin Default Verification Rules if none exist
+            if (!dbContext.ComplianceRules.Any(r => r.DefaultWeight > 0))
+            {
+                var defaultAdminRules = new List<ComplianceRule>
+                {
+                    new ComplianceRule
+                    {
+                        Code = "RULE_GST_DEFAULT",
+                        Name = "GSTIN Statutory Checksum & Validity",
+                        Category = "STATUTORY",
+                        CredentialType = "GSTIN",
+                        ValidationType = "CHECKSUM",
+                        IsRequired = true,
+                        DefaultWeight = 30,
+                        Severity = ComplianceSeverity.CRITICAL,
+                        Description = "Enforces active GSTIN format, valid state codes, and ISO Mod-36 checksum verification.",
+                        IsActive = true
+                    },
+                    new ComplianceRule
+                    {
+                        Code = "RULE_PAN_DEFAULT",
+                        Name = "Permanent Account Number (PAN) Validation",
+                        Category = "STATUTORY",
+                        CredentialType = "PAN",
+                        ValidationType = "STRUCTURE",
+                        IsRequired = true,
+                        DefaultWeight = 15,
+                        Severity = ComplianceSeverity.CRITICAL,
+                        Description = "Enforces 10-character sovereign PAN structure, entity character matching, and legal name initials.",
+                        IsActive = true
+                    },
+                    new ComplianceRule
+                    {
+                        Code = "RULE_UDYAM_DEFAULT",
+                        Name = "MSME Udyam Registration Format",
+                        Category = "STATUTORY",
+                        CredentialType = "UDYAM",
+                        ValidationType = "FORMAT",
+                        IsRequired = true,
+                        DefaultWeight = 15,
+                        Severity = ComplianceSeverity.HIGH,
+                        Description = "Validates Ministry of MSME Udyam certificate identifier structure (UDYAM-XX-00-0000000).",
+                        IsActive = true
+                    },
+                    new ComplianceRule
+                    {
+                        Code = "RULE_BANK_DEFAULT",
+                        Name = "Primary Bank Account & IFSC Validation",
+                        Category = "FINANCIAL",
+                        CredentialType = "BANK",
+                        ValidationType = "DATA_MATCH",
+                        IsRequired = true,
+                        DefaultWeight = 25,
+                        Severity = ComplianceSeverity.CRITICAL,
+                        Description = "Validates RBI-standard IFSC format, valid account length, and beneficiary name matching.",
+                        IsActive = true
+                    },
+                    new ComplianceRule
+                    {
+                        Code = "RULE_CIN_DEFAULT",
+                        Name = "Business Registration (MCA Corporate CIN)",
+                        Category = "STATUTORY",
+                        CredentialType = "BUSINESS_REGISTRATION",
+                        ValidationType = "FORMAT",
+                        IsRequired = false,
+                        DefaultWeight = 15,
+                        Severity = ComplianceSeverity.MEDIUM,
+                        Description = "Validates 21-character Ministry of Corporate Affairs Corporate Identification Number (CIN).",
+                        IsActive = true
+                    }
+                };
+
+                dbContext.ComplianceRules.AddRange(defaultAdminRules);
+                logger.LogInformation("Seeded {Count} Platform Admin default verification rules (total weight: 100%).", defaultAdminRules.Count);
+            }
+
+            // Seed default profile for buyer organizations that don't have one
+            var buyerOrgs = dbContext.Organizations
+                .Where(o => o.Type == OrganizationType.BUYER || o.Type == OrganizationType.BOTH)
+                .ToList();
+
+            foreach (var org in buyerOrgs)
+            {
+                var hasProfile = dbContext.BuyerVerificationProfiles.Any(p => p.BuyerOrganizationId == org.Id);
+                if (!hasProfile)
+                {
+                    var profile = new BuyerVerificationProfile
+                    {
+                        BuyerOrganizationId = org.Id,
+                        Name = "Enterprise Default Verification Profile",
+                        Description = "Balanced risk configuration: GST (30%), PAN (25%), Bank Account (25%), and ISO 9001 (20%).",
+                        Version = 1,
+                        IsActive = true,
+                        IsDefault = true,
+                        TotalWeight = 100
+                    };
+
+                    profile.Requirements.Add(new CredentialRequirement
+                    {
+                        ProfileId = profile.Id,
+                        Type = "GST",
+                        IsRequired = true,
+                        Weight = 30,
+                        Rules = "ACTIVE_STATUS,NAME_MATCH"
+                    });
+                    profile.Requirements.Add(new CredentialRequirement
+                    {
+                        ProfileId = profile.Id,
+                        Type = "PAN",
+                        IsRequired = true,
+                        Weight = 25,
+                        Rules = "VALID_STATUS,NAME_MATCH"
+                    });
+                    profile.Requirements.Add(new CredentialRequirement
+                    {
+                        ProfileId = profile.Id,
+                        Type = "BANK_ACCOUNT",
+                        IsRequired = true,
+                        Weight = 25,
+                        Rules = "ACTIVE_STATUS,NAME_MATCH"
+                    });
+                    profile.Requirements.Add(new CredentialRequirement
+                    {
+                        ProfileId = profile.Id,
+                        Type = "ISO_9001",
+                        IsRequired = false,
+                        Weight = 20,
+                        Rules = "ACTIVE_STATUS"
+                    });
+
+                    dbContext.BuyerVerificationProfiles.Add(profile);
+                    logger.LogInformation("Seeded default BuyerVerificationProfile for organization: {OrgName} ({OrgId})", org.Name, org.Id);
+                }
+            }
+
+            dbContext.SaveChanges();
+            logger.LogInformation("Buyer Verification Profile schema verification completed.");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to ensure buyer verification profile schema.");
+        }
+    }
 }
-// Hot reload trigger
+

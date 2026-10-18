@@ -9,7 +9,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const user = authService.currentUser();
   let headers = req.headers;
 
-  if (token && !token.includes('demo_token')) {
+  if (token) {
     headers = headers.set('Authorization', `Bearer ${token}`);
   }
 
